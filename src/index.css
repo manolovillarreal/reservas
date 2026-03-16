@@ -1,0 +1,36 @@
+@import "tailwindcss";
+
+@theme {
+  --color-indigo-50: #EEF2FF;
+  --color-indigo-100: #E0E7FF;
+  --color-indigo-500: #6366F1;
+  --color-indigo-600: #4F46E5;
+  --color-indigo-700: #4338CA;
+  
+  --color-slate-50: #F8FAFC;
+  --color-slate-100: #F1F5F9;
+  --color-slate-800: #1E293B;
+  --color-slate-900: #0F172A;
+  
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+}
+
+/* Custom Base Styles based on Design System */
+@layer base {
+  body {
+    @apply bg-[#FAFAFA] text-gray-900;
+  }
+}
+
+/* Reusable Utility Classes */
+@layer components {
+  .btn-primary {
+    @apply bg-indigo-500 hover:bg-indigo-600 text-white font-medium py-2 px-4 rounded-md shadow-sm transition-colors;
+  }
+  .btn-secondary {
+    @apply bg-white hover:bg-gray-50 text-gray-700 font-medium py-2 px-4 rounded-md border border-gray-300 shadow-sm transition-colors;
+  }
+  .card {
+    @apply bg-white border border-gray-200 rounded-xl shadow-sm p-5;
+  }
+}

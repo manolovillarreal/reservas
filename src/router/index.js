@@ -1,0 +1,104 @@
+import { createRouter, createWebHistory } from 'vue-router'
+import DashboardView from '../views/DashboardView.vue'
+import { supabase } from '../services/supabase'
+
+const router = createRouter({
+  history: createWebHistory(import.meta.env.BASE_URL),
+  routes: [
+    {
+      path: '/login',
+      name: 'login',
+      component: () => import('../views/LoginView.vue'),
+      meta: { guestOnly: true, plainLayout: true }
+    },
+    {
+      path: '/prerregistro/:token',
+      name: 'preregistro',
+      component: () => import('../views/PreRegistroView.vue'),
+      meta: { plainLayout: true }
+    },
+    {
+      path: '/',
+      name: 'dashboard',
+      component: DashboardView,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/reservas',
+      name: 'reservas',
+      component: () => import('../views/ReservationsView.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/reservas/:id',
+      name: 'detalle-reserva',
+      component: () => import('../views/ReservationsDetailView.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/consultas',
+      name: 'consultas',
+      component: () => import('../views/InquiriesView.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/consultas/:id',
+      name: 'detalle-consulta',
+      component: () => import('../views/InquiryDetailView.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/bloqueos',
+      name: 'bloqueos',
+      component: () => import('../views/RoomBlocksView.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/calendar',
+      name: 'calendar',
+      component: () => import('../views/CalendarView.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/reservar',
+      name: 'nueva-reserva',
+      component: () => import('../views/NewReservationView.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/sedes',
+      name: 'sedes',
+      component: () => import('../views/VenuesView.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/unidades',
+      name: 'unidades',
+      component: () => import('../views/UnitsView.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/huespedes',
+      name: 'huespedes',
+      component: () => import('../views/GuestsView.vue'),
+      meta: { requiresAuth: true }
+    }
+  ]
+})
+
+router.beforeEach(async (to) => {
+  const { data } = await supabase.auth.getSession()
+  const isAuthenticated = !!data.session
+
+  if (to.meta.requiresAuth && !isAuthenticated) {
+    return { name: 'login', query: { redirect: to.fullPath } }
+  }
+
+  if (to.meta.guestOnly && isAuthenticated) {
+    return { name: 'dashboard' }
+  }
+
+  return true
+})
+
+export default router
