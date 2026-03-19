@@ -8,9 +8,6 @@
         Volver a Reservas
       </router-link>
       <div class="flex items-center gap-3">
-        <button v-if="can('reservations', 'edit')" class="btn-secondary text-sm" @click="copyPreregistroLink">Copiar link pre-registro</button>
-        <button v-if="can('reservations', 'edit')" class="btn-secondary text-sm" @click="showPreregistroModal = true">Completar pre-registro</button>
-        <button v-if="can('reservations', 'checkin')" class="btn-secondary text-sm" @click="registerArrival">Registrar llegada</button>
         <button v-if="can('vouchers', 'generate')" class="btn-secondary text-sm" @click="openVoucher">Generar Voucher</button>
       </div>
     </div>
@@ -165,24 +162,69 @@
           El plazo de pago ($ {{ formatCurrency(res.balance) }}) venció el {{ formatDate(res.payment_deadline) }}.
         </DeadlineAlert>
 
-        <!-- Guest Card -->
         <div class="card">
-          <h2 class="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wider">Pre-registro</h2>
-          <div class="space-y-2 text-sm text-gray-600">
-            <p>Estado: <span class="font-medium text-gray-900">{{ res.preregistro_completado ? 'Completado' : 'Pendiente' }}</span></p>
-            <p>Fecha: <span class="font-medium text-gray-900">{{ res.preregistro_completado_at ? formatDate(res.preregistro_completado_at) : 'Sin completar' }}</span></p>
-            <p>Llegada física: <span class="font-medium text-gray-900">{{ res.checkin_at ? formatDateTime(res.checkin_at) : 'No registrada' }}</span></p>
+          <h2 class="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wider">Pre-registro de huéspedes</h2>
+
+          <div v-if="res.preregistro_completado" class="space-y-3 text-sm text-gray-700">
+            <p class="inline-flex rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700">Completado ✓</p>
+            <p>
+              Completado el
+              <span class="font-medium text-gray-900">{{ formatDateTime(res.preregistro_completado_at) }}</span>
+            </p>
+
+            <div class="rounded-md border border-gray-200 bg-gray-50 p-3">
+              <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Huéspedes registrados</p>
+              <div v-if="registeredGuests.length === 0" class="text-sm text-gray-500">No hay huéspedes nominales registrados.</div>
+              <div v-else class="space-y-2">
+                <div v-for="guest in registeredGuests" :key="`rg-${guest.id}`" class="rounded border border-gray-200 bg-white px-3 py-2">
+                  <p class="text-sm font-medium text-gray-900">{{ guest.name || 'Sin nombre' }}</p>
+                  <p class="text-xs text-gray-600">{{ guest.documentLabel }}</p>
+                  <p class="text-xs text-gray-600">{{ guest.nationality || 'Nacionalidad no registrada' }}</p>
+                  <p class="text-xs font-semibold" :class="guest.is_primary ? 'text-indigo-700' : 'text-gray-500'">
+                    {{ guest.is_primary ? 'Principal' : 'Acompañante' }}
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
-          <div class="mt-4 grid gap-2">
-            <button class="w-full rounded-md bg-indigo-50 px-3 py-2 text-sm font-medium text-indigo-700 hover:bg-indigo-100" @click="copyPreregistroLink">
-              Copiar link
+
+          <div v-else-if="res.status === 'confirmed'" class="space-y-3 text-sm text-gray-700">
+            <p class="inline-flex rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-700">Pendiente</p>
+            <button v-if="can('reservations', 'edit')" class="w-full rounded-md bg-gray-100 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200" @click="showPreregistroModal = true">
+              Completar pre-registro
             </button>
-            <button class="w-full rounded-md bg-gray-100 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200" @click="showPreregistroModal = true">
-              Completar desde admin
+            <button v-if="can('reservations', 'edit')" class="w-full rounded-md bg-indigo-50 px-3 py-2 text-sm font-medium text-indigo-700 hover:bg-indigo-100" @click="copyPreregistroLink">
+              Copiar link de pre-registro
             </button>
-            <button class="w-full rounded-md bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-100" @click="registerArrival">
-              Registrar llegada física
+            <p class="text-xs text-gray-500">El link es válido 48 horas después del check-in declarado.</p>
+          </div>
+
+          <div v-else class="text-sm text-gray-500">
+            El pre-registro solo está disponible para reservas en estado confirmed.
+          </div>
+        </div>
+
+        <div class="card">
+          <h2 class="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wider">Check-in físico</h2>
+
+          <div v-if="res.checkin_at" class="space-y-2 text-sm text-gray-700">
+            <p class="inline-flex rounded-full bg-indigo-100 px-2.5 py-1 text-xs font-semibold text-indigo-700">Llegada registrada</p>
+            <p>Registrado: <span class="font-medium text-gray-900">{{ formatDateTime(res.checkin_at) }}</span></p>
+          </div>
+
+          <div v-else-if="res.status === 'confirmed'" class="space-y-3 text-sm text-gray-700">
+            <p class="text-gray-600">Registrar la llegada real del huésped cambia el estado de la reserva a in_stay.</p>
+            <button
+              v-if="can('reservations', 'checkin')"
+              class="w-full rounded-md bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-100"
+              @click="openCheckinConfirmModal"
+            >
+              Registrar llegada
             </button>
+          </div>
+
+          <div v-else class="text-sm text-gray-500">
+            La llegada física solo se registra desde estado confirmed.
           </div>
         </div>
 
@@ -222,12 +264,15 @@
       <PreRegistroForm
         v-if="res"
         :reservation="preregistroReservation"
-        :initialGuests="initialPreregistroGuests"
-        :loading="preregistroSubmitting"
-        :errorMessage="preregistroErrorMessage"
-        submitLabel="Guardar pre-registro"
-        @submit="handleAdminPreregistroSubmit"
+        :guestsCount="preregistroGuestsCount"
+        :submitting="preregistroSubmitting"
+        :initialPrimaryGuest="preregistroPrimaryGuest"
+        :initialAdditionalGuests="preregistroAdditionalGuests"
+        @submitted="handleAdminPreregistroSubmit"
       />
+      <p v-if="preregistroErrorMessage" class="mt-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+        {{ preregistroErrorMessage }}
+      </p>
     </BaseModal>
 
     <BaseModal :isOpen="showEditUnitsModal" title="Editar unidades" @close="closeEditUnitsModal">
@@ -301,6 +346,16 @@
       @close="closeDeletePaymentModal"
       @confirm="confirmDeletePayment"
     />
+
+    <ConfirmActionModal
+      :isOpen="showCheckinConfirmModal"
+      title="Registrar llegada"
+      :message="checkinConfirmationMessage"
+      confirmLabel="Confirmar llegada"
+      :loading="checkinSubmitting"
+      @close="closeCheckinConfirmModal"
+      @confirm="confirmCheckin"
+    />
   </div>
 </template>
 
@@ -346,6 +401,8 @@ const showPaymentModal = ref(false)
 const showDeletePaymentModal = ref(false)
 const deletingPayment = ref(false)
 const selectedPayment = ref(null)
+const showCheckinConfirmModal = ref(false)
+const checkinSubmitting = ref(false)
 
 onMounted(async () => {
   await fetchReservation()
@@ -446,10 +503,43 @@ const initialPreregistroGuests = computed(() => {
   return [{
     name: res.value?.guest_name || '',
     phone: res.value?.guest_phone || '',
+    email: res.value?.guest_email || '',
     nationality: '',
     document_type: '',
     document_number: ''
   }]
+})
+
+const preregistroGuestsCount = computed(() => {
+  const total = Number(res.value?.adults || 0) + Number(res.value?.children || 0)
+  return total > 0 ? total : 1
+})
+
+const preregistroPrimaryGuest = computed(() => {
+  return initialPreregistroGuests.value[0] || {
+    name: res.value?.guest_name || '',
+    phone: res.value?.guest_phone || '',
+    email: res.value?.guest_email || '',
+    nationality: '',
+    document_type: '',
+    document_number: '',
+  }
+})
+
+const preregistroAdditionalGuests = computed(() => {
+  return initialPreregistroGuests.value.slice(1)
+})
+
+const registeredGuests = computed(() => {
+  return (res.value?.reservation_guests || [])
+    .map((row) => ({
+      id: row.guest_id || row.guests?.id,
+      is_primary: Boolean(row.is_primary),
+      name: row.guests?.name || '-',
+      nationality: row.guests?.nationality || '',
+      documentLabel: [row.guests?.document_type, row.guests?.document_number].filter(Boolean).join(' ') || 'Sin documento',
+    }))
+    .sort((a, b) => Number(b.is_primary) - Number(a.is_primary))
 })
 
 const preregistroReservation = computed(() => ({
@@ -474,6 +564,11 @@ const canViewPayments = computed(() => can('payments', 'view'))
 const deletePaymentMessage = computed(() => {
   if (!selectedPayment.value) return ''
   return `¿Eliminar este pago de $${formatCurrency(selectedPayment.value.amount)} registrado el ${formatDate(selectedPayment.value.payment_date)}?`
+})
+
+const checkinConfirmationMessage = computed(() => {
+  const nowLabel = formatDateTime(new Date().toISOString())
+  return `¿Confirmar llegada de ${guestDisplayName.value}?\nHora de registro: ${nowLabel}`
 })
 
 // Formatting
@@ -554,6 +649,16 @@ const closeDeletePaymentModal = () => {
   if (deletingPayment.value) return
   showDeletePaymentModal.value = false
   selectedPayment.value = null
+}
+
+const openCheckinConfirmModal = () => {
+  if (!res.value) return
+  showCheckinConfirmModal.value = true
+}
+
+const closeCheckinConfirmModal = () => {
+  if (checkinSubmitting.value) return
+  showCheckinConfirmModal.value = false
 }
 
 const confirmDeletePayment = async () => {
@@ -701,7 +806,6 @@ const copyPreregistroLink = async () => {
   const { data, error } = await supabase.functions.invoke('generate-preregistro-token', {
     body: {
       reservation_id: res.value.id,
-      base_url: window.location.origin,
     }
   })
 
@@ -710,19 +814,23 @@ const copyPreregistroLink = async () => {
     return
   }
 
-  await navigator.clipboard.writeText(data.url)
-  setFeedback('success', 'Link de pre-registro copiado al portapapeles.')
+  const rawPath = String(data?.checkin_url || '')
+  const fullUrl = rawPath.startsWith('http') ? rawPath : `${window.location.origin}${rawPath}`
+
+  await navigator.clipboard.writeText(fullUrl)
+  toast.success('Link copiado al portapapeles')
 }
 
-const handleAdminPreregistroSubmit = async ({ guests }) => {
+const handleAdminPreregistroSubmit = async ({ primary_guest, additional_guests }) => {
   preregistroSubmitting.value = true
   preregistroErrorMessage.value = ''
 
   try {
+    const guests = [primary_guest, ...(Array.isArray(additional_guests) ? additional_guests : [])]
     await completeReservationPreregistro({ reservationId: res.value.id, guests })
     await fetchReservation()
     showPreregistroModal.value = false
-    setFeedback('success', 'Pre-registro completado correctamente.')
+    toast.success('Pre-registro completado correctamente')
   } catch (error) {
     preregistroErrorMessage.value = error.message
   } finally {
@@ -730,37 +838,47 @@ const handleAdminPreregistroSubmit = async ({ guests }) => {
   }
 }
 
-const registerArrival = async () => {
+const confirmCheckin = async () => {
   if (!res.value?.guest_id) {
     setFeedback('error', 'Debes vincular un huésped registrado antes de marcar la llegada física.')
     return
   }
 
-  const accountId = accountStore.getRequiredAccountId()
-  const { error: updateError } = await supabase
-    .from('reservations')
-    .update({
-      checkin_at: new Date().toISOString(),
-      status: 'in_stay'
-    })
-    .eq('account_id', accountId)
-    .eq('id', res.value.id)
+  checkinSubmitting.value = true
 
-  if (updateError) {
-    setFeedback('error', updateError.message)
-    return
+  try {
+    const accountId = accountStore.getRequiredAccountId()
+    const { error: updateError } = await supabase
+      .from('reservations')
+      .update({
+        checkin_at: new Date().toISOString(),
+        status: 'in_stay'
+      })
+      .eq('account_id', accountId)
+      .eq('id', res.value.id)
+
+    if (updateError) throw updateError
+
+    const { error: logError } = await supabase
+      .from('reservation_status_logs')
+      .insert({
+        account_id: accountId,
+        reservation_id: res.value.id,
+        previous_status: res.value.status,
+        new_status: 'in_stay',
+        notes: 'Check-in físico registrado'
+      })
+
+    if (logError) throw logError
+
+    await fetchReservation()
+    closeCheckinConfirmModal()
+    toast.success('Llegada registrada')
+  } catch (error) {
+    setFeedback('error', error.message || 'No se pudo registrar la llegada.')
+  } finally {
+    checkinSubmitting.value = false
   }
-
-  await supabase.from('reservation_status_logs').insert({
-    account_id: accountId,
-    reservation_id: res.value.id,
-    previous_status: res.value.status,
-    new_status: 'in_stay',
-    notes: 'Registro de llegada física'
-  })
-
-  await fetchReservation()
-  setFeedback('success', 'Llegada física registrada correctamente.')
 }
 
 </script>

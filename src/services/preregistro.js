@@ -19,6 +19,7 @@ const buildGuestPayload = (guest) => {
   return {
     name: normalizeValue(guest.name),
     phone: normalizeValue(guest.phone),
+    email: normalizeValue(guest.email),
     nationality: normalizeValue(guest.nationality),
     document_type: documentType,
     document_number: documentNumber,
@@ -50,6 +51,7 @@ const upsertGuest = async (guestPayload, accountId) => {
     const updatePayload = {
       name: guestPayload.name || existingGuest.name,
       phone: guestPayload.phone || existingGuest.phone,
+      email: guestPayload.email || existingGuest.email,
       nationality: guestPayload.nationality || existingGuest.nationality,
       document_type: guestPayload.document_type || existingGuest.document_type,
       document_number: guestPayload.document_number || existingGuest.document_number,
@@ -96,7 +98,7 @@ export const completeReservationPreregistro = async ({ reservationId, guests }) 
 
   const { data: reservation, error: reservationError } = await supabase
     .from('reservations')
-    .select('id, guest_id, guest_name, guest_phone')
+    .select('id, status, guest_id, guest_name, guest_phone')
     .eq('account_id', accountId)
     .eq('id', reservationId)
     .single()
@@ -122,6 +124,7 @@ export const completeReservationPreregistro = async ({ reservationId, guests }) 
   const { error: deleteExistingError } = await supabase
     .from('reservation_guests')
     .delete()
+    .eq('account_id', accountId)
     .eq('reservation_id', reservationId)
 
   if (deleteExistingError) throw deleteExistingError
@@ -143,12 +146,9 @@ export const completeReservationPreregistro = async ({ reservationId, guests }) 
   const updatePayload = {
     preregistro_completado: true,
     preregistro_completado_at: new Date().toISOString(),
+    guest_id: primaryGuest.id,
     guest_name: primaryGuest.name,
     guest_phone: primaryGuest.phone || reservation.guest_phone || null,
-  }
-
-  if (!reservation.guest_id) {
-    updatePayload.guest_id = primaryGuest.id
   }
 
   const { error: updateError } = await supabase
@@ -158,6 +158,18 @@ export const completeReservationPreregistro = async ({ reservationId, guests }) 
     .eq('id', reservationId)
 
   if (updateError) throw updateError
+
+  const { error: logError } = await supabase
+    .from('reservation_status_logs')
+    .insert({
+      account_id: accountId,
+      reservation_id: reservationId,
+      previous_status: reservation.status,
+      new_status: reservation.status,
+      notes: 'Pre-registro digital completado',
+    })
+
+  if (logError) throw logError
 
   return {
     primaryGuest,
