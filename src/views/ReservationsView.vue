@@ -41,13 +41,9 @@
 
       <!-- Source Filter -->
       <div class="w-full md:w-48">
-        <select v-model="filters.source" class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+        <select v-model="filters.sourceDetailId" class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
           <option value="">Cualquier origen</option>
-          <option value="whatsapp">WhatsApp</option>
-          <option value="instagram">Instagram</option>
-          <option value="telefono">Teléfono</option>
-          <option value="directo">Directo</option>
-          <option value="agencia">Agencia</option>
+          <option v-for="detail in sourceDetails" :key="detail.id" :value="detail.id">{{ detail.label_es }}</option>
         </select>
       </div>
 
@@ -104,11 +100,13 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useReservationsStore } from '../stores/reservations'
+import { useSourcesStore } from '../stores/sources'
 import ReservationTable from '../components/reservations/ReservationTable.vue'
 import PaymentModal from '../components/payments/PaymentModal.vue'
 import { usePermissions } from '../composables/usePermissions'
 
 const store = useReservationsStore()
+const sourcesStore = useSourcesStore()
 const router = useRouter()
 const { can } = usePermissions()
 
@@ -133,12 +131,14 @@ const defaultRange = getLast30DaysRange()
 const filters = ref({
   searchData: '',
   status: '',
-  source: '',
+  sourceDetailId: '',
   checkInFrom: defaultRange.from,
   checkInTo: defaultRange.to,
   sortBy: 'check_in',
   sortDir: 'desc'
 })
+
+const sourceDetails = computed(() => sourcesStore.sourceDetails)
 
 const pagination = ref({
   page: 1,
@@ -152,7 +152,7 @@ const fetchList = async () => {
   await store.fetchReservations({
     search: filters.value.searchData,
     status: filters.value.status,
-    source: filters.value.source,
+    sourceDetailId: filters.value.sourceDetailId,
     checkInFrom: filters.value.checkInFrom,
     checkInTo: filters.value.checkInTo,
     sortBy: filters.value.sortBy,
@@ -168,14 +168,14 @@ onMounted(async () => {
 })
 
 const hasActiveFilters = computed(() => {
-  return filters.value.searchData !== '' || filters.value.status !== '' || filters.value.source !== '' || filters.value.checkInFrom !== defaultRange.from || filters.value.checkInTo !== defaultRange.to || filters.value.sortDir !== 'desc'
+  return filters.value.searchData !== '' || filters.value.status !== '' || filters.value.sourceDetailId !== '' || filters.value.checkInFrom !== defaultRange.from || filters.value.checkInTo !== defaultRange.to || filters.value.sortDir !== 'desc'
 })
 
 const clearFilters = () => {
   filters.value = {
     searchData: '',
     status: '',
-    source: '',
+    sourceDetailId: '',
     checkInFrom: defaultRange.from,
     checkInTo: defaultRange.to,
     sortBy: 'check_in',
@@ -187,7 +187,7 @@ const clearFilters = () => {
 watch(() => [
   filters.value.searchData,
   filters.value.status,
-  filters.value.source,
+  filters.value.sourceDetailId,
   filters.value.checkInFrom,
   filters.value.checkInTo,
   filters.value.sortDir

@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { supabase } from '../services/supabase'
 import { useAccountStore } from './account'
+import { getSourceLabel } from '../utils/sourceUtils'
 
 const normalizeDate = (value) => {
   if (!value) return null
@@ -29,12 +30,15 @@ export const useInquiriesStore = defineStore('inquiries', () => {
       const accountId = accountStore.getRequiredAccountId()
       const { data, error: supaError } = await supabase
         .from('inquiries')
-        .select('*')
+        .select('*, source_type_info:source_types!inquiries_source_type_id_fkey(id, name, label_es, is_active), source_detail_info:source_details!inquiries_source_detail_id_fkey(id, source_type_id, name, label_es, suggested_commission_percentage, suggested_discount_percentage, is_active)')
         .eq('account_id', accountId)
         .order('created_at', { ascending: false })
 
       if (supaError) throw supaError
-      inquiries.value = data || []
+      inquiries.value = (data || []).map((item) => ({
+        ...item,
+        source_display_label: getSourceLabel(item)
+      }))
     } catch (err) {
       error.value = err.message
       throw err
@@ -52,7 +56,13 @@ export const useInquiriesStore = defineStore('inquiries', () => {
       check_in: normalizeDate(payload.check_in),
       check_out: normalizeDate(payload.check_out),
       guests_count: payload.guests_count ? Number(payload.guests_count) : null,
+      price_per_night: payload.price_per_night === '' || payload.price_per_night == null ? null : Number(payload.price_per_night),
+      commission_name: payload.commission_name || null,
+      commission_percentage: payload.commission_percentage === '' || payload.commission_percentage == null ? 0 : Number(payload.commission_percentage),
+      discount_percentage: payload.discount_percentage === '' || payload.discount_percentage == null ? 0 : Number(payload.discount_percentage),
       source: payload.source || null,
+      source_type_id: payload.source_type_id || null,
+      source_detail_id: payload.source_detail_id || null,
       status: payload.status || 'new',
       notes: payload.notes || null
     }
@@ -60,7 +70,7 @@ export const useInquiriesStore = defineStore('inquiries', () => {
     const { data, error: supaError } = await supabase
       .from('inquiries')
       .insert(inquiryPayload)
-      .select()
+      .select('*, source_type_info:source_types!inquiries_source_type_id_fkey(id, name, label_es, is_active), source_detail_info:source_details!inquiries_source_detail_id_fkey(id, source_type_id, name, label_es, suggested_commission_percentage, suggested_discount_percentage, is_active)')
       .single()
 
     if (supaError) throw supaError
@@ -74,7 +84,10 @@ export const useInquiriesStore = defineStore('inquiries', () => {
     const updatePayload = {
       ...payload,
       check_in: payload.check_in === undefined ? undefined : normalizeDate(payload.check_in),
-      check_out: payload.check_out === undefined ? undefined : normalizeDate(payload.check_out)
+      check_out: payload.check_out === undefined ? undefined : normalizeDate(payload.check_out),
+      price_per_night: payload.price_per_night === undefined ? undefined : (payload.price_per_night === '' || payload.price_per_night == null ? null : Number(payload.price_per_night)),
+      commission_percentage: payload.commission_percentage === undefined ? undefined : (payload.commission_percentage === '' || payload.commission_percentage == null ? 0 : Number(payload.commission_percentage)),
+      discount_percentage: payload.discount_percentage === undefined ? undefined : (payload.discount_percentage === '' || payload.discount_percentage == null ? 0 : Number(payload.discount_percentage))
     }
 
     const { data, error: supaError } = await supabase
@@ -82,7 +95,7 @@ export const useInquiriesStore = defineStore('inquiries', () => {
       .update(updatePayload)
       .eq('account_id', accountId)
       .eq('id', id)
-      .select()
+      .select('*, source_type_info:source_types!inquiries_source_type_id_fkey(id, name, label_es, is_active), source_detail_info:source_details!inquiries_source_detail_id_fkey(id, source_type_id, name, label_es, suggested_commission_percentage, suggested_discount_percentage, is_active)')
       .single()
 
     if (supaError) throw supaError
@@ -112,13 +125,16 @@ export const useInquiriesStore = defineStore('inquiries', () => {
     const accountId = accountStore.getRequiredAccountId()
     const { data, error: supaError } = await supabase
       .from('inquiries')
-      .select('*')
+      .select('*, source_type_info:source_types!inquiries_source_type_id_fkey(id, name, label_es, is_active), source_detail_info:source_details!inquiries_source_detail_id_fkey(id, source_type_id, name, label_es, suggested_commission_percentage, suggested_discount_percentage, is_active)')
       .eq('account_id', accountId)
       .eq('id', id)
       .single()
 
     if (supaError) throw supaError
-    return data
+    return {
+      ...data,
+      source_display_label: getSourceLabel(data)
+    }
   }
 
   const createInquiryHold = async (payload) => {

@@ -10,6 +10,7 @@ import {
   getBalanceAmount,
   getGuestsTotal
 } from '../utils/reservationUtils'
+import { getSourceLabel } from '../utils/sourceUtils'
 import { getNextReservationNumber, syncReservationOccupancy } from '../services/reservationService'
 
 const normalizeDate = (value) => {
@@ -52,6 +53,7 @@ export const useReservationsStore = defineStore('reservations', () => {
       search = '',
       status = '',
       source = '',
+      sourceDetailId = '',
       checkInFrom = null,
       checkInTo = null,
       sortBy = 'check_in',
@@ -65,6 +67,7 @@ export const useReservationsStore = defineStore('reservations', () => {
       search,
       status,
       source,
+      sourceDetailId,
       checkInFrom,
       checkInTo,
       sortBy,
@@ -81,6 +84,8 @@ export const useReservationsStore = defineStore('reservations', () => {
         .select(`
           *,
           guests!reservations_guest_id_fkey(name, phone, email, nationality, document_type, document_number),
+          source_type_info:source_types!reservations_source_type_id_fkey(id, name, label_es, is_active),
+          source_detail_info:source_details!reservations_source_detail_id_fkey(id, source_type_id, name, label_es, suggested_commission_percentage, suggested_discount_percentage, is_active),
           venues(name),
           reservation_units(unit_id, units(name, venue_id)),
           reservation_guests(is_primary, guest_id, guests!reservation_guests_guest_id_fkey(*)),
@@ -96,7 +101,9 @@ export const useReservationsStore = defineStore('reservations', () => {
         query = query.eq('status', status)
       }
 
-      if (source) {
+      if (sourceDetailId) {
+        query = query.eq('source_detail_id', sourceDetailId)
+      } else if (source) {
         query = query.eq('source', source)
       }
 
@@ -152,7 +159,8 @@ export const useReservationsStore = defineStore('reservations', () => {
           net_amount: getNetAmount(res),
           guests_total: getGuestsTotal(res),
           nights: getDaysDifference(res.check_in, res.check_out),
-          balance: getBalanceAmount({ ...res, paid_amount: paidAmount })
+          balance: getBalanceAmount({ ...res, paid_amount: paidAmount }),
+          source_display_label: getSourceLabel(res)
         }
       })
     } catch (err) {
@@ -286,8 +294,11 @@ export const useReservationsStore = defineStore('reservations', () => {
         paid_amount: Number(reservationData.paid_amount || 0),
         commission_name: reservationData.commission_name || null,
         commission_percentage: reservationData.commission_percentage || null,
+        discount_percentage: Number(reservationData.discount_percentage || 0),
         status: reservationData.status || 'confirmed',
         source: reservationData.source || null,
+        source_type_id: reservationData.source_type_id || null,
+        source_detail_id: reservationData.source_detail_id || null,
         payment_deadline: null,
         notes: reservationData.notes || null
       }

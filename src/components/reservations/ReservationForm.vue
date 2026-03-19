@@ -142,7 +142,13 @@
         </div>
       </div>
 
-      <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+      <SourceSelector
+        :modelValue="{ sourceTypeId: form.source_type_id, sourceDetailId: form.source_detail_id }"
+        @update:modelValue="updateSourceSelection"
+        @suggestions="applySourceSuggestions"
+      />
+
+      <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
         <div>
           <label class="block text-sm font-medium text-gray-700">Adultos</label>
           <input type="number" v-model="form.adults" min="1" class="mt-1 block w-full rounded-md border-gray-300">
@@ -151,27 +157,31 @@
           <label class="block text-sm font-medium text-gray-700">Niños</label>
           <input type="number" v-model="form.children" min="0" class="mt-1 block w-full rounded-md border-gray-300">
         </div>
+      </div>
+
+      <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
         <div>
           <label class="block text-sm font-medium text-gray-700">Comisión</label>
           <input type="text" v-model="form.commission_name" placeholder="Booking, agencia..." class="mt-1 block w-full rounded-md border-gray-300">
         </div>
-        <div class="md:col-span-3">
+        <div>
           <label class="block text-sm font-medium text-gray-700">% Comisión</label>
           <input type="number" v-model="form.commission_percentage" min="0" step="0.01" class="mt-1 block w-full rounded-md border-gray-300">
         </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">% Descuento</label>
+          <input type="number" v-model="form.discount_percentage" min="0" step="0.01" class="mt-1 block w-full rounded-md border-gray-300">
+        </div>
       </div>
 
-      <div class="rounded-md border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+      <div v-if="showCalculationPanel" class="rounded-md border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-900">
         <p>Noches: <strong>{{ computedNights }}</strong></p>
         <p>Precio por noche: <strong>${{ formatCurrency(form.price_per_night || 0) }}</strong></p>
-        <p>Total reserva: <strong>${{ formatCurrency(form.total_amount || 0) }}</strong></p>
-        <p>Por unidad: <strong>${{ formatCurrency(amountPerUnit) }}</strong></p>
-        <p>Por persona: <strong>${{ formatCurrency(amountPerGuest) }}</strong></p>
-      </div>
-
-      <div v-if="Number(form.commission_percentage || 0) > 0" class="rounded-md border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
-        Comisión {{ form.commission_name || 'sin nombre' }} ({{ Number(form.commission_percentage || 0) }}%):
-        ${{ formatCurrency(commissionAmount) }} → Neto: ${{ formatCurrency(netAmount) }}
+        <p>Subtotal: <strong>${{ formatCurrency(subtotalAmount) }}</strong></p>
+        <p>Descuento ({{ Number(form.discount_percentage || 0) }}%): <strong>-${{ formatCurrency(discountAmount) }}</strong></p>
+        <p>Total cliente: <strong>${{ formatCurrency(customerTotal) }}</strong></p>
+        <p>Comisión ({{ Number(form.commission_percentage || 0) }}%): <strong>-${{ formatCurrency(commissionAmount) }}</strong></p>
+        <p>Ingreso neto: <strong>${{ formatCurrency(netAmount) }}</strong></p>
       </div>
 
       <div v-if="errorMessage" class="rounded bg-red-50 p-3 text-red-600 shadow-inner">
@@ -248,8 +258,8 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useReservationsStore } from '../../stores/reservations'
 import { supabase } from '../../services/supabase'
-import { getCommissionAmount, getNetAmount } from '../../utils/reservations'
 import BaseModal from '../ui/BaseModal.vue'
+import SourceSelector from '../sources/SourceSelector.vue'
 import { useAccountStore } from '../../stores/account'
 
 const store = useReservationsStore()
@@ -300,15 +310,25 @@ const form = ref({
   paid_amount: 0,
   status: 'confirmed',
   source: 'whatsapp',
+  source_type_id: '',
+  source_detail_id: '',
   adults: 1,
   children: 0,
   commission_name: '',
   commission_percentage: '',
+  discount_percentage: '',
   inquiry_id: null
 })
 
-const commissionAmount = computed(() => getCommissionAmount(form.value))
-const netAmount = computed(() => getNetAmount(form.value))
+const subtotalAmount = computed(() => Number(form.value.price_per_night || 0) * Number(computedNights.value || 0))
+const discountAmount = computed(() => {
+  return subtotalAmount.value * Number(form.value.discount_percentage || 0) / 100
+})
+const customerTotal = computed(() => Math.max(subtotalAmount.value - discountAmount.value, 0))
+const commissionAmount = computed(() => {
+  return customerTotal.value * Number(form.value.commission_percentage || 0) / 100
+})
+const netAmount = computed(() => Math.max(customerTotal.value - commissionAmount.value, 0))
 
 const normalizeDate = (value) => {
   if (!value) return null
@@ -344,14 +364,22 @@ const guestsTotal = computed(() => Number(form.value.adults || 0) + Number(form.
 const amountPerUnit = computed(() => {
   const unitCount = Number(form.value.unit_ids.length || 0)
   if (unitCount <= 0) return 0
-  return Number(form.value.total_amount || 0) / unitCount
+  return Number(customerTotal.value || 0) / unitCount
 })
 
 const amountPerGuest = computed(() => {
   const totalGuests = guestsTotal.value
   if (totalGuests <= 0) return 0
-  return Number(form.value.total_amount || 0) / totalGuests
+  return Number(customerTotal.value || 0) / totalGuests
 })
+
+const showCalculationPanel = computed(() => {
+  return computedNights.value > 0 && form.value.price_per_night !== '' && form.value.price_per_night !== null
+})
+
+const syncReservationAmounts = () => {
+  form.value.total_amount = customerTotal.value
+}
 
 const loadInquiryPrefill = async () => {
   const inquiryId = route.query.inquiryId
@@ -375,7 +403,13 @@ const loadInquiryPrefill = async () => {
   form.value.check_out = data.check_out || ''
   form.value.adults = Number(data.adults || data.guests_count || 1)
   form.value.children = Number(data.children || 0)
+  form.value.price_per_night = data.price_per_night != null ? Number(data.price_per_night) : form.value.price_per_night
+  form.value.source_type_id = data.source_type_id || ''
+  form.value.source_detail_id = data.source_detail_id || ''
   form.value.source = data.source || 'whatsapp'
+  form.value.commission_name = data.commission_name || ''
+  form.value.commission_percentage = data.commission_percentage != null ? Number(data.commission_percentage) : ''
+  form.value.discount_percentage = data.discount_percentage != null ? Number(data.discount_percentage) : ''
   form.value.status = 'confirmed'
 }
 
@@ -501,15 +535,15 @@ const calculateDetails = async () => {
     console.error(err)
   }
 
-  form.value.total_amount = Number(form.value.price_per_night || 0) * Number(computedNights.value || 0)
+  syncReservationAmounts()
 
   await evaluateSelectedUnitAvailability()
 }
 
 watch(
-  () => [form.value.price_per_night, computedNights.value],
+  () => [form.value.price_per_night, computedNights.value, form.value.discount_percentage],
   () => {
-    form.value.total_amount = Number(form.value.price_per_night || 0) * Number(computedNights.value || 0)
+    syncReservationAmounts()
   }
 )
 
@@ -599,6 +633,31 @@ const closeCreateGuestModal = () => {
   showCreateGuestModal.value = false
 }
 
+const updateSourceSelection = (value) => {
+  form.value.source_type_id = value?.sourceTypeId || ''
+  form.value.source_detail_id = value?.sourceDetailId || ''
+
+  if (!form.value.source_detail_id) {
+    form.value.source = null
+  }
+}
+
+const applySourceSuggestions = (payload) => {
+  form.value.source = payload.sourceDetailName || payload.sourceDetailLabel || null
+
+  if (!String(form.value.commission_name || '').trim()) {
+    form.value.commission_name = payload.sourceDetailLabel || ''
+  }
+
+  if (form.value.commission_percentage === '' || form.value.commission_percentage === null) {
+    form.value.commission_percentage = Number(payload.commissionPercentage || 0)
+  }
+
+  if (form.value.discount_percentage === '' || form.value.discount_percentage === null) {
+    form.value.discount_percentage = Number(payload.discountPercentage || 0)
+  }
+}
+
 const submitCreateGuest = async () => {
   creatingGuest.value = true
   newGuestErrorMessage.value = ''
@@ -653,8 +712,10 @@ const submitForm = async () => {
       adults: Number(form.value.adults || 1),
       children: Number(form.value.children || 0),
       price_per_night: Number(form.value.price_per_night || 0),
-      total_amount: Number(form.value.total_amount || 0),
-      paid_amount: Number(form.value.paid_amount || 0)
+      total_amount: Number(customerTotal.value || 0),
+      paid_amount: Number(form.value.paid_amount || 0),
+      commission_percentage: form.value.commission_percentage === '' ? null : Number(form.value.commission_percentage || 0),
+      discount_percentage: form.value.discount_percentage === '' ? 0 : Number(form.value.discount_percentage || 0)
     }
 
     if (!payload.check_in || !payload.check_out) {

@@ -74,7 +74,7 @@
             </div>
             <div>
               <p class="text-gray-500 mb-1">Origen</p>
-              <p class="font-medium text-gray-900 capitalize">{{ res.source }}</p>
+              <p class="font-medium text-gray-900">{{ res.source_detail_info?.label_es || res.source || '-' }}</p>
             </div>
             <div>
               <p class="text-gray-500 mb-1">Registro</p>
@@ -414,7 +414,7 @@ const fetchReservation = async () => {
     const accountId = accountStore.getRequiredAccountId()
     const { data, error } = await supabase
       .from('reservations')
-      .select('*, guests!reservations_guest_id_fkey(*), venues(name), reservation_units(unit_id, units(*)), reservation_guests(is_primary, guest_id, guests!reservation_guests_guest_id_fkey(*))')
+      .select('*, source_type_info:source_types!reservations_source_type_id_fkey(id, name, label_es, is_active), source_detail_info:source_details!reservations_source_detail_id_fkey(id, source_type_id, name, label_es, suggested_commission_percentage, suggested_discount_percentage, is_active), guests!reservations_guest_id_fkey(*), venues(name), reservation_units(unit_id, units(*)), reservation_guests(is_primary, guest_id, guests!reservation_guests_guest_id_fkey(*))')
       .eq('account_id', accountId)
       .eq('id', route.params.id)
       .single()

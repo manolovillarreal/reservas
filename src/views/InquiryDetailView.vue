@@ -29,11 +29,13 @@
 
           <div class="grid grid-cols-1 gap-4 text-sm md:grid-cols-2">
             <p><span class="font-medium text-gray-700">Telefono:</span> {{ inquiry.guest_phone || '-' }}</p>
-            <p><span class="font-medium text-gray-700">Origen:</span> {{ inquiry.source || '-' }}</p>
+            <p><span class="font-medium text-gray-700">Origen:</span> {{ inquiry.source_display_label || inquiry.source || '-' }}</p>
             <p><span class="font-medium text-gray-700">Check-in:</span> {{ formatDate(inquiry.check_in) }}</p>
             <p><span class="font-medium text-gray-700">Check-out:</span> {{ formatDate(inquiry.check_out) }}</p>
             <p><span class="font-medium text-gray-700">Personas:</span> {{ inquiry.guests_count || '-' }}</p>
             <p><span class="font-medium text-gray-700">Creada:</span> {{ formatDateTime(inquiry.created_at) }}</p>
+            <p v-if="inquiry.price_per_night != null"><span class="font-medium text-gray-700">Precio por noche:</span> ${{ formatCurrency(inquiry.price_per_night) }}</p>
+            <p v-if="inquiry.price_per_night != null"><span class="font-medium text-gray-700">Total cliente:</span> ${{ formatCurrency(inquiryCustomerTotal) }}</p>
           </div>
 
           <div class="mt-4 rounded-md bg-gray-50 p-3 text-sm text-gray-700">
@@ -93,9 +95,40 @@
             <input v-model="editForm.guests_count" type="number" min="1" class="mt-1 block w-full rounded-md border-gray-300">
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700">Origen</label>
-            <input v-model="editForm.source" type="text" class="mt-1 block w-full rounded-md border-gray-300">
+            <label class="block text-sm font-medium text-gray-700">Precio por noche</label>
+            <input v-model="editForm.price_per_night" type="number" min="0" step="0.01" class="mt-1 block w-full rounded-md border-gray-300">
           </div>
+        </div>
+
+        <SourceSelector
+          :modelValue="{ sourceTypeId: editForm.source_type_id, sourceDetailId: editForm.source_detail_id }"
+          @update:modelValue="updateEditSourceSelection"
+          @suggestions="applyEditSourceSuggestions"
+        />
+
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Comisión</label>
+            <input v-model="editForm.commission_name" type="text" class="mt-1 block w-full rounded-md border-gray-300" placeholder="Booking, agencia...">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700">% Comisión</label>
+            <input v-model="editForm.commission_percentage" type="number" min="0" step="0.01" class="mt-1 block w-full rounded-md border-gray-300">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700">% Descuento</label>
+            <input v-model="editForm.discount_percentage" type="number" min="0" step="0.01" class="mt-1 block w-full rounded-md border-gray-300">
+          </div>
+        </div>
+
+        <div v-if="showEditCalculationPanel" class="rounded-md border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+          <p>Noches: <strong>{{ editNights }}</strong></p>
+          <p>Precio por noche: <strong>${{ formatCurrency(editForm.price_per_night || 0) }}</strong></p>
+          <p>Subtotal: <strong>${{ formatCurrency(editSubtotal) }}</strong></p>
+          <p>Descuento ({{ Number(editForm.discount_percentage || 0) }}%): <strong>-${{ formatCurrency(editDiscountAmount) }}</strong></p>
+          <p>Total cliente: <strong>${{ formatCurrency(editCustomerTotal) }}</strong></p>
+          <p>Comisión ({{ Number(editForm.commission_percentage || 0) }}%): <strong>-${{ formatCurrency(editCommissionAmount) }}</strong></p>
+          <p>Ingreso neto: <strong>${{ formatCurrency(editNetAmount) }}</strong></p>
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700">Notas</label>
@@ -187,11 +220,12 @@
 </template>
 
 <script setup>
-import { onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { supabase } from '../services/supabase'
 import BaseModal from '../components/ui/BaseModal.vue'
 import ConfirmActionModal from '../components/ui/ConfirmActionModal.vue'
+import SourceSelector from '../components/sources/SourceSelector.vue'
 import { useInquiriesStore } from '../stores/inquiries'
 import { usePermissions } from '../composables/usePermissions'
 import { useAccountStore } from '../stores/account'
@@ -231,6 +265,20 @@ const holdForm = ref({
   end_date: '',
   expires_at: '',
   notes: ''
+})
+
+const inquiryNights = computed(() => getNumericNights(inquiry.value?.check_in, inquiry.value?.check_out) || 0)
+const inquirySubtotal = computed(() => Number(inquiry.value?.price_per_night || 0) * inquiryNights.value)
+const inquiryDiscountAmount = computed(() => inquirySubtotal.value * Number(inquiry.value?.discount_percentage || 0) / 100)
+const inquiryCustomerTotal = computed(() => Math.max(inquirySubtotal.value - inquiryDiscountAmount.value, 0))
+const editNights = computed(() => getNumericNights(editForm.value.check_in, editForm.value.check_out) || 0)
+const editSubtotal = computed(() => Number(editForm.value.price_per_night || 0) * editNights.value)
+const editDiscountAmount = computed(() => editSubtotal.value * Number(editForm.value.discount_percentage || 0) / 100)
+const editCustomerTotal = computed(() => Math.max(editSubtotal.value - editDiscountAmount.value, 0))
+const editCommissionAmount = computed(() => editCustomerTotal.value * Number(editForm.value.commission_percentage || 0) / 100)
+const editNetAmount = computed(() => Math.max(editCustomerTotal.value - editCommissionAmount.value, 0))
+const showEditCalculationPanel = computed(() => {
+  return editNights.value > 0 && editForm.value.price_per_night !== '' && editForm.value.price_per_night !== null
 })
 
 watch(holdFullHouse, (enabled) => {
@@ -288,6 +336,17 @@ const formatDateTime = (value) => {
   return new Date(value).toLocaleString('es-ES', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
 
+const formatCurrency = (value) => Number(value || 0).toLocaleString('es-CO')
+
+const getNumericNights = (checkIn, checkOut) => {
+  if (!checkIn || !checkOut) return null
+  const start = new Date(checkIn)
+  const end = new Date(checkOut)
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return null
+  const nights = Math.ceil((end - start) / (1000 * 60 * 60 * 24))
+  return nights >= 0 ? nights : 0
+}
+
 const toDateTimeLocalValue = (value) => {
   const date = value ? new Date(value) : new Date(Date.now() + (24 * 60 * 60 * 1000))
   if (Number.isNaN(date.getTime())) return ''
@@ -332,7 +391,13 @@ const openEditModal = () => {
     check_in: inquiry.value?.check_in || '',
     check_out: inquiry.value?.check_out || '',
     guests_count: inquiry.value?.guests_count || 1,
+    price_per_night: inquiry.value?.price_per_night ?? '',
+    commission_name: inquiry.value?.commission_name || '',
+    commission_percentage: inquiry.value?.commission_percentage ?? '',
+    discount_percentage: inquiry.value?.discount_percentage ?? '',
     source: inquiry.value?.source || '',
+    source_type_id: inquiry.value?.source_type_id || '',
+    source_detail_id: inquiry.value?.source_detail_id || '',
     notes: inquiry.value?.notes || ''
   }
   editError.value = ''
@@ -342,6 +407,31 @@ const openEditModal = () => {
 const closeEditModal = () => {
   if (saving.value) return
   showEditModal.value = false
+}
+
+const updateEditSourceSelection = (value) => {
+  editForm.value.source_type_id = value?.sourceTypeId || ''
+  editForm.value.source_detail_id = value?.sourceDetailId || ''
+
+  if (!editForm.value.source_detail_id) {
+    editForm.value.source = null
+  }
+}
+
+const applyEditSourceSuggestions = (payload) => {
+  editForm.value.source = payload.sourceDetailName || payload.sourceDetailLabel || null
+
+  if (!String(editForm.value.commission_name || '').trim()) {
+    editForm.value.commission_name = payload.sourceDetailLabel || ''
+  }
+
+  if (editForm.value.commission_percentage === '' || editForm.value.commission_percentage === null) {
+    editForm.value.commission_percentage = Number(payload.commissionPercentage || 0)
+  }
+
+  if (editForm.value.discount_percentage === '' || editForm.value.discount_percentage === null) {
+    editForm.value.discount_percentage = Number(payload.discountPercentage || 0)
+  }
 }
 
 const submitEdit = async () => {

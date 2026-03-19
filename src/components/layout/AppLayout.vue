@@ -77,11 +77,13 @@ import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { supabase } from '../../services/supabase'
 import { useAccountStore } from '../../stores/account'
+import { useSourcesStore } from '../../stores/sources'
 import { usePermissions } from '../../composables/usePermissions'
 
 const isSidebarCollapsed = ref(false)
 const router = useRouter()
 const accountStore = useAccountStore()
+const sourcesStore = useSourcesStore()
 const { can } = usePermissions()
 
 const primaryNav = [
@@ -130,6 +132,7 @@ const roleLabel = computed(() => {
 
 const logout = async () => {
   await supabase.auth.signOut()
+  sourcesStore.clear()
   accountStore.clear()
   router.push({ name: 'login' })
 }

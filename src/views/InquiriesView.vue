@@ -61,7 +61,7 @@
               </td>
               <td class="px-6 py-4 text-gray-700">{{ getNights(inquiry.check_in, inquiry.check_out) }}</td>
               <td class="px-6 py-4 text-gray-700">{{ inquiry.guests_count || '-' }}</td>
-              <td class="px-6 py-4 text-gray-700 capitalize">{{ inquiry.source || '-' }}</td>
+              <td class="px-6 py-4 text-gray-700">{{ inquiry.source_display_label || inquiry.source || '-' }}</td>
               <td class="px-6 py-4">
                 <span class="rounded-full border px-2 py-1 text-xs font-medium" :class="statusClasses(inquiry.status)">
                   {{ statusLabel(inquiry.status) }}
@@ -100,9 +100,40 @@
             <input v-model="createForm.guests_count" type="number" min="1" class="mt-1 block w-full rounded-md border-gray-300">
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700">Origen</label>
-            <input v-model="createForm.source" type="text" class="mt-1 block w-full rounded-md border-gray-300" placeholder="whatsapp, instagram...">
+            <label class="block text-sm font-medium text-gray-700">Precio por noche</label>
+            <input v-model="createForm.price_per_night" type="number" min="0" step="0.01" class="mt-1 block w-full rounded-md border-gray-300">
           </div>
+        </div>
+
+        <SourceSelector
+          :modelValue="{ sourceTypeId: createForm.source_type_id, sourceDetailId: createForm.source_detail_id }"
+          @update:modelValue="updateCreateSourceSelection"
+          @suggestions="applyCreateSourceSuggestions"
+        />
+
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Comisión</label>
+            <input v-model="createForm.commission_name" type="text" class="mt-1 block w-full rounded-md border-gray-300" placeholder="Booking, agencia...">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700">% Comisión</label>
+            <input v-model="createForm.commission_percentage" type="number" min="0" step="0.01" class="mt-1 block w-full rounded-md border-gray-300">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700">% Descuento</label>
+            <input v-model="createForm.discount_percentage" type="number" min="0" step="0.01" class="mt-1 block w-full rounded-md border-gray-300">
+          </div>
+        </div>
+
+        <div v-if="showCreateCalculationPanel" class="rounded-md border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+          <p>Noches: <strong>{{ createNights }}</strong></p>
+          <p>Precio por noche: <strong>${{ formatCurrency(createForm.price_per_night || 0) }}</strong></p>
+          <p>Subtotal: <strong>${{ formatCurrency(createSubtotal) }}</strong></p>
+          <p>Descuento ({{ Number(createForm.discount_percentage || 0) }}%): <strong>-${{ formatCurrency(createDiscountAmount) }}</strong></p>
+          <p>Total cliente: <strong>${{ formatCurrency(createCustomerTotal) }}</strong></p>
+          <p>Comisión ({{ Number(createForm.commission_percentage || 0) }}%): <strong>-${{ formatCurrency(createCommissionAmount) }}</strong></p>
+          <p>Ingreso neto: <strong>${{ formatCurrency(createNetAmount) }}</strong></p>
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700">Notas</label>
@@ -123,6 +154,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import BaseModal from '../components/ui/BaseModal.vue'
+import SourceSelector from '../components/sources/SourceSelector.vue'
 import { useInquiriesStore } from '../stores/inquiries'
 import { usePermissions } from '../composables/usePermissions'
 
@@ -142,7 +174,13 @@ const createForm = ref({
   check_in: '',
   check_out: '',
   guests_count: 1,
+  price_per_night: '',
+  commission_name: '',
+  commission_percentage: '',
+  discount_percentage: '',
   source: 'whatsapp',
+  source_type_id: '',
+  source_detail_id: '',
   notes: ''
 })
 
@@ -151,6 +189,15 @@ onMounted(async () => {
 })
 
 const hasFilters = computed(() => !!filters.value.search || !!filters.value.status)
+const createNights = computed(() => getNumericNights(createForm.value.check_in, createForm.value.check_out))
+const createSubtotal = computed(() => Number(createForm.value.price_per_night || 0) * createNights.value)
+const createDiscountAmount = computed(() => createSubtotal.value * Number(createForm.value.discount_percentage || 0) / 100)
+const createCustomerTotal = computed(() => Math.max(createSubtotal.value - createDiscountAmount.value, 0))
+const createCommissionAmount = computed(() => createCustomerTotal.value * Number(createForm.value.commission_percentage || 0) / 100)
+const createNetAmount = computed(() => Math.max(createCustomerTotal.value - createCommissionAmount.value, 0))
+const showCreateCalculationPanel = computed(() => {
+  return createNights.value > 0 && createForm.value.price_per_night !== '' && createForm.value.price_per_night !== null
+})
 
 const filteredInquiries = computed(() => {
   return store.inquiries.filter(inquiry => {
@@ -196,15 +243,47 @@ const formatDate = (value) => {
 }
 
 const getNights = (checkIn, checkOut) => {
-  if (!checkIn || !checkOut) return '-'
+  const nights = getNumericNights(checkIn, checkOut)
+  return nights === null ? '-' : nights
+}
+
+const getNumericNights = (checkIn, checkOut) => {
+  if (!checkIn || !checkOut) return null
 
   const start = new Date(checkIn)
   const end = new Date(checkOut)
 
-  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return '-'
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return null
 
   const nights = Math.ceil((end - start) / (1000 * 60 * 60 * 24))
   return nights >= 0 ? nights : 0
+}
+
+const formatCurrency = (value) => Number(value || 0).toLocaleString('es-CO')
+
+const updateCreateSourceSelection = (value) => {
+  createForm.value.source_type_id = value?.sourceTypeId || ''
+  createForm.value.source_detail_id = value?.sourceDetailId || ''
+
+  if (!createForm.value.source_detail_id) {
+    createForm.value.source = null
+  }
+}
+
+const applyCreateSourceSuggestions = (payload) => {
+  createForm.value.source = payload.sourceDetailName || payload.sourceDetailLabel || null
+
+  if (!String(createForm.value.commission_name || '').trim()) {
+    createForm.value.commission_name = payload.sourceDetailLabel || ''
+  }
+
+  if (createForm.value.commission_percentage === '' || createForm.value.commission_percentage === null) {
+    createForm.value.commission_percentage = Number(payload.commissionPercentage || 0)
+  }
+
+  if (createForm.value.discount_percentage === '' || createForm.value.discount_percentage === null) {
+    createForm.value.discount_percentage = Number(payload.discountPercentage || 0)
+  }
 }
 
 const openCreateModal = () => {
@@ -214,7 +293,13 @@ const openCreateModal = () => {
     check_in: '',
     check_out: '',
     guests_count: 1,
+    price_per_night: '',
+    commission_name: '',
+    commission_percentage: '',
+    discount_percentage: '',
     source: 'whatsapp',
+    source_type_id: '',
+    source_detail_id: '',
     notes: ''
   }
   createError.value = ''

@@ -65,7 +65,7 @@
             <td class="px-6 py-4 text-gray-600">
               <span class="block">{{ Number(res.adults || 0) + Number(res.children || 0) }} pax</span>
               <span class="block text-xs text-gray-400">{{ Number(res.adults || 0) }} ad / {{ Number(res.children || 0) }} ni</span>
-              <span class="block text-xs text-gray-400">{{ formatSource(res.source) }}</span>
+              <span class="block text-xs text-gray-400">{{ res.source_display_label || formatSource(res.source) }}</span>
             </td>
             
             <!-- Estado -->

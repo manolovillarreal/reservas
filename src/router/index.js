@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import DashboardView from '../views/DashboardView.vue'
 import { supabase } from '../services/supabase'
 import { useAccountStore } from '../stores/account'
+import { useSourcesStore } from '../stores/sources'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -119,6 +120,7 @@ const router = createRouter({
 
 router.beforeEach(async (to) => {
   const accountStore = useAccountStore()
+  const sourcesStore = useSourcesStore()
   const { data } = await supabase.auth.getSession()
   const isAuthenticated = !!data.session
 
@@ -138,6 +140,8 @@ router.beforeEach(async (to) => {
     if (!accountStore.currentAccountId) {
       return { name: 'account-association-error' }
     }
+
+    await sourcesStore.preload(accountStore.currentAccountId)
   }
 
   return true

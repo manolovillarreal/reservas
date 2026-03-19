@@ -162,7 +162,7 @@ const fetchData = async () => {
     const [{ data: reservationData, error: reservationError }, { data: profileData }, { data: settingsData }] = await Promise.all([
       supabase
         .from('reservations')
-        .select('id, account_id, reservation_number, reference_code, check_in, check_out, adults, children, source, source_detail, guest_id, guest_name, guest_phone, guest_email, total_amount, paid_amount, guests!reservations_guest_id_fkey(name, phone, email, document_type, document_number), reservation_units(unit_id, units(name))')
+        .select('id, account_id, reservation_number, reference_code, check_in, check_out, adults, children, source, source_type_info:source_types!reservations_source_type_id_fkey(id, name, label_es), source_detail_info:source_details!reservations_source_detail_id_fkey(id, name, label_es), guest_id, guest_name, guest_phone, guest_email, total_amount, paid_amount, guests!reservations_guest_id_fkey(name, phone, email, document_type, document_number), reservation_units(unit_id, units(name))')
         .eq('account_id', accountId)
         .eq('id', route.params.id)
         .single(),
@@ -242,7 +242,7 @@ const guestData = computed(() => {
   }
 })
 
-const sourceLabel = computed(() => reservation.value?.source_detail || reservation.value?.source || '-')
+const sourceLabel = computed(() => reservation.value?.source_detail_info?.label_es || reservation.value?.source || '-')
 
 const formattedNit = computed(() => {
   const nitValue = profile.value?.nit
