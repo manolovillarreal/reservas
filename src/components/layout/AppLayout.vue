@@ -86,14 +86,11 @@ const primaryNav = [
   { name: 'Bloqueos', to: '/bloqueos', icon: '🔒' },
   { name: 'Calendario', to: '/calendar', icon: '📅' },
   { name: 'Huéspedes', to: '/huespedes', icon: '👥' },
-  { name: 'Pagos', to: '/pagos', icon: '💵' },
 ]
 
 const secondaryNav = [
   { name: 'Sedes', to: '/sedes', icon: '🏢' },
   { name: 'Unidades', to: '/unidades', icon: '🏠' },
-  { name: 'Huéspedes', to: '/huespedes', icon: '👥' },
-  { name: 'Tarifas', to: '/tarifas', icon: '🏷️' },
   { name: 'Configuración', to: '/configuracion', icon: '⚙️' },
 ]
 

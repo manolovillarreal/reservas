@@ -29,7 +29,7 @@
         </select>
       </div>
 
-      <div v-if="incomeFilterPreset === 'this_month'" class="rounded-md border border-indigo-200 bg-indigo-50 px-3 py-2 text-sm font-medium text-indigo-700">
+      <div v-if="incomeFilterPreset === 'this_month'" class="rounded-md border border-[#C7D2FE] bg-[#EEF2FF] px-3 py-2 text-sm font-medium text-[#2D1B69]">
         {{ currentMonthLabel }}
       </div>
 
@@ -318,11 +318,12 @@ const getReservationsForDay = (dateObj) => {
 
 const getMiniCalendarStyles = (status) => {
   const map = {
-    confirmed: 'bg-blue-50 text-blue-700 border-l-2 border-blue-400',
-    in_stay: 'bg-emerald-50 text-emerald-800 border-l-2 border-emerald-400',
-    completed: 'bg-gray-100 text-gray-600',
+    confirmed: 'bg-[#EEF2FF] text-[#2D1B69] border-l-2 border-[#C7D2FE]',
+    in_stay: 'bg-[#ECFDF5] text-[#065F46] border-l-2 border-[#6EE7B7]',
+    completed: 'bg-[#F9FAFB] text-[#6B7280] border-l-2 border-[#E5E7EB]',
+    cancelled: 'bg-[#F3F4F6] text-[#9CA3AF] border-l-2 border-[#E5E7EB]',
   }
-  return map[status] || 'bg-gray-100 text-gray-500'
+  return map[status] || 'bg-[#F9FAFB] text-[#6B7280] border-l-2 border-[#E5E7EB]'
 }
 
 const formatCurrency = (val) => {

@@ -20,16 +20,16 @@ const props = defineProps({
 
 const config = {
   confirmed: {
-    classes: 'bg-blue-50 text-blue-700 border-blue-200'
+    classes: 'bg-[#EEF2FF] text-[#2D1B69] border-[#C7D2FE]'
   },
   in_stay: {
-    classes: 'bg-emerald-50 text-emerald-800 border-emerald-300'
+    classes: 'bg-[#ECFDF5] text-[#065F46] border-[#6EE7B7]'
   },
   completed: {
-    classes: 'bg-gray-50 text-gray-500 border-gray-200'
+    classes: 'bg-[#F9FAFB] text-[#6B7280] border-[#E5E7EB]'
   },
   cancelled: {
-    classes: 'bg-gray-100 text-gray-400 border-gray-200'
+    classes: 'bg-[#F3F4F6] text-[#9CA3AF] border-[#E5E7EB]'
   }
 }
 
