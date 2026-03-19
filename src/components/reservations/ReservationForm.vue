@@ -382,7 +382,7 @@ const loadInquiryPrefill = async () => {
 onMounted(async () => {
   const accountId = getAccountId()
   const [{ data: venueData }, { data: unitData }] = await Promise.all([
-    supabase.from('venues').select('id, name, is_active').eq('is_active', true),
+    supabase.from('venues').select('id, name, is_active').eq('account_id', accountId).eq('is_active', true),
     supabase.from('units').select('id, venue_id, name, is_active').eq('account_id', accountId).eq('is_active', true)
   ])
 

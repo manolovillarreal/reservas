@@ -1,4 +1,10 @@
 import { supabase } from './supabase'
+import { useAccountStore } from '../stores/account'
+
+const getAccountId = () => {
+  const accountStore = useAccountStore()
+  return accountStore.getRequiredAccountId()
+}
 
 const normalizeValue = (value) => {
   if (typeof value !== 'string') return null
@@ -20,7 +26,7 @@ const buildGuestPayload = (guest) => {
   }
 }
 
-const findExistingGuest = async (guestPayload) => {
+const findExistingGuest = async (guestPayload, accountId) => {
   if (!guestPayload.document_type || !guestPayload.document_number) {
     return null
   }
@@ -28,6 +34,7 @@ const findExistingGuest = async (guestPayload) => {
   const { data, error } = await supabase
     .from('guests')
     .select('*')
+    .eq('account_id', accountId)
     .eq('document_type', guestPayload.document_type)
     .eq('document_number', guestPayload.document_number)
     .maybeSingle()
@@ -36,8 +43,8 @@ const findExistingGuest = async (guestPayload) => {
   return data
 }
 
-const upsertGuest = async (guestPayload) => {
-  const existingGuest = await findExistingGuest(guestPayload)
+const upsertGuest = async (guestPayload, accountId) => {
+  const existingGuest = await findExistingGuest(guestPayload, accountId)
 
   if (existingGuest) {
     const updatePayload = {
@@ -52,6 +59,7 @@ const upsertGuest = async (guestPayload) => {
     const { data, error } = await supabase
       .from('guests')
       .update(updatePayload)
+      .eq('account_id', accountId)
       .eq('id', existingGuest.id)
       .select()
       .single()
@@ -62,7 +70,7 @@ const upsertGuest = async (guestPayload) => {
 
   const { data, error } = await supabase
     .from('guests')
-    .insert(guestPayload)
+    .insert({ ...guestPayload, account_id: accountId })
     .select()
     .single()
 
@@ -84,9 +92,12 @@ export const completeReservationPreregistro = async ({ reservationId, guests }) 
     throw new Error('El huésped principal debe tener nombre.')
   }
 
+  const accountId = getAccountId()
+
   const { data: reservation, error: reservationError } = await supabase
     .from('reservations')
     .select('id, guest_id, guest_name, guest_phone')
+    .eq('account_id', accountId)
     .eq('id', reservationId)
     .single()
 
@@ -100,7 +111,7 @@ export const completeReservationPreregistro = async ({ reservationId, guests }) 
       continue
     }
 
-    const savedGuest = await upsertGuest(guestPayload)
+    const savedGuest = await upsertGuest(guestPayload, accountId)
     resolvedGuests.push(savedGuest)
   }
 
@@ -118,6 +129,7 @@ export const completeReservationPreregistro = async ({ reservationId, guests }) 
   const relationPayload = resolvedGuests.map((guest, index) => ({
     reservation_id: reservationId,
     guest_id: guest.id,
+    account_id: accountId,
     is_primary: index === 0
   }))
 
@@ -142,6 +154,7 @@ export const completeReservationPreregistro = async ({ reservationId, guests }) 
   const { error: updateError } = await supabase
     .from('reservations')
     .update(updatePayload)
+    .eq('account_id', accountId)
     .eq('id', reservationId)
 
   if (updateError) throw updateError

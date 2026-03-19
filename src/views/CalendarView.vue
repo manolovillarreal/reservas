@@ -310,8 +310,10 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { supabase } from '../services/supabase'
+import { useAccountStore } from '../stores/account'
 
 const router = useRouter()
+const accountStore = useAccountStore()
 
 const occupancies = ref([])
 const units = ref([])
@@ -497,9 +499,10 @@ const todayAgendaEvents = computed(() => {
 })
 
 async function fetchMasterData() {
+  const accountId = accountStore.getRequiredAccountId()
   const [{ data: venuesData }, { data: unitsData }] = await Promise.all([
-    supabase.from('venues').select('id, name').order('name', { ascending: true }),
-    supabase.from('units').select('id, name, venue_id').eq('is_active', true).order('name', { ascending: true })
+    supabase.from('venues').select('id, name').eq('account_id', accountId).order('name', { ascending: true }),
+    supabase.from('units').select('id, name, venue_id').eq('account_id', accountId).eq('is_active', true).order('name', { ascending: true })
   ])
 
   venues.value = venuesData || []
@@ -518,9 +521,11 @@ async function fetchOccupancies() {
   try {
     const toExclusive = toIsoDate(addDays(new Date(periodTo.value), 1))
 
+    const accountId = accountStore.getRequiredAccountId()
     const { data } = await supabase
       .from('occupancies')
       .select('id, unit_id, start_date, end_date, occupancy_type, reservation_id, inquiry_id, notes, units(name, venue_id, venues(name)), reservations(id, guest_name, adults, children, source, total_amount, paid_amount, check_in, check_out)')
+      .eq('account_id', accountId)
       .lt('start_date', toExclusive)
       .gt('end_date', periodFrom.value)
       .or('occupancy_type.neq.inquiry_hold,expires_at.gt.now()')

@@ -299,7 +299,7 @@ const toDateTimeLocalValue = (value) => {
 const fetchMasterData = async () => {
   const accountId = accountStore.getRequiredAccountId()
   const [{ data: venuesData }, { data: unitsData }] = await Promise.all([
-    supabase.from('venues').select('id, name').order('name', { ascending: true }),
+    supabase.from('venues').select('id, name').eq('account_id', accountId).order('name', { ascending: true }),
     supabase.from('units').select('id, name, venue_id').eq('account_id', accountId).eq('is_active', true).order('name', { ascending: true })
   ])
 
