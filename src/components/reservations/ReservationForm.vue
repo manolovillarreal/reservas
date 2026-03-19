@@ -389,7 +389,7 @@ const loadInquiryPrefill = async () => {
 
   const { data, error } = await supabase
     .from('inquiries')
-    .select('*')
+    .select('*, inquiry_units(unit_id)')
     .eq('account_id', accountId)
     .eq('id', inquiryId)
     .single()
@@ -411,6 +411,17 @@ const loadInquiryPrefill = async () => {
   form.value.commission_percentage = data.commission_percentage != null ? Number(data.commission_percentage) : ''
   form.value.discount_percentage = data.discount_percentage != null ? Number(data.discount_percentage) : ''
   form.value.status = 'confirmed'
+
+  const inquiryUnitIds = (data.inquiry_units || []).map((row) => row.unit_id).filter(Boolean)
+  if (inquiryUnitIds.length > 0) {
+    const matchedUnit = units.value.find((unit) => inquiryUnitIds.includes(unit.id))
+    if (matchedUnit?.venue_id) {
+      form.value.venue_id = matchedUnit.venue_id
+      await onVenueChange({ preserveUnits: true })
+    }
+
+    form.value.unit_ids = inquiryUnitIds.filter((unitId) => availableUnits.value.some((unit) => unit.id === unitId))
+  }
 }
 
 onMounted(async () => {
@@ -439,10 +450,11 @@ onBeforeUnmount(() => {
   }
 })
 
-const onVenueChange = async () => {
+const onVenueChange = async (options = {}) => {
+  const preserveUnits = options?.preserveUnits === true
   availableUnits.value = units.value.filter(unit => unit.venue_id === form.value.venue_id)
 
-  if (!fullHouseEnabled.value) {
+  if (!fullHouseEnabled.value && !preserveUnits) {
     form.value.unit_ids = []
   }
 

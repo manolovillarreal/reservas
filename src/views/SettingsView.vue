@@ -5,6 +5,18 @@
     </div>
 
     <div v-if="can('settings', 'edit')" class="card">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 class="text-lg font-semibold text-gray-900">Documentos</h2>
+          <p class="text-sm text-gray-500">Personaliza header, footer, colores y secciones de vouchers/cotizaciones.</p>
+        </div>
+        <RouterLink to="/configuracion/documentos" class="btn-primary text-sm">
+          Abrir configuracion de documentos
+        </RouterLink>
+      </div>
+    </div>
+
+    <div v-if="can('settings', 'edit')" class="card">
       <div class="mb-4 flex items-center justify-between gap-3">
         <div>
           <h2 class="text-lg font-semibold text-gray-900">Perfil</h2>

@@ -13,6 +13,7 @@
   "description": "",
   "dependencies": {
     "@supabase/supabase-js": "^2.99.1",
+    "chroma-js": "^3.2.0",
     "pinia": "^3.0.4",
     "vue": "^3.5.30",
     "vue-router": "^5.0.3"

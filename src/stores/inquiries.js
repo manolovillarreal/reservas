@@ -162,8 +162,9 @@ export const useInquiriesStore = defineStore('inquiries', () => {
       })
     }
 
+    const createdInquiry = await getInquiryById(data.id)
     await fetchInquiries()
-    return data
+    return createdInquiry
   }
 
   const updateInquiry = async (id, payload) => {
@@ -264,12 +265,9 @@ export const useInquiriesStore = defineStore('inquiries', () => {
       }
     }
 
+    const updatedInquiry = await getInquiryById(id)
     await fetchInquiries()
-    return {
-      ...data,
-      source_display_label: getSourceLabel(data),
-      unit_ids: (data.inquiry_units || []).map(u => u.unit_id)
-    }
+    return updatedInquiry
   }
 
   const updateInquiryStatus = async (id, status) => {

@@ -1,25 +1,62 @@
 import chroma from 'chroma-js'
 
-export const DOCUMENT_VARIABLE_OPTIONS = [
-  { key: 'nombre_comercial', token: '{{nombre_comercial}}', label: 'Nombre comercial' },
-  { key: 'nit', token: '{{nit}}', label: 'NIT' },
-  { key: 'razon_social', token: '{{razon_social}}', label: 'Razón social' },
-  { key: 'telefono', token: '{{telefono}}', label: 'Teléfono' },
-  { key: 'email', token: '{{email}}', label: 'Email' },
-  { key: 'ciudad', token: '{{ciudad}}', label: 'Ciudad' },
-  { key: 'direccion', token: '{{direccion}}', label: 'Dirección' },
-  { key: 'website', token: '{{website}}', label: 'Website' },
-  { key: 'slogan', token: '{{slogan}}', label: 'Slogan' },
-  { key: 'logo', token: '{{logo}}', label: 'Logo' }
-]
-
-export const DOCUMENT_COLOR_PALETTES = {
-  slate: { primary: '#1E293B', accent: '#3B82F6', background: '#F8FAFC' },
-  emerald: { primary: '#064E3B', accent: '#10B981', background: '#F0FDF4' },
-  indigo: { primary: '#312E81', accent: '#6366F1', background: '#EEF2FF' },
-  warm: { primary: '#78350F', accent: '#F59E0B', background: '#FFFBEB' },
-  rose: { primary: '#881337', accent: '#F43F5E', background: '#FFF1F2' }
+export const DOCUMENT_THEMES = {
+  tekmi: {
+    label: 'TekMi Inn',
+    primary: '#2D1B69',
+    accent: '#4C2FFF',
+    background: '#F8F9FC'
+  },
+  slate: {
+    label: 'Pizarra',
+    primary: '#1E293B',
+    accent: '#3B82F6',
+    background: '#F8FAFC'
+  },
+  emerald: {
+    label: 'Esmeralda',
+    primary: '#064E3B',
+    accent: '#10B981',
+    background: '#F0FDF4'
+  },
+  warm: {
+    label: 'Calido',
+    primary: '#78350F',
+    accent: '#F59E0B',
+    background: '#FFFBEB'
+  },
+  rose: {
+    label: 'Rosa',
+    primary: '#881337',
+    accent: '#F43F5E',
+    background: '#FFF1F2'
+  },
+  custom: {
+    label: 'Personalizada',
+    primary: null,
+    accent: null,
+    background: null
+  }
 }
+
+export const DOCUMENT_VARIABLES = {
+  '{{nombre_comercial}}': 'Nombre comercial',
+  '{{razon_social}}': 'Razon social',
+  '{{nit}}': 'NIT formateado',
+  '{{telefono}}': 'Telefono',
+  '{{email}}': 'Email',
+  '{{ciudad}}': 'Ciudad',
+  '{{direccion}}': 'Direccion',
+  '{{website}}': 'Sitio web',
+  '{{slogan}}': 'Slogan',
+  '{{logo}}': 'Logo'
+}
+
+export const DOCUMENT_VARIABLE_OPTIONS = Object.entries(DOCUMENT_VARIABLES).map(([token, label]) => ({
+  token,
+  label,
+  key: token.replace(/[{}]/g, '')
+}))
 
 export const DEFAULT_HEADER_FIELDS = {
   nombre_comercial: true,
@@ -44,10 +81,10 @@ export const DEFAULT_FOOTER_FIELDS = {
 }
 
 export const DEFAULT_DOCUMENT_SETTINGS = {
-  color_theme: 'indigo',
-  color_primary: DOCUMENT_COLOR_PALETTES.indigo.primary,
-  color_accent: DOCUMENT_COLOR_PALETTES.indigo.accent,
-  color_background: DOCUMENT_COLOR_PALETTES.indigo.background,
+  color_theme: 'tekmi',
+  color_primary: DOCUMENT_THEMES.tekmi.primary,
+  color_accent: DOCUMENT_THEMES.tekmi.accent,
+  color_background: DOCUMENT_THEMES.tekmi.background,
   header_layout: 1,
   header_show_logo: true,
   header_logo_size: 'medium',
@@ -73,7 +110,24 @@ export const normalizeDocumentSettings = (value = {}) => ({
   footer_fields: normalizeFields(value.footer_fields, DEFAULT_FOOTER_FIELDS)
 })
 
-export const getDocumentPalette = (documentSettings = {}) => {
+export function deriveThemeTokens(primary, accent, background) {
+  return {
+    primary,
+    accent,
+    background,
+    primaryLight: chroma(primary).brighten(2).hex(),
+    primaryDark: chroma(primary).darken(1).hex(),
+    accentLight: chroma(accent).brighten(2).hex(),
+    textOnPrimary: chroma(primary).luminance() > 0.5 ? '#111827' : '#FFFFFF',
+    textSecondary: chroma(primary).alpha(0.6).css(),
+    borderColor: chroma(primary).alpha(0.15).css(),
+    sectionBg: chroma(background).darken(0.1).hex(),
+    hoverPrimary: chroma(primary).darken(0.6).hex(),
+    hoverAccent: chroma(accent).darken(0.6).hex()
+  }
+}
+
+export const getDocumentThemeColors = (documentSettings = {}) => {
   const normalized = normalizeDocumentSettings(documentSettings)
   if (normalized.color_theme === 'custom') {
     return {
@@ -83,54 +137,48 @@ export const getDocumentPalette = (documentSettings = {}) => {
     }
   }
 
-  return DOCUMENT_COLOR_PALETTES[normalized.color_theme] || DOCUMENT_COLOR_PALETTES.indigo
-}
-
-export const deriveDocumentTheme = (documentSettings = {}) => {
-  const palette = getDocumentPalette(documentSettings)
-  const primary = chroma(palette.primary)
-  const accent = chroma(palette.accent)
-  const background = chroma(palette.background)
-
+  const theme = DOCUMENT_THEMES[normalized.color_theme] || DOCUMENT_THEMES.tekmi
   return {
-    primary: primary.hex(),
-    accent: accent.hex(),
-    background: background.hex(),
-    surface: chroma.mix(background, '#ffffff', 0.7, 'lab').hex(),
-    headerSurface: chroma.mix(background, primary, 0.12, 'lab').hex(),
-    footerSurface: chroma.mix(background, primary, 0.08, 'lab').hex(),
-    accentSoft: chroma.mix(background, accent, 0.16, 'lab').hex(),
-    sectionSurface: chroma.mix(background, accent, 0.09, 'lab').hex(),
-    border: chroma.mix(primary, background, 0.22, 'lab').alpha(0.35).css(),
-    textPrimary: chroma.mix(primary, '#111827', 0.5, 'lab').hex(),
-    textSecondary: chroma.mix(primary, background, 0.42, 'lab').darken(1).hex(),
-    accentText: chroma.contrast(accent, '#ffffff') > 4.5 ? '#ffffff' : '#111827'
+    primary: theme.primary,
+    accent: theme.accent,
+    background: theme.background
   }
 }
 
-export const getLogoSizeClass = (size) => {
-  if (size === 'small') return 'h-12 w-12'
-  if (size === 'large') return 'h-24 w-24'
-  return 'h-16 w-16'
+export const getLogoHeightPx = (size) => {
+  if (size === 'small') return 40
+  if (size === 'large') return 80
+  return 60
 }
 
-export const replaceDocumentVariables = (text, profile = {}, fallbackValues = {}) => {
+export function resolveVariables(template, profile = {}) {
+  const logoTag = profile.logo_url
+    ? `<img src="${profile.logo_url}" alt="Logo" style="height:${getLogoHeightPx('medium')}px;object-fit:contain;" />`
+    : ''
+
   const map = {
-    '{{logo}}': profile.logo_url || '',
-    '{{nombre_comercial}}': profile.commercial_name || profile.legal_name || fallbackValues.nombre_comercial || '',
-    '{{nit}}': fallbackValues.nit || profile.nit_display || profile.nit || '',
-    '{{razon_social}}': profile.legal_name || fallbackValues.razon_social || '',
-    '{{telefono}}': profile.phone || fallbackValues.telefono || '',
-    '{{email}}': profile.email || fallbackValues.email || '',
-    '{{ciudad}}': profile.city || fallbackValues.ciudad || '',
-    '{{direccion}}': profile.address || fallbackValues.direccion || '',
-    '{{website}}': profile.website || fallbackValues.website || '',
-    '{{slogan}}': profile.slogan || fallbackValues.slogan || ''
+    '{{logo}}': logoTag,
+    '{{nombre_comercial}}': profile.commercial_name || profile.legal_name || '',
+    '{{razon_social}}': profile.legal_name || '',
+    '{{nit}}': profile.nit_display || profile.nit || '',
+    '{{telefono}}': profile.phone || '',
+    '{{email}}': profile.email || '',
+    '{{ciudad}}': profile.city || '',
+    '{{direccion}}': profile.address || '',
+    '{{website}}': profile.website || '',
+    '{{slogan}}': profile.slogan || ''
   }
 
-  let output = String(text || '')
+  let output = String(template || '')
   Object.entries(map).forEach(([token, value]) => {
     output = output.replaceAll(token, value || '')
   })
-  return output.trim()
+  return output
+}
+
+export const replaceDocumentVariables = (text, profile = {}) => resolveVariables(text, profile).trim()
+
+export const deriveDocumentTheme = (documentSettings = {}) => {
+  const colors = getDocumentThemeColors(documentSettings)
+  return deriveThemeTokens(colors.primary, colors.accent, colors.background)
 }
