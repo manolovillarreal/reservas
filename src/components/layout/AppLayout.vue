@@ -87,6 +87,7 @@ const { can } = usePermissions()
 const primaryNav = [
   { name: 'Dashboard', to: '/', icon: '◫' },
   { name: 'Reservas', to: '/reservas', icon: '☰' },
+  { name: 'Pagos', to: '/pagos', icon: '💳' },
   { name: 'Consultas', to: '/consultas', icon: '❓' },
   { name: 'Bloqueos', to: '/bloqueos', icon: '🔒' },
   { name: 'Calendario', to: '/calendar', icon: '📅' },
@@ -102,6 +103,7 @@ const secondaryNav = [
 const visiblePrimaryNav = computed(() => {
   return primaryNav.filter((item) => {
     if (item.to === '/reservas') return can('reservations', 'view')
+    if (item.to === '/pagos') return can('payments', 'view')
     if (item.to === '/consultas') return can('inquiries', 'view')
     if (item.to === '/bloqueos') return can('occupancies', 'view')
     if (item.to === '/calendar') return can('calendar', 'view')

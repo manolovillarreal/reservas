@@ -98,14 +98,14 @@
         </div>
 
         <!-- Payments Section -->
-        <div v-if="canViewFinancial" class="card">
+        <div v-if="canViewPayments" class="card">
           <div class="flex justify-between items-center mb-4">
             <h2 class="text-lg font-semibold text-gray-900">Historial de Pagos</h2>
             <button v-if="can('payments', 'create')" class="text-sm font-medium text-indigo-600 hover:text-indigo-800" @click="openPaymentModal">+ Registrar Pago</button>
           </div>
           
           <div v-if="payments.length === 0" class="text-center py-6 text-gray-500 text-sm italic bg-gray-50 rounded-lg border border-dashed border-gray-200">
-            Aún no hay pagos registrados para esta reserva.
+            No hay pagos registrados aún.
           </div>
           
           <table v-else class="min-w-full divide-y divide-gray-200">
@@ -115,6 +115,7 @@
                 <th class="py-2 px-3">Monto</th>
                 <th class="py-2 px-3">Método</th>
                 <th class="py-2 px-3">Referencia</th>
+                <th class="py-2 px-3 text-right">Eliminar</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-gray-200 text-sm">
@@ -123,6 +124,15 @@
                 <td class="py-3 px-3 font-medium text-gray-900">${{ formatCurrency(p.amount) }}</td>
                 <td class="py-3 px-3 text-gray-500 capitalize">{{ p.method }}</td>
                 <td class="py-3 px-3 text-gray-500">{{ p.reference || '-' }}</td>
+                <td class="py-3 px-3 text-right">
+                  <button
+                    v-if="can('payments', 'delete')"
+                    class="text-sm font-medium text-red-600 hover:text-red-800"
+                    @click="openDeletePaymentModal(p)"
+                  >
+                    Eliminar
+                  </button>
+                </td>
               </tr>
             </tbody>
           </table>
@@ -271,6 +281,26 @@
         </div>
       </div>
     </BaseModal>
+
+    <PaymentModal
+      v-if="res"
+      :isOpen="showPaymentModal"
+      :reservationId="res.id"
+      :totalAmount="Number(res.total_amount || 0)"
+      :paidAmount="Number(res.paid_amount || 0)"
+      @close="closePaymentModal"
+      @saved="handlePaymentSaved"
+    />
+
+    <ConfirmActionModal
+      :isOpen="showDeletePaymentModal"
+      title="Eliminar pago"
+      :message="deletePaymentMessage"
+      confirmLabel="Eliminar"
+      :loading="deletingPayment"
+      @close="closeDeletePaymentModal"
+      @confirm="confirmDeletePayment"
+    />
   </div>
 </template>
 
@@ -282,17 +312,21 @@ import { useReservationsStore } from '../stores/reservations'
 import ReservationBadge from '../components/ui/ReservationBadge.vue'
 import DeadlineAlert from '../components/ui/DeadlineAlert.vue'
 import BaseModal from '../components/ui/BaseModal.vue'
+import ConfirmActionModal from '../components/ui/ConfirmActionModal.vue'
 import PreRegistroForm from '../components/preregistro/PreRegistroForm.vue'
+import PaymentModal from '../components/payments/PaymentModal.vue'
 import { completeReservationPreregistro } from '../services/preregistro'
 import { getCommissionSummary, getReservationGuestName, getReservationGuestPhone } from '../utils/reservations'
 import { usePermissions } from '../composables/usePermissions'
 import { useAccountStore } from '../stores/account'
+import { useToast } from '../composables/useToast'
 
 const route = useRoute()
 const router = useRouter()
 const reservationsStore = useReservationsStore()
 const accountStore = useAccountStore()
 const { can } = usePermissions()
+const toast = useToast()
 const loading = ref(true)
 const res = ref(null)
 const payments = ref([])
@@ -308,6 +342,10 @@ const editUnitsErrorMessage = ref('')
 const editUnitsAvailable = ref([])
 const editUnitsSelection = ref([])
 const editUnitsUnavailableNames = ref([])
+const showPaymentModal = ref(false)
+const showDeletePaymentModal = ref(false)
+const deletingPayment = ref(false)
+const selectedPayment = ref(null)
 
 onMounted(async () => {
   await fetchReservation()
@@ -431,6 +469,13 @@ const canViewFinancial = computed(() => {
   return can('payments', 'view') || can('reports', 'view_financial')
 })
 
+const canViewPayments = computed(() => can('payments', 'view'))
+
+const deletePaymentMessage = computed(() => {
+  if (!selectedPayment.value) return ''
+  return `¿Eliminar este pago de $${formatCurrency(selectedPayment.value.amount)} registrado el ${formatDate(selectedPayment.value.payment_date)}?`
+})
+
 // Formatting
 const formatDate = (ds) => {
   if(!ds) return '-'
@@ -461,12 +506,82 @@ const parseFunctionError = async (error) => {
 }
 
 // Interactions
-const openPaymentModal = () => { console.log('Abrir modal de pagos') }
+const openPaymentModal = () => {
+  showPaymentModal.value = true
+}
 const openStatusModal = () => { console.log('Abrir modal de estado') }
 const openCancelModal = () => { console.log('Abrir modal de cancelacion') }
 const openVoucher = () => {
   if (!res.value?.id) return
   router.push(`/reservas/${res.value.id}/voucher`)
+}
+
+const closePaymentModal = () => {
+  showPaymentModal.value = false
+}
+
+const handlePaymentSaved = async () => {
+  await fetchReservation()
+}
+
+const recalculatePaidAmount = async (reservationId, accountId) => {
+  const { data, error } = await supabase
+    .from('payments')
+    .select('amount')
+    .eq('account_id', accountId)
+    .eq('reservation_id', reservationId)
+
+  if (error) throw error
+
+  const paidAmount = (data || []).reduce((sum, row) => sum + Number(row.amount || 0), 0)
+
+  const { error: updateError } = await supabase
+    .from('reservations')
+    .update({ paid_amount: paidAmount })
+    .eq('account_id', accountId)
+    .eq('id', reservationId)
+
+  if (updateError) throw updateError
+  return paidAmount
+}
+
+const openDeletePaymentModal = (payment) => {
+  selectedPayment.value = payment
+  showDeletePaymentModal.value = true
+}
+
+const closeDeletePaymentModal = () => {
+  if (deletingPayment.value) return
+  showDeletePaymentModal.value = false
+  selectedPayment.value = null
+}
+
+const confirmDeletePayment = async () => {
+  if (!selectedPayment.value || !res.value) return
+
+  deletingPayment.value = true
+
+  try {
+    const accountId = accountStore.getRequiredAccountId()
+
+    const { error } = await supabase
+      .from('payments')
+      .delete()
+      .eq('account_id', accountId)
+      .eq('id', selectedPayment.value.id)
+
+    if (error) throw error
+
+    await recalculatePaidAmount(res.value.id, accountId)
+    await fetchReservation()
+
+    toast.success('Pago eliminado correctamente')
+    closeDeletePaymentModal()
+  } catch (error) {
+    toast.error(error.message || 'No se pudo eliminar el pago.')
+  } finally {
+    deletingPayment.value = false
+  }
 }
 
 const validateEditUnitsSelection = async () => {

@@ -97,6 +97,12 @@ const router = createRouter({
       meta: { requiresAuth: true }
     },
     {
+      path: '/pagos',
+      name: 'pagos',
+      component: () => import('../views/PaymentsView.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
       path: '/configuracion',
       name: 'configuracion',
       component: () => import('../views/SettingsView.vue'),

@@ -94,7 +94,31 @@
             
             <!-- Acciones -->
             <td class="px-6 py-4 text-right">
-              <button class="text-gray-400 hover:text-indigo-600 px-2 py-1 transition-colors" @click="$emit('view', res)">Ver detalle</button>
+              <div class="relative inline-block text-left">
+                <button
+                  class="rounded px-2 py-1 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700"
+                  type="button"
+                  @click="toggleMenu(res.id)"
+                >
+                  ...
+                </button>
+
+                <div
+                  v-if="openMenuId === res.id"
+                  class="absolute right-0 z-10 mt-1 w-40 rounded-md border border-gray-200 bg-white py-1 shadow-lg"
+                >
+                  <button class="block w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50" @click="handleView(res)">
+                    Ver detalle
+                  </button>
+                  <button
+                    v-if="can('payments', 'create')"
+                    class="block w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
+                    @click="handleRegisterPayment(res)"
+                  >
+                    Registrar pago
+                  </button>
+                </div>
+              </div>
             </td>
           </tr>
         </tbody>
@@ -114,7 +138,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import ReservationBadge from '../ui/ReservationBadge.vue'
 import { getCommissionSummary } from '../../utils/reservations'
 import { usePermissions } from '../../composables/usePermissions'
@@ -131,7 +155,8 @@ const props = defineProps({
   totalCount: { type: Number, default: 0 }
 })
 
-const emit = defineEmits(['view', 'sort-change', 'page-change'])
+const emit = defineEmits(['view', 'sort-change', 'page-change', 'register-payment'])
+const openMenuId = ref('')
 
 const totalPages = computed(() => {
   if (!props.pageSize || props.pageSize <= 0) return 1
@@ -149,6 +174,20 @@ const sortBy = (key) => {
   if (key === 'check_in') {
     emit('sort-change', 'check_in')
   }
+}
+
+const toggleMenu = (reservationId) => {
+  openMenuId.value = openMenuId.value === reservationId ? '' : reservationId
+}
+
+const handleView = (reservation) => {
+  openMenuId.value = ''
+  emit('view', reservation)
+}
+
+const handleRegisterPayment = (reservation) => {
+  openMenuId.value = ''
+  emit('register-payment', reservation)
 }
 
 const isToday = (dateStr) => {

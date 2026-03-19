@@ -84,6 +84,17 @@
       @sort-change="onSortChange"
       @page-change="onPageChange"
       @view="goToDetail"
+      @register-payment="openPaymentModal"
+    />
+
+    <PaymentModal
+      v-if="selectedReservation"
+      :isOpen="showPaymentModal"
+      :reservationId="selectedReservation?.id || ''"
+      :totalAmount="Number(selectedReservation?.total_amount || 0)"
+      :paidAmount="Number(selectedReservation?.paid_amount || 0)"
+      @close="closePaymentModal"
+      @saved="handlePaymentSaved"
     />
 
   </div>
@@ -94,6 +105,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useReservationsStore } from '../stores/reservations'
 import ReservationTable from '../components/reservations/ReservationTable.vue'
+import PaymentModal from '../components/payments/PaymentModal.vue'
 import { usePermissions } from '../composables/usePermissions'
 
 const store = useReservationsStore()
@@ -132,6 +144,9 @@ const pagination = ref({
   page: 1,
   pageSize: 25
 })
+
+const showPaymentModal = ref(false)
+const selectedReservation = ref(null)
 
 const fetchList = async () => {
   await store.fetchReservations({
@@ -198,5 +213,19 @@ const onPageChange = async (page) => {
 
 const goToDetail = (res) => {
   router.push(`/reservas/${res.id}`)
+}
+
+const openPaymentModal = (reservation) => {
+  selectedReservation.value = reservation
+  showPaymentModal.value = true
+}
+
+const closePaymentModal = () => {
+  showPaymentModal.value = false
+  selectedReservation.value = null
+}
+
+const handlePaymentSaved = async () => {
+  await fetchList()
 }
 </script>
