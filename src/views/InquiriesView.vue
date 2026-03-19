@@ -245,13 +245,13 @@ function buildEmptyForm() {
 
 onMounted(async () => {
   const accountId = accountStore.getRequiredAccountId()
-  const [, { data: venuesData }, { data: unitsData }] = await Promise.all([
-    store.fetchInquiries(),
+  const [{ data: venuesData }, { data: unitsData }] = await Promise.all([
     supabase.from('venues').select('id, name').eq('account_id', accountId).order('name'),
     supabase.from('units').select('id, name, venue_id').eq('account_id', accountId).eq('is_active', true).order('name')
   ])
   venues.value = venuesData || []
   units.value = unitsData || []
+  store.fetchInquiries().catch(() => {})
 })
 
 const venueNameById = (venueId) => venues.value.find(v => v.id === venueId)?.name || ''
