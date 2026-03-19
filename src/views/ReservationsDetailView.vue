@@ -11,7 +11,7 @@
         <button v-if="can('reservations', 'edit')" class="btn-secondary text-sm" @click="copyPreregistroLink">Copiar link pre-registro</button>
         <button v-if="can('reservations', 'edit')" class="btn-secondary text-sm" @click="showPreregistroModal = true">Completar pre-registro</button>
         <button v-if="can('reservations', 'checkin')" class="btn-secondary text-sm" @click="registerArrival">Registrar llegada</button>
-        <button v-if="can('vouchers', 'generate')" class="btn-secondary text-sm">Generar Voucher</button>
+        <button v-if="can('vouchers', 'generate')" class="btn-secondary text-sm" @click="openVoucher">Generar Voucher</button>
       </div>
     </div>
 
@@ -276,7 +276,7 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { supabase } from '../services/supabase'
 import { useReservationsStore } from '../stores/reservations'
 import ReservationBadge from '../components/ui/ReservationBadge.vue'
@@ -289,6 +289,7 @@ import { usePermissions } from '../composables/usePermissions'
 import { useAccountStore } from '../stores/account'
 
 const route = useRoute()
+const router = useRouter()
 const reservationsStore = useReservationsStore()
 const accountStore = useAccountStore()
 const { can } = usePermissions()
@@ -463,6 +464,10 @@ const parseFunctionError = async (error) => {
 const openPaymentModal = () => { console.log('Abrir modal de pagos') }
 const openStatusModal = () => { console.log('Abrir modal de estado') }
 const openCancelModal = () => { console.log('Abrir modal de cancelacion') }
+const openVoucher = () => {
+  if (!res.value?.id) return
+  router.push(`/reservas/${res.value.id}/voucher`)
+}
 
 const validateEditUnitsSelection = async () => {
   editUnitsUnavailableNames.value = []

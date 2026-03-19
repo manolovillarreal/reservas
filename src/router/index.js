@@ -37,6 +37,12 @@ const router = createRouter({
       meta: { requiresAuth: true }
     },
     {
+      path: '/reservas/:id/voucher',
+      name: 'voucher-reserva',
+      component: () => import('../views/VoucherView.vue'),
+      meta: { requiresAuth: true, plainLayout: true }
+    },
+    {
       path: '/consultas',
       name: 'consultas',
       component: () => import('../views/InquiriesView.vue'),
