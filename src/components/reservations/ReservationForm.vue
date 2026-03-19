@@ -1,211 +1,321 @@
 <template>
-  <div class="max-w-3xl mx-auto rounded-lg border border-gray-100 bg-white p-6 shadow-md">
+  <div class="max-w-3xl mx-auto">
     <h2 class="mb-6 text-2xl font-bold text-gray-800">Nueva Reserva</h2>
 
-    <form @submit.prevent="submitForm" class="space-y-5">
-      <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <div>
-          <label class="block text-sm font-medium text-gray-700">Sede</label>
-          <select v-model="form.venue_id" @change="onVenueChange" required class="mt-1 block w-full rounded-md border-gray-300">
-            <option value="">Seleccionar sede</option>
-            <option v-for="venue in venues" :key="venue.id" :value="venue.id">{{ venue.name }}</option>
-          </select>
-        </div>
+    <form @submit.prevent="submitForm" class="space-y-6">
 
-        <div>
-          <label class="block text-sm font-medium text-gray-700">Teléfono de referencia</label>
-          <input
-            type="text"
-            v-model="form.guest_phone"
-            placeholder="Ej: +54 11 1234-5678"
-            class="mt-1 block w-full rounded-md border-gray-300"
-          >
-        </div>
-      </div>
-
-      <div>
-        <div class="flex items-center justify-between gap-3">
-          <label class="block text-sm font-medium text-gray-700">Huésped (nombre libre)</label>
+      <!-- ── 1. Huésped ────────────────────────────────────────── -->
+      <AppFormSection title="Huésped" :divider="true">
+        <template #actions>
           <button
             type="button"
-            class="text-sm font-medium text-indigo-600 hover:text-indigo-800"
+            class="text-sm font-medium text-[#4C2FFF] hover:opacity-80"
             @click="openCreateGuestModal"
           >
             + Crear huésped
           </button>
-        </div>
-        <div class="relative mt-1">
-          <input
-            type="text"
-            v-model="form.guest_name"
-            placeholder="Escribe al menos 3 caracteres"
-            class="block w-full rounded-md border-gray-300"
-            autocomplete="off"
-            @focus="showSuggestions = true"
+        </template>
+
+        <AppSelect
+          :modelValue="form.venue_id"
+          label="Sede"
+          :options="venueOptions"
+          placeholder="Seleccionar sede"
+          @update:modelValue="handleVenueChange"
+        />
+
+        <!-- Linked guest badge -->
+        <div v-if="selectedGuest" class="flex items-center gap-3 rounded-lg border border-[#4C2FFF]/20 bg-[#4C2FFF]/5 px-4 py-3">
+          <svg viewBox="0 0 20 20" fill="currentColor" class="h-5 w-5 shrink-0 text-[#4C2FFF]" aria-hidden="true">
+            <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
+          </svg>
+          <div class="min-w-0 flex-1">
+            <p class="text-xs font-semibold uppercase tracking-wide text-[#4C2FFF]">Huésped vinculado</p>
+            <p class="truncate text-sm font-medium text-[#111827]">{{ selectedGuest.name }}</p>
+          </div>
+          <button
+            type="button"
+            class="shrink-0 rounded-md border border-[#E5E7EB] px-2 py-1 text-xs text-[#6B7280] transition hover:border-red-300 hover:text-red-600"
+            @click="unlinkGuest"
           >
+            × Desvincular
+          </button>
+        </div>
+
+        <!-- Free-form guest name with autocomplete -->
+        <div v-else class="relative">
+          <AppInput
+            v-model="form.guest_name"
+            label="Nombre del huésped"
+            placeholder="Escribe al menos 3 caracteres"
+            :required="true"
+            :error="fieldError('guest_name')"
+            @focus="showSuggestions = true"
+            @blur="onGuestNameBlur"
+          />
           <div
             v-if="showSuggestions && (autocompleteLoading || guestSuggestions.length > 0)"
-            class="absolute z-20 mt-1 w-full rounded-md border border-gray-200 bg-white shadow-lg"
+            class="absolute left-0 right-0 top-full z-20 mt-1 rounded-md border border-[#E5E7EB] bg-white shadow-lg"
           >
-            <p v-if="autocompleteLoading" class="px-3 py-2 text-sm text-gray-500">Buscando huéspedes...</p>
+            <p v-if="autocompleteLoading" class="px-3 py-2 text-sm text-[#6B7280]">Buscando huéspedes...</p>
             <button
               v-for="guest in guestSuggestions"
               :key="guest.id"
               type="button"
-              class="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-gray-50"
+              class="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-[#F8F9FC]"
               @click="selectGuestSuggestion(guest)"
             >
-              <span class="font-medium text-gray-800">{{ guest.name }}</span>
-              <span class="text-xs text-gray-500">{{ guest.phone || 'Sin teléfono' }}</span>
+              <span class="font-medium text-[#111827]">{{ guest.name }}</span>
+              <span class="text-xs text-[#6B7280]">{{ guest.phone || 'Sin teléfono' }}</span>
             </button>
           </div>
         </div>
-        <p class="mt-1 text-xs text-gray-500">
-          Si seleccionas una sugerencia se vincula con guest_id. Si escribes un nombre nuevo, queda como referencia sin huésped vinculado.
-        </p>
-      </div>
 
-      <div>
-        <div class="mb-2 flex flex-wrap items-center justify-between gap-3">
-          <label class="block text-sm font-medium text-gray-700">Unidades de la sede</label>
-          <label class="inline-flex items-center gap-2 text-sm font-medium text-gray-700">
-            <input
-              type="checkbox"
+        <AppInput
+          v-model="form.guest_phone"
+          label="Teléfono"
+          placeholder="Ej: +57 300 123 4567"
+          hint="Opcional"
+        />
+      </AppFormSection>
+
+      <!-- ── 2. Fechas y unidad ─────────────────────────────────── -->
+      <AppFormSection title="Fechas y unidad" :divider="true">
+        <AppFormGrid :columns="2">
+          <AppDatePicker
+            v-model="form.check_in"
+            label="Check-in"
+            :error="fieldError('check_in')"
+            @update:modelValue="onTouched('check_in')"
+          />
+          <AppDatePicker
+            v-model="form.check_out"
+            label="Check-out"
+            :error="fieldError('check_out')"
+            @update:modelValue="onTouched('check_out')"
+          />
+        </AppFormGrid>
+
+        <!-- Nights summary -->
+        <div v-if="computedNights > 0 && !hasUnavailableConflict" class="flex items-center gap-2 text-sm font-medium text-[#10B981]">
+          <svg viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4" aria-hidden="true">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.03-9.28a.75.75 0 10-1.06-1.06L9.25 10.38 8.03 9.16a.75.75 0 10-1.06 1.06l1.75 1.75a.75.75 0 001.06 0l3.25-3.25z" clip-rule="evenodd" />
+          </svg>
+          {{ computedNights }} noche{{ computedNights !== 1 ? 's' : '' }} · Fechas disponibles
+        </div>
+        <div v-else-if="computedNights > 0" class="text-sm text-[#6B7280]">
+          {{ computedNights }} noche{{ computedNights !== 1 ? 's' : '' }}
+        </div>
+
+        <!-- Overlap alert -->
+        <AppInlineAlert
+          v-if="hasUnavailableConflict"
+          type="error"
+          title="Fechas ocupadas"
+          :message="conflictMessage"
+        />
+
+        <!-- Units field group -->
+        <AppFieldGroup title="Unidad(es)" :border="true" :compact="true" :tone="unitFieldError ? 'error' : 'neutral'">
+          <div class="mb-3">
+            <AppToggle
               v-model="fullHouseEnabled"
-              class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-            >
-            Casa completa
-          </label>
-        </div>
+              label="Casa completa"
+              description="Selecciona automáticamente todas las unidades disponibles"
+            />
+          </div>
+          <div>
+            <p v-if="!form.venue_id" class="text-sm text-[#6B7280]">Selecciona una sede para elegir unidades.</p>
+            <p v-else-if="availableUnits.length === 0" class="text-sm text-[#6B7280]">No hay unidades activas en esta sede.</p>
+            <div v-else class="max-h-52 space-y-2 overflow-y-auto">
+              <label
+                v-for="unit in availableUnits"
+                :key="unit.id"
+                class="flex cursor-pointer items-center gap-2 text-sm text-[#111827]"
+              >
+                <input
+                  type="checkbox"
+                  :value="unit.id"
+                  v-model="form.unit_ids"
+                  :disabled="fullHouseEnabled"
+                  class="rounded border-[#E5E7EB] text-[#4C2FFF] focus:ring-[#4C2FFF]/30"
+                >
+                <span>{{ unit.name }}</span>
+              </label>
+            </div>
+          </div>
+          <template #footer>
+            <p v-if="fullHouseEnabled" class="text-xs text-[#4C2FFF]">
+              Full House activo: se seleccionan automáticamente todas las unidades disponibles de la sede en ese rango.
+            </p>
+            <p v-if="unitFieldError" class="text-xs text-[#EF4444]">{{ unitFieldError }}</p>
+          </template>
+        </AppFieldGroup>
+      </AppFormSection>
 
-        <div class="max-h-56 space-y-2 overflow-y-auto rounded-md border border-gray-200 bg-gray-50 p-3">
-          <p v-if="!form.venue_id" class="text-sm text-gray-500">Selecciona una sede para elegir unidades.</p>
-          <p v-else-if="availableUnits.length === 0" class="text-sm text-gray-500">No hay unidades activas en esta sede.</p>
-
-          <label v-for="unit in availableUnits" :key="unit.id" class="flex items-center gap-2 text-sm text-gray-700">
-            <input
-              type="checkbox"
-              :value="unit.id"
-              v-model="form.unit_ids"
-              :disabled="fullHouseEnabled"
-              class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-            >
-            <span>{{ unit.name }}</span>
-          </label>
-        </div>
-
-        <p v-if="fullHouseEnabled" class="mt-2 text-xs text-indigo-700">
-          Full House activo: se seleccionan automáticamente todas las unidades disponibles de la sede en ese rango.
+      <!-- ── 3. Personas ───────────────────────────────────────── -->
+      <AppFormSection title="Personas" :divider="true">
+        <AppFormGrid :columns="2">
+          <AppCounter
+            v-model="form.adults"
+            label="Adultos"
+            :min="1"
+            :max="20"
+          />
+          <AppCounter
+            v-model="form.children"
+            label="Niños"
+            :min="0"
+            :max="20"
+          />
+        </AppFormGrid>
+        <p class="text-sm text-[#6B7280]">
+          Total: <strong class="text-[#111827]">{{ guestsTotal }} persona{{ guestsTotal !== 1 ? 's' : '' }}</strong>
         </p>
+      </AppFormSection>
 
-        <div v-if="fullHouseUnavailableNames.length > 0" class="mt-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-          No se puede confirmar Casa completa. Unidades ocupadas/bloqueadas: {{ fullHouseUnavailableNames.join(', ') }}.
-        </div>
+      <!-- ── 4. Precio y comisión ──────────────────────────────── -->
+      <AppFormSection title="Precio y comisión" :divider="true">
+        <AppFormGrid :columns="2">
+          <AppInput
+            v-model="form.price_per_night"
+            type="number"
+            label="Precio por noche"
+            prefix="$"
+            :required="true"
+            :error="fieldError('price_per_night')"
+            :hint="suggestedNightlyPrice > 0 ? `Sugerido: $${formatCurrency(suggestedNightlyPrice)}` : ''"
+            @blur="onTouched('price_per_night')"
+          />
+          <AppSelect
+            v-model="form.status"
+            label="Estado inicial"
+            :options="statusOptions"
+            placeholder="Seleccionar estado"
+          />
+        </AppFormGrid>
 
-        <div v-if="selectedUnavailableNames.length > 0" class="mt-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-          Las unidades seleccionadas no están disponibles en el rango: {{ selectedUnavailableNames.join(', ') }}.
-        </div>
-      </div>
+        <AppFormGrid :columns="2">
+          <div class="space-y-1">
+            <AppInput
+              v-model="form.discount_percentage"
+              type="number"
+              label="Descuento"
+              suffix="%"
+              hint="Opcional"
+            />
+            <AppFieldHint
+              v-if="sourceSuggestions.discountPercentage !== null"
+              :message="`Sugerido por ${sourceSuggestions.sourceDetailLabel}: ${sourceSuggestions.discountPercentage}%`"
+              type="hint"
+            />
+          </div>
+          <div class="space-y-1">
+            <AppInput
+              v-model="form.commission_percentage"
+              type="number"
+              label="Comisión"
+              suffix="%"
+              hint="Opcional"
+            />
+            <AppFieldHint
+              v-if="sourceSuggestions.commissionPercentage !== null"
+              :message="`Sugerido por ${sourceSuggestions.sourceDetailLabel}: ${sourceSuggestions.commissionPercentage}%`"
+              type="hint"
+            />
+          </div>
+        </AppFormGrid>
 
-      <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <div>
-          <label class="block text-sm font-medium text-gray-700">Check-in</label>
-          <input type="date" v-model="form.check_in" required class="mt-1 block w-full rounded-md border-gray-300">
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700">Check-out</label>
-          <input type="date" v-model="form.check_out" required class="mt-1 block w-full rounded-md border-gray-300">
-        </div>
-      </div>
+        <PricingCalculatorPanel
+          :checkIn="form.check_in"
+          :checkOut="form.check_out"
+          :pricePerNight="Number(form.price_per_night || 0)"
+          :discountPercentage="Number(form.discount_percentage || 0)"
+          :commissionPercentage="Number(form.commission_percentage || 0)"
+          :units="form.unit_ids"
+          :adults="Number(form.adults || 1)"
+          :children="Number(form.children || 0)"
+          @update="onCalculatorUpdate"
+        />
 
-      <p v-if="!isDateRangeValid && form.check_in && form.check_out" class="text-sm text-red-600">
-        El Check-out debe ser posterior al Check-in.
-      </p>
+        <AppDatePicker
+          v-model="form.payment_deadline"
+          label="Fecha límite de pago"
+          hint="Opcional — hasta cuándo se reservan las fechas"
+        />
+      </AppFormSection>
 
-      <div v-if="computedNights > 0" class="rounded bg-blue-50 p-3 text-sm font-medium text-blue-800">
-        Estadía proyectada: {{ computedNights }} noche(s). Unidades seleccionadas: {{ form.unit_ids.length }}.
-      </div>
+      <!-- ── 5. Origen ──────────────────────────────────────────── -->
+      <AppFormSection title="Origen" :divider="true">
+        <AppFieldGroup title="Canal de origen" :border="false" :compact="true">
+          <SourceSelector
+            :modelValue="{ sourceTypeId: form.source_type_id, sourceDetailId: form.source_detail_id }"
+            @update:modelValue="updateSourceSelection"
+            @suggestions="applySourceSuggestions"
+          />
+        </AppFieldGroup>
 
-      <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <div>
-          <label class="block text-sm font-medium text-gray-700">Precio por noche (Sugerido: ${{ suggestedNightlyPrice }})</label>
-          <input type="number" v-model="form.price_per_night" required min="0" step="0.01" class="mt-1 block w-full rounded-md border-gray-300">
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700">Estado Inicial</label>
-          <select v-model="form.status" required class="mt-1 block w-full rounded-md border-gray-300">
-            <option value="confirmed">Confirmada</option>
-            <option value="in_stay">En estadía</option>
-            <option value="completed">Finalizada</option>
-            <option value="cancelled">Cancelada</option>
-          </select>
-        </div>
-      </div>
+        <AppInput
+          v-model="form.commission_name"
+          label="Nombre de comisión"
+          placeholder="Booking, agencia..."
+          hint="Opcional"
+        />
+      </AppFormSection>
 
-      <SourceSelector
-        :modelValue="{ sourceTypeId: form.source_type_id, sourceDetailId: form.source_detail_id }"
-        @update:modelValue="updateSourceSelection"
-        @suggestions="applySourceSuggestions"
+      <!-- ── 6. Notas ───────────────────────────────────────────── -->
+      <AppFormSection title="Notas" :divider="false">
+        <AppTextarea
+          v-model="form.notes"
+          label="Notas internas"
+          hint="Solo visibles para el administrador"
+          :autoResize="true"
+          :rows="2"
+        />
+      </AppFormSection>
+
+      <!-- Sync issue alert -->
+      <AppInlineAlert
+        v-if="syncIssue"
+        type="warning"
+        title="Reserva creada con problema de sincronización"
+        :message="syncIssue.message"
+      >
+        <template #actions>
+          <button
+            type="button"
+            class="rounded-md border border-current px-3 py-1 text-xs font-medium transition hover:opacity-80"
+            @click="retrySync"
+          >
+            Reintentar
+          </button>
+          <button
+            type="button"
+            class="rounded-md border border-current px-3 py-1 text-xs font-medium transition hover:opacity-80"
+            @click="openManualOccupancyModal"
+          >
+            Hacer manualmente
+          </button>
+        </template>
+      </AppInlineAlert>
+
+      <!-- General error -->
+      <AppInlineAlert
+        v-if="errorMessage"
+        type="error"
+        :message="errorMessage"
+        :dismissible="true"
       />
 
-      <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <div>
-          <label class="block text-sm font-medium text-gray-700">Adultos</label>
-          <input type="number" v-model="form.adults" min="1" class="mt-1 block w-full rounded-md border-gray-300">
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700">Niños</label>
-          <input type="number" v-model="form.children" min="0" class="mt-1 block w-full rounded-md border-gray-300">
-        </div>
-      </div>
-
-      <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <div>
-          <label class="block text-sm font-medium text-gray-700">Comisión</label>
-          <input type="text" v-model="form.commission_name" placeholder="Booking, agencia..." class="mt-1 block w-full rounded-md border-gray-300">
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700">% Comisión</label>
-          <input type="number" v-model="form.commission_percentage" min="0" step="0.01" class="mt-1 block w-full rounded-md border-gray-300">
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700">% Descuento</label>
-          <input type="number" v-model="form.discount_percentage" min="0" step="0.01" class="mt-1 block w-full rounded-md border-gray-300">
-        </div>
-      </div>
-
-      <div v-if="showCalculationPanel" class="rounded-md border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-900">
-        <p>Noches: <strong>{{ computedNights }}</strong></p>
-        <p>Precio por noche: <strong>${{ formatCurrency(form.price_per_night || 0) }}</strong></p>
-        <p>Subtotal: <strong>${{ formatCurrency(subtotalAmount) }}</strong></p>
-        <p>Descuento ({{ Number(form.discount_percentage || 0) }}%): <strong>-${{ formatCurrency(discountAmount) }}</strong></p>
-        <p>Total cliente: <strong>${{ formatCurrency(customerTotal) }}</strong></p>
-        <p>Comisión ({{ Number(form.commission_percentage || 0) }}%): <strong>-${{ formatCurrency(commissionAmount) }}</strong></p>
-        <p>Ingreso neto: <strong>${{ formatCurrency(netAmount) }}</strong></p>
-      </div>
-
-      <div v-if="errorMessage" class="rounded bg-red-50 p-3 text-red-600 shadow-inner">
-        {{ errorMessage }}
-      </div>
-
-      <div v-if="syncIssue" class="rounded border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-        <p>La reserva se creó, pero falló la sincronización de ocupación.</p>
-        <p class="mt-1">{{ syncIssue.message }}</p>
-        <div class="mt-3 flex gap-2">
-          <button type="button" class="btn-secondary" @click="retrySync">Reintentar</button>
-          <button type="button" class="btn-secondary" @click="openManualOccupancyModal">Hacer manualmente</button>
-        </div>
-      </div>
-
-      <div class="mt-6 flex justify-end border-t pt-4">
-        <button
-          type="submit"
-          :disabled="loading || !canSubmit"
-          class="rounded-md bg-gray-900 px-6 py-2 text-white transition-colors hover:bg-gray-800 disabled:opacity-50"
-        >
-          {{ loading ? 'Validando...' : 'Crear Reserva' }}
-        </button>
-      </div>
+      <!-- Form footer -->
+      <AppFormActions
+        submit-label="Guardar reserva"
+        cancel-label="Cancelar"
+        :loading="loading"
+        :submit-disabled="!canSubmit"
+        @submit="submitForm"
+        @cancel="router.push('/reservas')"
+      />
     </form>
 
     <BaseModal :isOpen="showCreateGuestModal" title="Crear huésped" @close="closeCreateGuestModal">
@@ -261,14 +371,25 @@ import { supabase } from '../../services/supabase'
 import BaseModal from '../ui/BaseModal.vue'
 import SourceSelector from '../sources/SourceSelector.vue'
 import { useAccountStore } from '../../stores/account'
+import { useToast } from '../../composables/useToast'
+import {
+  AppInput, AppSelect, AppTextarea, AppDatePicker,
+  AppCounter, AppToggle, AppFieldGroup, AppFormSection,
+  AppFormActions, AppInlineAlert, AppFormGrid, AppFieldHint,
+  PricingCalculatorPanel
+} from '../ui/forms/index.js'
 
 const store = useReservationsStore()
 const accountStore = useAccountStore()
 const router = useRouter()
 const route = useRoute()
+const toast = useToast()
 
 const loading = ref(false)
 const errorMessage = ref('')
+const touched = ref({})
+const submitAttempted = ref(false)
+const sourceSuggestions = ref({ commissionPercentage: null, discountPercentage: null, sourceDetailLabel: '' })
 
 const venues = ref([])
 const units = ref([])
@@ -317,6 +438,8 @@ const form = ref({
   commission_name: '',
   commission_percentage: '',
   discount_percentage: '',
+  payment_deadline: '',
+  notes: '',
   inquiry_id: null
 })
 
@@ -335,6 +458,29 @@ const normalizeDate = (value) => {
   const trimmed = String(value).trim()
   if (!trimmed) return null
   return trimmed.slice(0, 10)
+}
+
+const onTouched = (field) => {
+  touched.value[field] = true
+}
+
+const onGuestNameBlur = () => {
+  onTouched('guest_name')
+  setTimeout(() => { showSuggestions.value = false }, 200)
+}
+
+const unlinkGuest = () => {
+  selectedGuest.value = null
+  form.value.guest_id = null
+}
+
+const handleVenueChange = async (newVenueId) => {
+  form.value.venue_id = newVenueId
+  await onVenueChange()
+}
+
+const onCalculatorUpdate = (_calcs) => {
+  // total_amount is already synced via the watch on price_per_night/nights/discount
 }
 
 const getAccountId = () => accountStore.getRequiredAccountId()
@@ -376,6 +522,53 @@ const amountPerGuest = computed(() => {
 const showCalculationPanel = computed(() => {
   return computedNights.value > 0 && form.value.price_per_night !== '' && form.value.price_per_night !== null
 })
+
+const venueOptions = computed(() => venues.value.map(v => ({ value: v.id, label: v.name })))
+
+const statusOptions = [
+  { value: 'confirmed', label: 'Confirmada' },
+  { value: 'in_stay', label: 'En estadía' },
+  { value: 'completed', label: 'Finalizada' },
+  { value: 'cancelled', label: 'Cancelada' }
+]
+
+const hasUnavailableConflict = computed(() =>
+  selectedUnavailableNames.value.length > 0 || fullHouseUnavailableNames.value.length > 0
+)
+
+const conflictMessage = computed(() => {
+  const names = [...new Set([...selectedUnavailableNames.value, ...fullHouseUnavailableNames.value])]
+  return `Unidades no disponibles en el rango seleccionado: ${names.join(', ')}.`
+})
+
+const unitFieldError = computed(() => {
+  if ((touched.value.unit_ids || submitAttempted.value) && form.value.unit_ids.length === 0 && form.value.venue_id) {
+    return 'Selecciona al menos una unidad'
+  }
+  return ''
+})
+
+const fieldError = (field) => {
+  if (!touched.value[field] && !submitAttempted.value) return ''
+  switch (field) {
+    case 'guest_name':
+      if (!form.value.guest_id && !form.value.guest_name?.trim()) return 'El nombre del huésped es requerido'
+      return ''
+    case 'check_in':
+      return !form.value.check_in ? 'La fecha de check-in es requerida' : ''
+    case 'check_out':
+      if (!form.value.check_out) return 'La fecha de check-out es requerida'
+      if (form.value.check_in && !isDateRangeValid.value) return 'El check-out debe ser posterior al check-in'
+      return ''
+    case 'price_per_night':
+      if (form.value.status !== 'consulta' && (form.value.price_per_night === '' || form.value.price_per_night === null)) {
+        return 'El precio por noche es requerido'
+      }
+      return ''
+    default:
+      return ''
+  }
+}
 
 const syncReservationAmounts = () => {
   form.value.total_amount = customerTotal.value
@@ -668,6 +861,12 @@ const applySourceSuggestions = (payload) => {
   if (form.value.discount_percentage === '' || form.value.discount_percentage === null) {
     form.value.discount_percentage = Number(payload.discountPercentage || 0)
   }
+
+  sourceSuggestions.value = {
+    commissionPercentage: Number(payload.commissionPercentage || 0),
+    discountPercentage: Number(payload.discountPercentage || 0),
+    sourceDetailLabel: payload.sourceDetailLabel || ''
+  }
 }
 
 const submitCreateGuest = async () => {
@@ -705,6 +904,7 @@ const submitCreateGuest = async () => {
 }
 
 const submitForm = async () => {
+  submitAttempted.value = true
   loading.value = true
   errorMessage.value = ''
   syncIssue.value = null
@@ -720,7 +920,7 @@ const submitForm = async () => {
       guest_phone: form.value.guest_phone?.trim() || null,
       check_in: normalizeDate(form.value.check_in),
       check_out: normalizeDate(form.value.check_out),
-      payment_deadline: null,
+      payment_deadline: normalizeDate(form.value.payment_deadline) || null,
       adults: Number(form.value.adults || 1),
       children: Number(form.value.children || 0),
       price_per_night: Number(form.value.price_per_night || 0),
@@ -749,6 +949,7 @@ const submitForm = async () => {
       return
     }
 
+    toast.success('Reserva creada exitosamente')
     router.push('/reservas')
   } catch (err) {
     errorMessage.value = err.message
