@@ -80,6 +80,11 @@ const router = createRouter({
       meta: { requiresAuth: true }
     },
     {
+      path: '/calendario',
+      redirect: '/calendar',
+      meta: { requiresAuth: true }
+    },
+    {
       path: '/reservar',
       name: 'nueva-reserva',
       component: () => import('../views/NewReservationView.vue'),

@@ -20,8 +20,18 @@
 
 /* Custom Base Styles based on Design System */
 @layer base {
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
   body {
     @apply bg-neutral-background text-neutral-text;
+  }
+
+  input,
+  select,
+  textarea {
+    font-size: max(16px, 1rem);
   }
 }
 
@@ -35,6 +45,15 @@
   }
   .card {
     @apply bg-white border border-gray-200 rounded-xl shadow-sm p-5;
+  }
+
+  .scroll-container {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
   }
 }
 

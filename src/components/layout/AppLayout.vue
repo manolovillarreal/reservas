@@ -1,94 +1,172 @@
 <template>
-  <div class="flex h-screen bg-[#FAFAFA] font-sans overflow-hidden text-gray-900">
-    
-    <!-- Sidebar -->
-    <aside 
-      class="bg-gray-900 text-gray-50 flex flex-col transition-all duration-300 z-20"
-      :class="isSidebarCollapsed ? 'w-16' : 'w-56'"
+  <div class="h-screen overflow-hidden bg-[#FAFAFA] font-sans text-gray-900">
+    <header v-if="isMobile" class="fixed inset-x-0 top-0 z-30 flex h-[52px] items-center justify-between border-b border-[#E5E7EB] bg-white px-3">
+      <button type="button" class="touch-target rounded-md text-[#111827]" @click="openDrawer">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-5 w-5" aria-hidden="true">
+          <path d="M4 7h16M4 12h16M4 17h16" />
+        </svg>
+      </button>
+
+      <div class="flex items-center gap-1">
+        <span class="font-semibold text-[#111827]">TekMi</span>
+      </div>
+
+      <button type="button" class="touch-target rounded-md text-[#9CA3AF]">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-5 w-5" aria-hidden="true">
+          <path d="M12 3a4 4 0 00-4 4v2.2A5 5 0 015.2 13L4 14.2V16h16v-1.8L18.8 13A5 5 0 0118 9.2V7a4 4 0 00-4-4z" />
+          <path d="M9.5 19a2.5 2.5 0 005 0" />
+        </svg>
+      </button>
+    </header>
+
+    <aside
+      v-if="!isMobile"
+      class="fixed inset-y-0 left-0 z-20 flex flex-col bg-gray-900 text-gray-50 transition-all duration-300"
+      :style="{ width: `${sidebarWidth}px` }"
     >
-      <!-- Logo Area -->
-      <div class="h-16 flex items-center px-4 border-b border-gray-800">
-          <!-- Icon square (always visible) -->
-          <div class="w-9 h-9 rounded-[8px] bg-primary flex flex-col items-center justify-center shrink-0">
+      <div class="flex h-16 items-center border-b border-gray-800 px-4">
+        <div class="h-9 w-9 shrink-0 rounded-[8px] bg-primary">
+          <div class="flex h-full flex-col items-center justify-center">
             <span class="leading-none text-[11px] font-semibold text-white">Tek</span>
             <span class="leading-none text-[11px] font-semibold text-white">Mi</span>
           </div>
-          <!-- Wordmark (only when expanded) -->
-          <div v-if="!isSidebarCollapsed" class="ml-2 flex items-baseline overflow-hidden whitespace-nowrap">
-            <span class="font-semibold text-[18px] text-white">TekMi</span>
-            <span class="ml-1 font-normal text-[18px] text-neutral-muted">· Inn</span>
-          </div>
+        </div>
+        <div v-if="!isSidebarCollapsed" class="ml-2 flex items-baseline overflow-hidden whitespace-nowrap">
+          <span class="text-[18px] font-semibold text-white">TekMi</span>
+          <span class="ml-1 text-[18px] font-normal text-neutral-muted">. Inn</span>
+        </div>
       </div>
 
-      <!-- Navigation -->
-      <nav class="flex-1 overflow-y-auto py-4 px-3 space-y-1">
-        <router-link 
-          v-for="item in visiblePrimaryNav" :key="item.name"
+      <nav class="scroll-container flex-1 space-y-1 overflow-y-auto px-3 py-4">
+        <router-link
+          v-for="item in visiblePrimaryNav"
+          :key="item.name"
           :to="item.to"
-          class="flex items-center px-2 py-2 rounded-md transition-colors group"
+          class="flex items-center rounded-md px-2 py-2 transition-colors group"
           :class="[$route.path === item.to ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white']"
           :title="isSidebarCollapsed ? item.name : ''"
         >
-          <span class="text-xl w-6 text-center select-none" v-html="item.icon"></span>
+          <span class="w-6 select-none text-center text-xl" v-html="item.icon"></span>
           <span v-if="!isSidebarCollapsed" class="ml-3 text-sm font-medium">{{ item.name }}</span>
         </router-link>
 
-        <div class="pt-4 pb-2 mt-4 border-t border-gray-800">
-          <router-link 
-            v-for="item in visibleSecondaryNav" :key="item.name"
+        <div class="mt-4 border-t border-gray-800 pb-2 pt-4">
+          <router-link
+            v-for="item in visibleSecondaryNav"
+            :key="item.name"
             :to="item.to"
-            class="flex items-center px-2 py-2 rounded-md transition-colors group"
+            class="flex items-center rounded-md px-2 py-2 transition-colors group"
             :class="[$route.path === item.to ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white']"
             :title="isSidebarCollapsed ? item.name : ''"
           >
-            <span class="text-xl w-6 text-center select-none" v-html="item.icon"></span>
+            <span class="w-6 select-none text-center text-xl" v-html="item.icon"></span>
             <span v-if="!isSidebarCollapsed" class="ml-3 text-sm font-medium">{{ item.name }}</span>
           </router-link>
         </div>
       </nav>
 
-      <!-- User Area / Toggle -->
-      <div class="p-4 border-t border-gray-800 flex items-center">
-        <button 
-          @click="isSidebarCollapsed = !isSidebarCollapsed"
-          class="w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center text-gray-400 hover:text-white shrink-0"
+      <div class="flex items-center border-t border-gray-800 p-4">
+        <button
+          type="button"
+          @click="toggleSidebar"
+          class="touch-target h-8 w-8 shrink-0 rounded-full bg-gray-800 text-gray-400 hover:text-white"
         >
           {{ isSidebarCollapsed ? '>>' : '<<' }}
         </button>
-        <div v-if="!isSidebarCollapsed" class="ml-3 flex flex-col overflow-hidden">
-          <span class="text-sm font-medium truncate">{{ userLabel }}</span>
-          <span class="text-xs text-gray-500 capitalize">{{ roleLabel }}</span>
-          <button @click="logout" class="text-left text-xs text-gray-400 hover:text-white">
-            Cerrar sesión
-          </button>
+
+        <div v-if="!isSidebarCollapsed" class="ml-3 flex flex-1 flex-col overflow-hidden">
+          <span class="truncate text-sm font-medium">{{ userLabel }}</span>
+          <span class="text-xs capitalize text-gray-500">{{ roleLabel }}</span>
+          <button type="button" @click="logout" class="text-left text-xs text-gray-400 hover:text-white">Cerrar sesion</button>
         </div>
+
+        <button
+          v-if="isTablet"
+          type="button"
+          class="touch-target ml-2 h-8 w-8 rounded-full bg-gray-800 text-gray-400 hover:text-white"
+          @click="openDrawer"
+          title="Abrir menu"
+        >
+          ...
+        </button>
       </div>
     </aside>
 
-    <!-- Main Content Area -->
-    <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
-      <!-- Main view scrolling area -->
-      <main class="flex-1 overflow-y-auto p-8 border-l border-gray-200">
+    <div class="flex h-full min-w-0 flex-col overflow-hidden" :style="mainContainerStyle">
+      <main class="scroll-container flex-1 overflow-y-auto border-l border-gray-200 p-4 sm:p-6 lg:p-8" :style="mainContentStyle">
         <router-view></router-view>
       </main>
     </div>
-    
+
+    <MobileNav v-if="isMobile" @open-drawer="openDrawer" />
+    <MobileDrawer v-model="isDrawerOpen" />
   </div>
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { supabase } from '../../services/supabase'
 import { useAccountStore } from '../../stores/account'
 import { useSourcesStore } from '../../stores/sources'
 import { usePermissions } from '../../composables/usePermissions'
+import { useBreakpoint } from '../../composables/useBreakpoint'
+import MobileNav from './MobileNav.vue'
+import MobileDrawer from './MobileDrawer.vue'
 
 const isSidebarCollapsed = ref(false)
+const isDrawerOpen = ref(false)
 const router = useRouter()
 const accountStore = useAccountStore()
 const sourcesStore = useSourcesStore()
 const { can } = usePermissions()
+const { isMobile, isTablet, isDesktop } = useBreakpoint()
+
+const EXPANDED_WIDTH = 220
+const COLLAPSED_WIDTH = 56
+
+const sidebarWidth = computed(() => (isSidebarCollapsed.value ? COLLAPSED_WIDTH : EXPANDED_WIDTH))
+
+const mainContainerStyle = computed(() => {
+  if (isMobile.value) {
+    return { marginLeft: '0px' }
+  }
+  return { marginLeft: `${sidebarWidth.value}px` }
+})
+
+const mainContentStyle = computed(() => {
+  if (!isMobile.value) return {}
+  return {
+    paddingTop: '68px',
+    paddingBottom: 'calc(56px + env(safe-area-inset-bottom) + 16px)'
+  }
+})
+
+const openDrawer = () => {
+  isDrawerOpen.value = true
+}
+
+const toggleSidebar = () => {
+  isSidebarCollapsed.value = !isSidebarCollapsed.value
+}
+
+watch(isTablet, (value) => {
+  if (value) {
+    isSidebarCollapsed.value = true
+  }
+}, { immediate: true })
+
+watch(isDesktop, (value) => {
+  if (value) {
+    isSidebarCollapsed.value = false
+  }
+})
+
+watch(isMobile, (value) => {
+  if (!value) {
+    isDrawerOpen.value = false
+  }
+})
 
 const primaryNav = [
   { name: 'Dashboard', to: '/', icon: '◫' },
