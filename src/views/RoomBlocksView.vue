@@ -1,8 +1,11 @@
 <template>
   <div class="space-y-6">
-    <div class="flex items-center justify-between">
+    <div class="flex items-center justify-between gap-3">
       <h1 class="text-3xl font-semibold tracking-tight text-gray-900">Bloqueos</h1>
-      <button v-if="can('occupancies', 'create')" class="btn-primary" @click="openCreateModal">+ Nuevo bloqueo</button>
+      <div class="flex items-center gap-3">
+        <ViewModeToggle v-model="viewMode" class="hidden sm:flex" />
+        <button v-if="can('occupancies', 'create')" class="btn-primary" @click="openCreateModal">+ Nuevo bloqueo</button>
+      </div>
     </div>
 
     <div class="card !py-4 flex flex-wrap items-center gap-4 bg-white">
@@ -162,6 +165,8 @@ import DataCard from '../components/ui/DataCard.vue'
 import { useRoomBlocksStore } from '../stores/roomBlocks'
 import { usePermissions } from '../composables/usePermissions'
 import { useBreakpoint } from '../composables/useBreakpoint'
+import { useViewMode } from '../composables/useViewMode'
+import ViewModeToggle from '../components/ui/ViewModeToggle.vue'
 import { useAccountStore } from '../stores/account'
 import { useToast } from '../composables/useToast'
 import {
@@ -179,6 +184,7 @@ const router = useRouter()
 const store = useRoomBlocksStore()
 const { can } = usePermissions()
 const { isMobile } = useBreakpoint()
+const { viewMode, isTable, isCards } = useViewMode('bloqueos')
 const accountStore = useAccountStore()
 const toast = useToast()
 

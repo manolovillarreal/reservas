@@ -1,9 +1,12 @@
 <template>
   <div class="space-y-6">
-    <div class="flex items-center justify-between">
-      <h1 class="text-3xl font-semibold tracking-tight text-gray-900">Consultas</h1>
-      <button v-if="can('inquiries', 'create')" class="btn-primary" @click="openCreateModal">+ Nueva consulta</button>
-    </div>
+     <div class="flex items-center justify-between gap-3">
+       <h1 class="text-3xl font-semibold tracking-tight text-gray-900">Consultas</h1>
+       <div class="flex items-center gap-3">
+         <ViewModeToggle v-model="viewMode" class="hidden sm:flex" />
+         <button v-if="can('inquiries', 'create')" class="btn-primary" @click="openCreateModal">+ Nueva consulta</button>
+       </div>
+     </div>
 
     <div v-if="isMobile" class="card !py-3 flex items-center justify-between gap-3">
       <p class="text-sm text-gray-600">{{ filteredInquiries.length }} consultas</p>
@@ -266,6 +269,8 @@ import InquiryConversionModal from '../components/inquiries/InquiryConversionMod
 import { useInquiriesStore } from '../stores/inquiries'
 import { usePermissions } from '../composables/usePermissions'
 import { useBreakpoint } from '../composables/useBreakpoint'
+import { useViewMode } from '../composables/useViewMode'
+import ViewModeToggle from '../components/ui/ViewModeToggle.vue'
 import { useAccountStore } from '../stores/account'
 import { supabase } from '../services/supabase'
 import { useToast } from '../composables/useToast'
@@ -292,6 +297,7 @@ const store = useInquiriesStore()
 const router = useRouter()
 const { can } = usePermissions()
 const { isMobile } = useBreakpoint()
+const { viewMode, isTable, isCards } = useViewMode('consultas')
 const accountStore = useAccountStore()
 const toast = useToast()
 

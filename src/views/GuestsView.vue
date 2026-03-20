@@ -1,12 +1,15 @@
 <template>
   <div class="space-y-6">
     <!-- Header -->
-    <div class="flex items-center justify-between">
-      <h1 class="text-3xl font-semibold text-gray-900 tracking-tight">Huéspedes</h1>
-      <button v-if="can('guests', 'create')" @click="openCreateModal" class="btn-primary">
-        + Nuevo Huésped
-      </button>
-    </div>
+     <div class="flex items-center justify-between gap-3">
+       <h1 class="text-3xl font-semibold text-gray-900 tracking-tight">Huéspedes</h1>
+       <div class="flex items-center gap-3">
+         <ViewModeToggle v-model="viewMode" class="hidden sm:flex" />
+         <button v-if="can('guests', 'create')" @click="openCreateModal" class="btn-primary">
+           + Nuevo Huésped
+         </button>
+       </div>
+     </div>
 
     <!-- Search -->
     <div class="card !py-4">
@@ -161,6 +164,8 @@ import ConfirmActionModal from '../components/ui/ConfirmActionModal.vue'
 import DataCard from '../components/ui/DataCard.vue'
 import { usePermissions } from '../composables/usePermissions'
 import { useBreakpoint } from '../composables/useBreakpoint'
+import { useViewMode } from '../composables/useViewMode'
+import ViewModeToggle from '../components/ui/ViewModeToggle.vue'
 import { useToast } from '../composables/useToast'
 import {
   AppInput,
@@ -176,6 +181,7 @@ const reservationsStore = useReservationsStore()
 const router = useRouter()
 const { can } = usePermissions()
 const { isMobile } = useBreakpoint()
+const { viewMode, isTable, isCards } = useViewMode('huespedes')
 const toast = useToast()
 
 const searchQuery = ref('')

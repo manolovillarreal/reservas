@@ -1,8 +1,9 @@
 <template>
   <div class="space-y-6">
-    <div class="flex items-center justify-between">
-      <h1 class="text-3xl font-semibold tracking-tight text-gray-900">Pagos</h1>
-    </div>
+     <div class="flex items-center justify-between gap-3">
+       <h1 class="text-3xl font-semibold tracking-tight text-gray-900">Pagos</h1>
+       <ViewModeToggle v-model="viewMode" class="hidden sm:flex" />
+     </div>
 
     <div v-if="!can('payments', 'view')" class="card border-amber-200 bg-amber-50/40">
       <h2 class="text-sm font-semibold uppercase tracking-wide text-amber-900">Sin acceso</h2>
@@ -242,6 +243,8 @@ import { useToast } from '../composables/useToast'
 import ConfirmActionModal from '../components/ui/ConfirmActionModal.vue'
 import DataCard from '../components/ui/DataCard.vue'
 import BottomSheet from '../components/ui/BottomSheet.vue'
+import ViewModeToggle from '../components/ui/ViewModeToggle.vue'
+import { useViewMode } from '../composables/useViewMode'
 import { useBreakpoint } from '../composables/useBreakpoint'
 
 const accountStore = useAccountStore()
@@ -249,6 +252,7 @@ const { can } = usePermissions()
 const toast = useToast()
 const router = useRouter()
 const { isMobile } = useBreakpoint()
+const { viewMode, isTable, isCards } = useViewMode('pagos')
 
 const filters = ref({
   search: '',

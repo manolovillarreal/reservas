@@ -1,12 +1,15 @@
 <template>
   <div class="space-y-6">
     <!-- Header -->
-    <div class="flex items-center justify-between">
-      <h1 class="text-3xl font-semibold text-gray-900 tracking-tight">Unidades</h1>
-      <button v-if="can('units', 'create')" @click="openCreateModal" class="btn-primary">
-        + Nueva Unidad
-      </button>
-    </div>
+     <div class="flex items-center justify-between gap-3">
+       <h1 class="text-3xl font-semibold text-gray-900 tracking-tight">Unidades</h1>
+       <div class="flex items-center gap-3">
+         <ViewModeToggle v-model="viewMode" class="hidden sm:flex" />
+         <button v-if="can('units', 'create')" @click="openCreateModal" class="btn-primary">
+           + Nueva Unidad
+         </button>
+       </div>
+     </div>
 
     <!-- Venue Filter -->
     <div class="card !py-4">
@@ -147,6 +150,8 @@ import DataCard from '../components/ui/DataCard.vue'
 import { usePermissions } from '../composables/usePermissions'
 import { useToast } from '../composables/useToast'
 import { useBreakpoint } from '../composables/useBreakpoint'
+import { useViewMode } from '../composables/useViewMode'
+import ViewModeToggle from '../components/ui/ViewModeToggle.vue'
 import { AppInput, AppSelect, AppTextarea, AppToggle, AppFormSection, AppFormActions } from '@/components/ui/forms'
 
 const store = useUnitsStore()
@@ -154,6 +159,7 @@ const venuesStore = useVenuesStore()
 const reservationsStore = useReservationsStore()
 const { can } = usePermissions()
 const { isMobile } = useBreakpoint()
+const { viewMode, isTable, isCards } = useViewMode('unidades')
 const toast = useToast()
 
 const selectedVenue = ref('')

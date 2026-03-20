@@ -2,10 +2,11 @@
   <div class="space-y-6">
     <!-- Header -->
     <div class="flex items-center justify-between">
-      <h1 class="text-3xl font-semibold text-gray-900 tracking-tight">Sedes</h1>
-      <button v-if="can('settings', 'edit')" @click="openCreateModal" class="btn-primary">
-        + Nueva Sede
-      </button>
+          <h1 class="text-3xl font-semibold tracking-tight text-gray-900">Sedes</h1>
+          <div class="flex items-center gap-3">
+            <ViewModeToggle v-model="viewMode" class="hidden sm:flex" />
+            <button v-if="can('venues', 'create')" class="btn-primary" @click="openCreateModal">+ Nueva sede</button>
+          </div>
     </div>
 
     <!-- Venues List -->
@@ -135,12 +136,15 @@ import DataCard from '../components/ui/DataCard.vue'
 import { usePermissions } from '../composables/usePermissions'
 import { useToast } from '../composables/useToast'
 import { useBreakpoint } from '../composables/useBreakpoint'
+import { useViewMode } from '../composables/useViewMode'
+import ViewModeToggle from '../components/ui/ViewModeToggle.vue'
 import { AppInput, AppTextarea, AppToggle, AppFormSection, AppFormActions } from '@/components/ui/forms'
 
 const store = useVenuesStore()
 const unitsStore = useUnitsStore()
 const { can } = usePermissions()
 const { isMobile } = useBreakpoint()
+const { viewMode, isTable, isCards } = useViewMode('sedes')
 const toast = useToast()
 
 const showModal = ref(false)

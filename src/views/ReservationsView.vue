@@ -1,12 +1,15 @@
 ﻿<template>
   <div class="space-y-6">
     <!-- Header -->
-    <div class="flex items-center justify-between">
+    <div class="flex items-center justify-between gap-3">
       <h1 class="text-3xl font-semibold text-gray-900 tracking-tight">Reservas</h1>
-      <router-link v-if="can('reservations', 'create') && !isMobile" to="/reservar" class="btn-primary flex items-center gap-2">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-        Nueva reserva
-      </router-link>
+      <div class="flex items-center gap-3">
+        <ViewModeToggle v-model="viewMode" class="hidden sm:flex" />
+        <router-link v-if="can('reservations', 'create') && !isMobile" to="/reservar" class="btn-primary flex items-center gap-2">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+          Nueva reserva
+        </router-link>
+      </div>
     </div>
 
     <div v-if="isMobile" class="card !py-3 flex items-center justify-between gap-3">
@@ -75,8 +78,9 @@
 
     </div>
 
-    <!-- Table -->
+    <!-- Table View -->
     <ReservationTable 
+      v-if="isTable"
       :reservations="store.reservations" 
       :loading="store.loading" 
       :sortKey="filters.sortBy"
@@ -90,6 +94,41 @@
       @register-payment="openPaymentModal"
       @change-status="openStatusModal"
     />
+
+    <!-- Cards View -->
+    <div v-if="isCards && (store.reservations.length > 0 || store.loading)" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <DataCard
+        v-for="reservation in store.reservations"
+        :key="reservation.id"
+        :title="reservation.guest_display_name || reservation.guest_name || 'Sin nombre'"
+        :subtitle="`${reservation.reservation_number} ${reservation.reference_code ? '· ' + reservation.reference_code : ''}`"
+        :badge="{ 
+          label: String(reservation.status || 'sin_estado').replace(/_/g, ' ').charAt(0).toUpperCase() + String(reservation.status || 'sin_estado').replace(/_/g, ' ').slice(1),
+          type: reservation.status === 'confirmed' ? 'info' : reservation.status === 'in_stay' ? 'warning' : reservation.status === 'completed' ? 'success' : 'danger'
+        }"
+        :meta="[
+          { label: 'Check-in', value: new Date(reservation.check_in_date).toLocaleDateString('es-CO') },
+          { label: 'Check-out', value: new Date(reservation.check_out_date).toLocaleDateString('es-CO') },
+          { label: 'Noches', value: reservation.nights_count || 0 },
+          { label: 'Personas', value: `${reservation.adults_count || 0} adultos${reservation.children_count ? ' + ' + reservation.children_count + ' niños' : ''}` },
+          { label: 'Unidad', value: reservation.unit_name || 'Sin asignar' },
+          { label: 'Origen', value: reservation.source_detail || 'Directo' }
+        ]"
+        :actions="[
+          { label: 'Ver detalle', handler: () => goToDetail(reservation) },
+          ...(can('payments', 'create') ? [{ label: 'Registrar pago', handler: () => openPaymentModal(reservation) }] : []),
+          ...(can('reservations', 'edit') ? [{ label: 'Cambiar estado', handler: () => openStatusModal(reservation) }] : [])
+        ]"
+      />
+    </div>
+
+    <!-- Empty State in Cards -->
+    <div v-if="isCards && store.reservations.length === 0 && !store.loading" class="text-center py-12 card">
+      <p class="text-gray-600">No se encontraron reservas.</p>
+      <button v-if="hasActiveFilters" type="button" class="mt-3 text-sm font-medium text-primary hover:text-primary-dark underline" @click="clearFilters">
+        Limpiar filtros
+      </button>
+    </div>
 
     <PaymentModal
       v-if="selectedReservation"
@@ -183,17 +222,21 @@ import { useRouter } from 'vue-router'
 import { useReservationsStore } from '../stores/reservations'
 import { useSourcesStore } from '../stores/sources'
 import ReservationTable from '../components/reservations/ReservationTable.vue'
+import ViewModeToggle from '../components/ui/ViewModeToggle.vue'
+import DataCard from '../components/ui/DataCard.vue'
 import PaymentModal from '../components/payments/PaymentModal.vue'
 import StatusChangeModal from '../components/reservations/StatusChangeModal.vue'
 import BottomSheet from '../components/ui/BottomSheet.vue'
 import { usePermissions } from '../composables/usePermissions'
 import { useBreakpoint } from '../composables/useBreakpoint'
+import { useViewMode } from '../composables/useViewMode'
 
 const store = useReservationsStore()
 const sourcesStore = useSourcesStore()
 const router = useRouter()
 const { can } = usePermissions()
 const { isMobile } = useBreakpoint()
+const { viewMode, isTable, isCards } = useViewMode('reservas')
 
 const getLast30DaysRange = () => {
   const today = new Date()
