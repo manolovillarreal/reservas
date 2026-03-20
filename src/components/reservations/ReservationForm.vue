@@ -259,6 +259,55 @@
         />
       </AppFormSection>
 
+      <AppFormSection
+        title="Pago inicial"
+        description="Opcional — registrar si el huésped ya realizó un pago"
+        :divider="false"
+        :collapsible="true"
+        :defaultOpen="false"
+      >
+        <AppInput
+          v-model="form.initial_payment_amount"
+          type="number"
+          prefix="$"
+          label="Monto del pago"
+          hint="Dejar vacío si no hay pago aún"
+        />
+
+        <AppSelect
+          v-model="form.initial_payment_method"
+          label="Método de pago"
+          :options="initialPaymentMethodOptions"
+          placeholder="Seleccionar método"
+        />
+
+        <AppInput
+          v-model="form.initial_payment_reference"
+          label="Referencia"
+          hint="Número de transferencia u otro ID"
+        />
+
+        <AppDatePicker
+          v-model="form.initial_payment_date"
+          label="Fecha del pago"
+        />
+
+        <AppFieldGroup v-if="showInitialPaymentSummary" title="Resumen de pago" :compact="true" :border="true">
+          <div class="space-y-1 text-sm text-[#4B5563]">
+            <p><span class="font-medium text-[#111827]">Total reserva:</span> ${{ formatCurrency(customerTotal) }}</p>
+            <p><span class="font-medium text-[#111827]">Este pago:</span> ${{ formatCurrency(initialPaymentAmount) }}</p>
+            <p><span class="font-medium text-[#111827]">Saldo pendiente:</span> ${{ formatCurrency(initialPaymentPendingBalance) }}</p>
+          </div>
+          <template #footer>
+            <AppInlineAlert
+              v-if="initialPaymentPendingBalance === 0"
+              type="success"
+              message="Reserva quedaría saldada ✓"
+            />
+          </template>
+        </AppFieldGroup>
+      </AppFormSection>
+
       <!-- Sync issue alert -->
       <AppInlineAlert
         v-if="syncIssue"
@@ -427,7 +476,10 @@ const form = ref({
   commission_name: '',
   commission_percentage: '',
   discount_percentage: '',
-  payment_deadline: '',
+  initial_payment_amount: '',
+  initial_payment_method: 'efectivo',
+  initial_payment_reference: '',
+  initial_payment_date: normalizeDate(new Date()),
   notes: '',
   inquiry_id: null
 })
@@ -441,8 +493,19 @@ const commissionAmount = computed(() => {
   return customerTotal.value * Number(form.value.commission_percentage || 0) / 100
 })
 const netAmount = computed(() => Math.max(customerTotal.value - commissionAmount.value, 0))
+const initialPaymentAmount = computed(() => Number(form.value.initial_payment_amount || 0))
+const initialPaymentPendingBalance = computed(() => Math.max(Number(customerTotal.value || 0) - initialPaymentAmount.value, 0))
+const showInitialPaymentSummary = computed(() => initialPaymentAmount.value > 0)
 
-const normalizeDate = (value) => {
+const initialPaymentMethodOptions = [
+  { value: 'efectivo', label: 'Efectivo' },
+  { value: 'transferencia', label: 'Transferencia' },
+  { value: 'nequi', label: 'Nequi' },
+  { value: 'tarjeta', label: 'Tarjeta' },
+  { value: 'plataforma', label: 'Plataforma' },
+]
+
+function normalizeDate(value) {
   if (!value) return null
   const trimmed = String(value).trim()
   if (!trimmed) return null
@@ -514,13 +577,6 @@ const showCalculationPanel = computed(() => {
 
 const venueOptions = computed(() => venues.value.map(v => ({ value: v.id, label: v.name })))
 
-const statusOptions = [
-  { value: 'confirmed', label: 'Confirmada' },
-  { value: 'in_stay', label: 'En estadía' },
-  { value: 'completed', label: 'Finalizada' },
-  { value: 'cancelled', label: 'Cancelada' }
-]
-
 const hasUnavailableConflict = computed(() =>
   selectedUnavailableNames.value.length > 0 || fullHouseUnavailableNames.value.length > 0
 )
@@ -550,7 +606,7 @@ const fieldError = (field) => {
       if (form.value.check_in && !isDateRangeValid.value) return 'El check-out debe ser posterior al check-in'
       return ''
     case 'price_per_night':
-      if (form.value.status !== 'consulta' && (form.value.price_per_night === '' || form.value.price_per_night === null)) {
+      if (form.value.price_per_night === '' || form.value.price_per_night === null) {
         return 'El precio por noche es requerido'
       }
       return ''
@@ -909,21 +965,27 @@ const submitForm = async () => {
       guest_phone: form.value.guest_phone?.trim() || null,
       check_in: normalizeDate(form.value.check_in),
       check_out: normalizeDate(form.value.check_out),
-      payment_deadline: normalizeDate(form.value.payment_deadline) || null,
       adults: Number(form.value.adults || 1),
       children: Number(form.value.children || 0),
       price_per_night: Number(form.value.price_per_night || 0),
       total_amount: Number(customerTotal.value || 0),
-      paid_amount: Number(form.value.paid_amount || 0),
+      paid_amount: 0,
       commission_percentage: form.value.commission_percentage === '' ? null : Number(form.value.commission_percentage || 0),
       discount_percentage: form.value.discount_percentage === '' ? 0 : Number(form.value.discount_percentage || 0)
+    }
+
+    const initialPaymentData = {
+      amount: Number(form.value.initial_payment_amount || 0),
+      method: form.value.initial_payment_method || 'efectivo',
+      reference: form.value.initial_payment_reference?.trim() || null,
+      payment_date: normalizeDate(form.value.initial_payment_date) || normalizeDate(new Date()),
     }
 
     if (!payload.check_in || !payload.check_out) {
       throw new Error('Debes indicar fechas válidas para Check-in y Check-out.')
     }
 
-    const createdReservation = await store.createReservation(payload)
+    const createdReservation = await store.createReservationWithPayment(payload, initialPaymentData)
     lastCreatedReservation.value = createdReservation
 
     if (createdReservation?.syncResult?.synced === false) {
@@ -935,11 +997,17 @@ const submitForm = async () => {
         start_date: payload.check_in,
         end_date: payload.check_out
       }
+      toast.warning('Reserva creada, pero la ocupación no se pudo sincronizar. Usa Reintentar.')
       return
     }
 
-    toast.success('Reserva creada exitosamente')
-    router.push('/reservas')
+    if (createdReservation?.hadInitialPayment) {
+      toast.success('Reserva creada con pago inicial ✓')
+    } else {
+      toast.success('Reserva creada correctamente')
+    }
+
+    router.push(`/reservas/${createdReservation.id}`)
   } catch (err) {
     errorMessage.value = err.message
   } finally {
@@ -952,7 +1020,7 @@ const retrySync = async () => {
 
   const result = await store.retryReservationOccupancySync(syncIssue.value.reservationId)
   if (result.synced) {
-    router.push('/reservas')
+    router.push(`/reservas/${syncIssue.value.reservationId}`)
     return
   }
 

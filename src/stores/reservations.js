@@ -244,6 +244,66 @@ export const useReservationsStore = defineStore('reservations', () => {
     return result
   }
 
+  const recalculateReservationPaidAmount = async (reservationId, accountId) => {
+    const { data, error: paymentsError } = await supabase
+      .from('payments')
+      .select('amount')
+      .eq('account_id', accountId)
+      .eq('reservation_id', reservationId)
+
+    if (paymentsError) throw paymentsError
+
+    const paidAmount = (data || []).reduce((sum, row) => sum + Number(row.amount || 0), 0)
+
+    const { error: updateError } = await supabase
+      .from('reservations')
+      .update({ paid_amount: paidAmount })
+      .eq('account_id', accountId)
+      .eq('id', reservationId)
+
+    if (updateError) throw updateError
+    return paidAmount
+  }
+
+  const createReservationWithPayment = async (reservationData, paymentData = null) => {
+    const createdReservation = await createReservation(reservationData)
+
+    const amount = Number(paymentData?.amount || 0)
+    if (amount <= 0) {
+      return {
+        ...createdReservation,
+        hadInitialPayment: false,
+      }
+    }
+
+    const accountId = accountStore.getRequiredAccountId()
+    const paymentDate = normalizeDate(paymentData?.payment_date) || normalizeDate(new Date())
+
+    const paymentPayload = {
+      account_id: accountId,
+      reservation_id: createdReservation.id,
+      payment_date: paymentDate,
+      amount,
+      method: paymentData?.method || 'efectivo',
+      reference: paymentData?.reference ? String(paymentData.reference).trim() : null,
+    }
+
+    const { error: paymentInsertError } = await supabase
+      .from('payments')
+      .insert(paymentPayload)
+
+    if (paymentInsertError) throw paymentInsertError
+
+    const paidAmount = await recalculateReservationPaidAmount(createdReservation.id, accountId)
+    await fetchReservations(lastFetchParams.value)
+
+    return {
+      ...createdReservation,
+      paid_amount: paidAmount,
+      hadInitialPayment: true,
+    }
+  }
+
   const createReservation = async (reservationData) => {
     loading.value = true
     error.value = null
@@ -456,6 +516,7 @@ export const useReservationsStore = defineStore('reservations', () => {
     error,
     lastOccupancySyncIssue,
     fetchReservations,
+    createReservationWithPayment,
     createReservation,
     updateReservationUnits,
     checkOverlap,
