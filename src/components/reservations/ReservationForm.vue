@@ -507,6 +507,10 @@ const initialPaymentMethodOptions = [
 
 function normalizeDate(value) {
   if (!value) return null
+  if (value instanceof Date) {
+    if (Number.isNaN(value.getTime())) return null
+    return value.toISOString().slice(0, 10)
+  }
   const trimmed = String(value).trim()
   if (!trimmed) return null
   return trimmed.slice(0, 10)
