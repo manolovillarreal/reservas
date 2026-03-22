@@ -1,7 +1,7 @@
 ﻿<template>
   <div :class="inModal ? 'space-y-6' : 'space-y-6 max-w-2xl mx-auto'">
 
-    <!-- Step progress indicator (pasos 1–4) -->
+    <!-- Step progress indicator -->
     <nav class="flex items-center gap-1 text-sm" aria-label="Pasos del formulario">
       <template v-for="(step, i) in navSteps" :key="step.n">
         <button
@@ -14,7 +14,7 @@
           <span
             class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-xs font-bold"
             :class="stepCircleClass(step.n)"
-          >{{ step.n }}</span>
+          >{{ i + 1 }}</span>
           <span class="hidden sm:inline">{{ step.label }}</span>
         </button>
         <span v-if="i < navSteps.length - 1" class="text-gray-300">›</span>
@@ -58,27 +58,27 @@
       </AppFormSection>
 
       <!-- Availability results (post-check) -->
-      <template v-if="avail.checked && !avail.loading">
+      <template v-if="avail.checked.value && !avail.loading.value">
         <AppInlineAlert
-          v-if="avail.available.length === 0"
+          v-if="avail.available.value.length === 0"
           type="warning"
           message="No hay unidades disponibles para ese rango y número de personas."
         />
         <p v-else class="text-sm font-semibold text-emerald-700">
-          ✓ {{ avail.available.length }} {{ avail.available.length === 1 ? 'unidad disponible' : 'unidades disponibles' }}
+          ✓ {{ avail.available.value.length }} {{ avail.available.value.length === 1 ? 'unidad disponible' : 'unidades disponibles' }}
         </p>
       </template>
 
-      <AppInlineAlert v-if="avail.error" type="error" :message="avail.error" />
+      <AppInlineAlert v-if="avail.error.value" type="error" :message="avail.error.value" />
 
       <div class="flex items-center gap-3">
         <button
           type="button"
           class="btn-primary"
-          :disabled="!canProceedStep1 || avail.loading"
+          :disabled="!canProceedStep1 || avail.loading.value"
           @click="advanceStep1"
         >
-          {{ avail.loading ? 'Verificando…' : 'Continuar' }}
+          {{ avail.loading.value ? 'Verificando…' : 'Continuar' }}
         </button>
       </div>
     </template>
@@ -118,57 +118,50 @@
           <button type="button" class="ml-auto text-xs text-gray-400 underline hover:text-gray-700" @click="clearGuestSelection">Cambiar</button>
         </div>
 
-        <!-- Guest search (only when no guest selected) -->
-        <div v-else class="relative">
-          <AppInput
-            v-model="guestSearchQuery"
-            label="Buscar huésped existente"
-            hint="Escribe nombre o teléfono (mín. 2 caracteres)"
-            @focus="guestSearchOpen = true"
-            @blur="() => setTimeout(() => { guestSearchOpen = false }, 150)"
-          />
-          <div
-            v-if="guestSearchOpen && guestSearchResults.length > 0"
-            class="absolute z-20 mt-1 w-full rounded-lg border border-gray-200 bg-white shadow-lg"
-          >
-            <button
-              v-for="g in guestSearchResults"
-              :key="g.id"
-              type="button"
-              class="flex w-full flex-col px-3 py-2 text-left text-sm hover:bg-gray-50 first:rounded-t-lg last:rounded-b-lg"
-              @click="selectGuest(g)"
+        <!-- Nombre con búsqueda integrada (solo cuando no hay huésped seleccionado) -->
+        <template v-else>
+          <div class="relative">
+            <AppInput
+              v-model="form.guest_name"
+              label="Nombre"
+              required
+              hint="Escribe para buscar huéspedes existentes"
+              :error="s3Touched.guest_name && !form.guest_name?.trim() ? 'El nombre es obligatorio.' : ''"
+              @focus="guestSearchOpen = true"
+              @blur="() => { s3Touched.guest_name = true; setTimeout(() => { guestSearchOpen = false }, 150) }"
+            />
+            <div
+              v-if="guestSearchOpen && guestSearchResults.length > 0"
+              class="absolute z-20 mt-1 w-full rounded-lg border border-gray-200 bg-white shadow-lg"
             >
-              <span class="font-medium text-gray-900">{{ g.name }}</span>
-              <span class="text-xs text-gray-400">{{ g.phone || 'Sin teléfono' }}<span v-if="g.email"> · {{ g.email }}</span></span>
-            </button>
+              <button
+                v-for="g in guestSearchResults"
+                :key="g.id"
+                type="button"
+                class="flex w-full flex-col px-3 py-2 text-left text-sm hover:bg-gray-50 first:rounded-t-lg last:rounded-b-lg"
+                @click="selectGuest(g)"
+              >
+                <span class="font-medium text-gray-900">{{ g.name }}</span>
+                <span class="text-xs text-gray-400">{{ g.phone || 'Sin teléfono' }}<span v-if="g.email"> · {{ g.email }}</span></span>
+              </button>
+            </div>
           </div>
-        </div>
 
-        <AppFormGrid :columns="2">
-          <AppInput
-            v-model="form.guest_name"
-            label="Nombre"
-            required
-            :disabled="!!form.guest_id"
-            :error="s3Touched.guest_name && !form.guest_name?.trim() ? 'El nombre es obligatorio.' : ''"
-            @blur="s3Touched.guest_name = true"
-          />
-          <AppInput
-            v-model="form.guest_phone"
-            label="Teléfono"
-            :disabled="!!form.guest_id"
-            :error="s3Touched.guest_phone && !form.guest_phone?.trim() ? 'El teléfono es obligatorio.' : ''"
-            @blur="s3Touched.guest_phone = true"
-          />
-        </AppFormGrid>
-
-        <AppInput
-          v-model="form.guest_email"
-          label="Email"
-          type="email"
-          hint="Opcional"
-          :disabled="!!form.guest_id"
-        />
+          <AppFormGrid :columns="2">
+            <AppInput
+              v-model="form.guest_phone"
+              label="Teléfono"
+              :error="s3Touched.guest_phone && !form.guest_phone?.trim() ? 'El teléfono es obligatorio.' : ''"
+              @blur="s3Touched.guest_phone = true"
+            />
+            <AppInput
+              v-model="form.guest_email"
+              label="Email"
+              type="email"
+              hint="Opcional"
+            />
+          </AppFormGrid>
+        </template>
 
         <AppTextarea
           v-model="form.notes"
@@ -290,6 +283,19 @@
       <AppInlineAlert v-if="reservationValidationError" type="error" :message="reservationValidationError" />
       <AppInlineAlert v-if="submitError" type="error" :message="submitError" />
 
+      <!-- Hold toggle (solo para consultas sin pago) -->
+      <div v-if="!hasPayment" class="space-y-2">
+        <div class="flex items-center gap-2 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+          <input type="checkbox" id="holdInquiry" v-model="holdInquiry" class="h-4 w-4 accent-primary rounded" />
+          <label for="holdInquiry" class="cursor-pointer select-none">Generar bloqueo de retención (hold) al guardar</label>
+        </div>
+        <div v-if="holdInquiry" class="flex items-center gap-2 rounded border border-amber-100 bg-amber-50/50 px-3 py-2 text-sm text-gray-700">
+          <span class="shrink-0">Retener por</span>
+          <input id="holdDays" type="number" v-model.number="holdDays" :min="1" :max="30" class="w-16 rounded border border-gray-300 px-2 py-1 text-sm text-center" />
+          <span>días desde hoy</span>
+        </div>
+      </div>
+
       <div class="flex items-center gap-3">
         <button type="button" class="btn-secondary" @click="prevFromPanels">Atrás</button>
         <button type="button" class="btn-primary" :disabled="saving" @click="save">
@@ -322,6 +328,7 @@ import { useAccountStore } from '../../stores/account'
 import { useReservationsStore } from '../../stores/reservations'
 import { useInquiriesStore } from '../../stores/inquiries'
 import { useGuestsStore } from '../../stores/guests'
+import { useRoomBlocksStore } from '../../stores/roomBlocks'
 import { useToast } from '../../composables/useToast'
 
 const props = defineProps({
@@ -339,6 +346,7 @@ const reservationsStore = useReservationsStore()
 const inquiriesStore = useInquiriesStore()
 const guestsStore = useGuestsStore()
 const toast = useToast()
+const roomBlocksStore = useRoomBlocksStore()
 const avail = useAvailability()
 
 const PAYMENT_METHOD_OPTIONS = [
@@ -358,8 +366,9 @@ const maxReachedStep = ref(1)
 // ── UI state ───────────────────────────────────────────
 const saving = ref(false)
 const submitError = ref('')
-const guestSearchQuery = ref('')
 const guestSearchOpen = ref(false)
+const holdInquiry = ref(false)
+const holdDays = ref(1)
 const panels = ref({ unit: true, price: false, payment: false })
 
 // ── Touched trackers ───────────────────────────────────
@@ -371,7 +380,7 @@ const s4Touched = ref({ source_type_id: false })
 const form = ref({
   check_in: props.initialCheckIn || '',
   check_out: props.initialCheckOut || '',
-  adults: Math.max(1, props.initialPersonas > 1 ? props.initialPersonas - 1 : props.initialPersonas),
+  adults: Number(props.initialPersonas) || 2,
   children: 0,
   venue_id: '',
   guest_id: null,
@@ -458,8 +467,7 @@ const navSteps = computed(() => {
     { n: 1, label: 'Fechas' },
     { n: 2, label: 'Sede' },
     { n: 3, label: 'Huésped' },
-    { n: 4, label: 'Origen' },
-  ]
+    { n: 4, label: 'Origen' },    { n: 5, label: 'Detalles' },  ]
   return skipVenueStep.value ? all.filter(s => s.n !== 2) : all
 })
 
@@ -470,8 +478,8 @@ const venueName = computed(() =>
 
 // Búsqueda local de huéspedes
 const guestSearchResults = computed(() => {
-  if (guestSearchQuery.value.length < 2) return []
-  const q = guestSearchQuery.value.toLowerCase()
+  if ((form.value.guest_name?.length ?? 0) < 2 || form.value.guest_id) return []
+  const q = form.value.guest_name.toLowerCase()
   return guestsStore.guests
     .filter(g => g.name?.toLowerCase().includes(q) || g.phone?.toLowerCase().includes(q))
     .slice(0, 6)
@@ -479,7 +487,6 @@ const guestSearchResults = computed(() => {
 
 // ── Navigation helpers ─────────────────────────────────
 const stepButtonClass = (stepN) => {
-  if (currentStep.value === 5) return 'text-gray-400 cursor-default'
   if (stepN === currentStep.value) return 'text-primary font-semibold'
   if (stepN < currentStep.value) return 'text-gray-600 hover:text-gray-900'
   if (stepN > maxReachedStep.value) return 'text-gray-300 cursor-not-allowed'
@@ -487,7 +494,6 @@ const stepButtonClass = (stepN) => {
 }
 
 const stepCircleClass = (stepN) => {
-  if (currentStep.value === 5) return 'bg-green-100 text-green-700'
   if (stepN === currentStep.value) return 'bg-primary text-white'
   if (stepN < currentStep.value) return 'bg-green-100 text-green-700'
   return 'bg-gray-100 text-gray-400'
@@ -524,6 +530,11 @@ const advanceStep1 = async () => {
 const advanceToStep4 = () => {
   s3Touched.value = { guest_name: true, guest_phone: true }
   if (!canProceedStep3.value) return
+  if (!form.value.quote_expires_at) {
+    const d = new Date()
+    d.setHours(d.getHours() + 48)
+    form.value.quote_expires_at = d.toISOString().slice(0, 10)
+  }
   maxReachedStep.value = Math.max(maxReachedStep.value, 4)
   currentStep.value = 4
 }
@@ -553,7 +564,6 @@ const selectGuest = (guest) => {
   form.value.guest_name = guest.name || ''
   form.value.guest_phone = guest.phone || ''
   form.value.guest_email = guest.email || ''
-  guestSearchQuery.value = ''
   guestSearchOpen.value = false
 }
 
@@ -669,6 +679,20 @@ const save = async () => {
         notes: form.value.notes || null
       })
 
+      if (holdInquiry.value && form.value.unit_ids.length > 0) {
+        const expiresAt = new Date()
+        expiresAt.setDate(expiresAt.getDate() + Number(holdDays.value || 1))
+        for (const unitId of form.value.unit_ids) {
+          await roomBlocksStore.createRoomBlock({
+            unit_id: unitId,
+            start_date: form.value.check_in,
+            end_date: form.value.check_out,
+            occupancy_type: 'inquiry_hold',
+            reason: `Hold: ${form.value.guest_name || 'Consulta'}`,
+            expires_at: expiresAt.toISOString(),
+          })
+        }
+      }
       toast.success('Consulta guardada correctamente.')
       emit('saved', result)
       if (!props.inModal) router.push(`/consultas/${result.id}`)

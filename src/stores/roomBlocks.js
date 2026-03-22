@@ -76,7 +76,8 @@ export const useRoomBlocksStore = defineStore('roomBlocks', () => {
         start_date: startDate,
         end_date: endDate,
         occupancy_type: payload.occupancy_type || 'maintenance',
-        notes: payload.reason ? `${payload.reason}${payload.notes ? `\n${payload.notes}` : ''}` : (payload.notes || null)
+        notes: payload.reason ? `${payload.reason}${payload.notes ? `\n${payload.notes}` : ''}` : (payload.notes || null),
+        expires_at: payload.expires_at || null
       })
       .select()
       .single()
