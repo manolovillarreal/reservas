@@ -108,7 +108,7 @@ import { usePermissions } from '../../composables/usePermissions'
 import { useBreakpoint } from '../../composables/useBreakpoint'
 import MobileNav from './MobileNav.vue'
 import MobileDrawer from './MobileDrawer.vue'
-import LogoImage from '../../assets/logo.png'
+import LogoImage from '../../assets/logo.jpeg'
 
 const isSidebarCollapsed = ref(false)
 const isDrawerOpen = ref(false)

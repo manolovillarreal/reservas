@@ -868,7 +868,7 @@ const submitEditUnits = async () => {
     showEditUnitsModal.value = false
 
     if (result?.syncResult?.synced === false) {
-      toast.error('Se actualizaron las unidades, pero fallÃ³ la sincronizaciÃ³n de ocupaciÃ³n.')
+      toast.error('Se actualizaron las unidades, pero falló la sincronización de ocupación.')
       return
     }
 
