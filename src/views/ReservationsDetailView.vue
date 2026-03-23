@@ -23,7 +23,7 @@
     <!-- Error State -->
     <div v-else-if="!res" class="card text-center py-12">
       <h3 class="text-lg font-medium text-gray-900">Reserva no encontrada</h3>
-      <p class="mt-1 text-sm text-gray-500">Es posible que haya sido eliminada o la URL no es vÃ¡lida.</p>
+      <p class="mt-1 text-sm text-gray-500">Es posible que haya sido eliminada o la URL no es válida.</p>
     </div>
 
     <div v-else class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -35,7 +35,7 @@
         <div class="card bg-white overflow-hidden !p-0">
           <div class="p-6 border-b border-gray-100 flex justify-between items-start">
             <div>
-              <p class="mb-1 font-mono text-xs text-gray-500">{{ res.reservation_number || '' }} Â· {{ reservationReferenceDisplay }}</p>
+              <p class="mb-1 font-mono text-xs text-gray-500">{{ res.reservation_number || '' }} · {{ reservationReferenceDisplay }}</p>
               <div class="flex items-center gap-3 mb-2">
                 <h1 class="text-2xl font-semibold text-gray-900">{{ guestDisplayName }}</h1>
                 <ReservationBadge :status="res.status" class="cursor-pointer hover:ring-2 ring-offset-1 transition-all" @click="openStatusModal" title="Cambiar estado" />
@@ -82,11 +82,11 @@
               <p class="font-medium text-gray-900">${{ formatCurrency(res.total_amount) }}</p>
             </div>
             <div v-if="canViewFinancial">
-              <p class="text-gray-500 mb-1">ComisiÃ³n</p>
+              <p class="text-gray-500 mb-1">Comisión</p>
               <p class="font-medium text-gray-900">
                 {{ commissionSummary.name }} ({{ commissionSummary.percentage }}%)
               </p>
-              <p class="text-xs text-gray-500">${{ formatCurrency(commissionSummary.amount) }} â†’ Neto: ${{ formatCurrency(commissionSummary.netAmount) }}</p>
+              <p class="text-xs text-gray-500">${{ formatCurrency(commissionSummary.amount) }} → Neto: ${{ formatCurrency(commissionSummary.netAmount) }}</p>
             </div>
           </div>
         </div>
@@ -99,7 +99,7 @@
           </div>
           
           <div v-if="payments.length === 0" class="text-center py-6 text-gray-500 text-sm italic bg-gray-50 rounded-lg border border-dashed border-gray-200">
-            No hay pagos registrados aÃºn.
+            No hay pagos registrados aún.
           </div>
           
           <table v-else-if="!isMobile" class="min-w-full divide-y divide-gray-200">
@@ -107,7 +107,7 @@
               <tr class="text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 <th class="py-2 px-3">Fecha</th>
                 <th class="py-2 px-3">Monto</th>
-                <th class="py-2 px-3">MÃ©todo</th>
+                <th class="py-2 px-3">Método</th>
                 <th class="py-2 px-3">Referencia</th>
                 <th class="py-2 px-3 text-right">Eliminar</th>
               </tr>
@@ -136,7 +136,7 @@
               <div class="flex items-start justify-between gap-3">
                 <div>
                   <p class="text-sm font-semibold text-gray-900">{{ formatCop(p.amount) }}</p>
-                  <p class="text-xs text-gray-500">{{ formatDate(p.payment_date) }} Â· {{ p.method || '-' }}</p>
+                  <p class="text-xs text-gray-500">{{ formatDate(p.payment_date) }} · {{ p.method || '-' }}</p>
                   <p class="text-xs text-gray-500">Ref: {{ p.reference || '-' }}</p>
                 </div>
                 <button
@@ -175,11 +175,11 @@
         
         <!-- Alerts -->
         <DeadlineAlert v-if="isDeadlineOverdue" :show="true">
-          El plazo de pago ($ {{ formatCurrency(res.balance) }}) venciÃ³ el {{ formatDate(res.payment_deadline) }}.
+          El plazo de pago ($ {{ formatCurrency(res.balance) }}) venció el {{ formatDate(res.payment_deadline) }}.
         </DeadlineAlert>
 
         <div class="card">
-          <h2 class="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wider">Pre-registro de huÃ©spedes</h2>
+          <h2 class="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wider">Pre-registro de huéspedes</h2>
 
           <div v-if="res.preregistro_completado" class="space-y-3 text-sm text-gray-700">
             <p class="inline-flex rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700">Completado âœ“</p>
@@ -189,15 +189,15 @@
             </p>
 
             <div class="rounded-md border border-gray-200 bg-gray-50 p-3">
-              <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">HuÃ©spedes registrados</p>
-              <div v-if="registeredGuests.length === 0" class="text-sm text-gray-500">No hay huÃ©spedes nominales registrados.</div>
+              <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Huéspedes registrados</p>
+              <div v-if="registeredGuests.length === 0" class="text-sm text-gray-500">No hay huéspedes nominales registrados.</div>
               <div v-else class="space-y-2">
                 <div v-for="guest in registeredGuests" :key="`rg-${guest.id}`" class="rounded border border-gray-200 bg-white px-3 py-2">
                   <p class="text-sm font-medium text-gray-900">{{ guest.name || 'Sin nombre' }}</p>
                   <p class="text-xs text-gray-600">{{ guest.documentLabel }}</p>
                   <p class="text-xs text-gray-600">{{ guest.nationality || 'Nacionalidad no registrada' }}</p>
                   <p class="text-xs font-semibold" :class="guest.is_primary ? 'text-indigo-700' : 'text-gray-500'">
-                    {{ guest.is_primary ? 'Principal' : 'AcompaÃ±ante' }}
+                    {{ guest.is_primary ? 'Principal' : 'Acompañante' }}
                   </p>
                 </div>
               </div>
@@ -212,16 +212,16 @@
             <button v-if="can('reservations', 'edit')" class="touch-target w-full rounded-md bg-primary/10 px-3 py-2 text-sm font-medium text-primary hover:bg-primary/15" @click="copyPreregistroLink">
               Copiar link de pre-registro
             </button>
-            <p class="text-xs text-gray-500">El link es vÃ¡lido 48 horas despuÃ©s del check-in declarado.</p>
+            <p class="text-xs text-gray-500">El link es válido 48 horas después del check-in declarado.</p>
           </div>
 
           <div v-else class="text-sm text-gray-500">
-            El pre-registro solo estÃ¡ disponible para reservas en estado confirmed.
+            El pre-registro solo está disponible para reservas en estado confirmed.
           </div>
         </div>
 
         <div class="card">
-          <h2 class="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wider">Check-in fÃ­sico</h2>
+          <h2 class="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wider">Check-in físico</h2>
 
           <div v-if="res.checkin_at" class="space-y-2 text-sm text-gray-700">
             <p class="inline-flex rounded-full bg-indigo-100 px-2.5 py-1 text-xs font-semibold text-indigo-700">Llegada registrada</p>
@@ -229,7 +229,7 @@
           </div>
 
           <div v-else-if="res.status === 'confirmed'" class="space-y-3 text-sm text-gray-700">
-            <p class="text-gray-600">Registrar la llegada real del huÃ©sped cambia el estado de la reserva a in_stay.</p>
+            <p class="text-gray-600">Registrar la llegada real del huésped cambia el estado de la reserva a in_stay.</p>
             <button
               v-if="can('reservations', 'checkin')"
               class="touch-target w-full rounded-md bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-100"
@@ -240,7 +240,7 @@
           </div>
 
           <div v-else class="text-sm text-gray-500">
-            La llegada fÃ­sica solo se registra desde estado confirmed.
+            La llegada física solo se registra desde estado confirmed.
           </div>
         </div>
         <!-- Occupancy sync alert -->
@@ -256,7 +256,7 @@
           </button>
         </div>
         <div class="card">
-          <h2 class="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wider">HuÃ©sped principal</h2>
+          <h2 class="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wider">Huésped principal</h2>
           <div class="flex items-center gap-3 mb-4">
             <div class="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-lg">
               {{ guestDisplayName.charAt(0) }}
@@ -267,8 +267,8 @@
             </div>
           </div>
           <div class="space-y-2 text-sm text-gray-600">
-            <p class="flex items-center gap-2"><span class="w-4">ðŸ“±</span> {{ guestDisplayPhone }}</p>
-            <p class="flex items-center gap-2"><span class="w-4">ðŸªª</span> {{ guestDocumentLabel }}</p>
+            <p class="flex items-center gap-2"><span class="w-4">📱</span> {{ guestDisplayPhone }}</p>
+            <p class="flex items-center gap-2"><span class="w-4">🪪</span> {{ guestDocumentLabel }}</p>
           </div>
           <button class="mt-4 w-full py-2 text-sm font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-md transition-colors">
             Ver perfil completo
@@ -278,7 +278,7 @@
         <!-- Danger Zone -->
         <div class="card border-red-100 bg-red-50/30">
           <h2 class="text-sm font-semibold text-red-800 mb-2">Zona de Peligro</h2>
-          <p class="text-xs text-red-600 mb-4">Al cancelar una reserva, se liberarÃ¡n las fechas en el calendario inmediatamente.</p>
+          <p class="text-xs text-red-600 mb-4">Al cancelar una reserva, se liberarán las fechas en el calendario inmediatamente.</p>
           <button @click="openCancelModal" class="touch-target w-full rounded-md border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-700 transition-colors hover:bg-red-50">
             Cancelar Reserva
           </button>
@@ -305,13 +305,13 @@
     <BaseModal :isOpen="showEditUnitsModal" title="Editar unidades" :fullScreenOnMobile="true" @close="closeEditUnitsModal">
       <div class="space-y-4">
         <p class="text-sm text-gray-600">
-          Selecciona las unidades para esta reserva. Se validarÃ¡ disponibilidad en el mismo rango de fechas.
+          Selecciona las unidades para esta reserva. Se validará disponibilidad en el mismo rango de fechas.
         </p>
 
         <div class="rounded-md border border-gray-200 bg-gray-50 p-3">
-          <p class="text-xs uppercase tracking-wide text-gray-500">Rango de estadÃ­a</p>
+          <p class="text-xs uppercase tracking-wide text-gray-500">Rango de estadía</p>
           <p class="text-sm font-medium text-gray-800">
-            {{ formatDate(res?.check_in) }} â†’ {{ formatDate(res?.check_out) }}
+            {{ formatDate(res?.check_in) }} → {{ formatDate(res?.check_out) }}
           </p>
         </div>
 
@@ -540,7 +540,7 @@ const guestDocumentLabel = computed(() => {
     return 'Sin documento'
   }
 
-  return [res.value.guests.document_type, res.value.guests.document_number].filter(Boolean).join(' Â· ')
+  return [res.value.guests.document_type, res.value.guests.document_number].filter(Boolean).join(' · ')
 })
 
 const commissionSummary = computed(() => getCommissionSummary(res.value))
@@ -639,12 +639,12 @@ const canViewPayments = computed(() => can('payments', 'view'))
 
 const deletePaymentMessage = computed(() => {
   if (!selectedPayment.value) return ''
-  return `Â¿Eliminar este pago de $${formatCurrency(selectedPayment.value.amount)} registrado el ${formatDate(selectedPayment.value.payment_date)}?`
+  return `¿Eliminar este pago de $${formatCurrency(selectedPayment.value.amount)} registrado el ${formatDate(selectedPayment.value.payment_date)}?`
 })
 
 const checkinConfirmationMessage = computed(() => {
   const nowLabel = formatDateTime(new Date().toISOString())
-  return `Â¿Confirmar llegada de ${guestDisplayName.value}?\nHora de registro: ${nowLabel}`
+  return `¿Confirmar llegada de ${guestDisplayName.value}?\nHora de registro: ${nowLabel}`
 })
 
 // Formatting
@@ -667,14 +667,14 @@ const formatDateTime = (ds) => {
 }
 
 const parseFunctionError = async (error) => {
-  if (!error) return 'OcurriÃ³ un error inesperado.'
+  if (!error) return 'Ocurrió un error inesperado.'
 
   if (typeof error.context?.json === 'function') {
     const payload = await error.context.json()
-    return payload.message || 'OcurriÃ³ un error inesperado.'
+    return payload.message || 'Ocurrió un error inesperado.'
   }
 
-  return error.message || 'OcurriÃ³ un error inesperado.'
+  return error.message || 'Ocurrió un error inesperado.'
 }
 
 // Interactions
@@ -845,7 +845,7 @@ const submitEditUnits = async () => {
   editUnitsErrorMessage.value = ''
 
   if (!res.value) {
-    editUnitsErrorMessage.value = 'No se encontrÃ³ la reserva para actualizar.'
+    editUnitsErrorMessage.value = 'No se encontró la reserva para actualizar.'
     return
   }
 
@@ -932,7 +932,7 @@ const handleAdminPreregistroSubmit = async ({ primary_guest, additional_guests }
 
 const confirmCheckin = async () => {
   if (!res.value?.guest_id) {
-    toast.error('Debes vincular un huÃ©sped registrado antes de marcar la llegada fÃ­sica.')
+    toast.error('Debes vincular un huésped registrado antes de marcar la llegada física.')
     return
   }
 
@@ -958,7 +958,7 @@ const confirmCheckin = async () => {
         reservation_id: res.value.id,
         previous_status: res.value.status,
         new_status: 'in_stay',
-        notes: 'Check-in fÃ­sico registrado'
+        notes: 'Check-in físico registrado'
       })
 
     if (logError) throw logError
