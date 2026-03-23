@@ -417,6 +417,7 @@ import { usePermissions } from '../composables/usePermissions'
 import { useAccountStore } from '../stores/account'
 import { useToast } from '../composables/useToast'
 import { useBreakpoint } from '../composables/useBreakpoint'
+import { notifyCheckinRealizado } from '../services/notificationService'
 
 const route = useRoute()
 const router = useRouter()
@@ -964,6 +965,7 @@ const confirmCheckin = async () => {
     if (logError) throw logError
 
     await fetchReservation()
+    try { await notifyCheckinRealizado(accountId, res.value) } catch (e) { /* silencioso */ }
     closeCheckinConfirmModal()
     toast.success('Llegada registrada')
   } catch (error) {

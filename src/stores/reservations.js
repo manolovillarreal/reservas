@@ -12,6 +12,7 @@ import {
 } from '../utils/reservationUtils'
 import { getSourceLabel } from '../utils/sourceUtils'
 import { getNextReservationNumber, resolveReservationReferenceCode, syncReservationOccupancy } from '../services/reservationService'
+import { notifyNuevaReserva } from '../services/notificationService'
 
 const normalizeDate = (value) => {
   if (!value) return null
@@ -412,6 +413,8 @@ export const useReservationsStore = defineStore('reservations', () => {
       const syncResult = await trySyncReservationOccupancy(data.id)
 
       await fetchReservations(lastFetchParams.value)
+
+      try { await notifyNuevaReserva(accountId, data) } catch (e) { /* silencioso */ }
 
       return {
         ...data,

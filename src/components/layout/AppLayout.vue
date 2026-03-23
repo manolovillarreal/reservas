@@ -11,11 +11,19 @@
         <img :src="LogoImage" alt="TekMi Inn" class="h-8 w-8 object-contain">
       </div>
 
-      <button type="button" class="touch-target rounded-md text-[#9CA3AF]">
+      <button
+        type="button"
+        class="relative touch-target rounded-md text-[#9CA3AF]"
+        @click="showNotificationsPanel = !showNotificationsPanel"
+      >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-5 w-5" aria-hidden="true">
           <path d="M12 3a4 4 0 00-4 4v2.2A5 5 0 015.2 13L4 14.2V16h16v-1.8L18.8 13A5 5 0 0118 9.2V7a4 4 0 00-4-4z" />
           <path d="M9.5 19a2.5 2.5 0 005 0" />
         </svg>
+        <span
+          v-if="notificationsStore.unreadCount > 0"
+          class="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-0.5 text-[10px] font-bold leading-none text-white"
+        >{{ notificationsStore.unreadCount > 9 ? '9+' : notificationsStore.unreadCount }}</span>
       </button>
     </header>
 
@@ -44,6 +52,22 @@
           <span class="w-6 select-none text-center text-xl" v-html="item.icon"></span>
           <span v-if="!isSidebarCollapsed" class="ml-3 text-sm font-medium">{{ item.name }}</span>
         </router-link>
+
+        <button
+          type="button"
+          class="group relative flex w-full items-center rounded-md px-2 py-2 text-gray-400 transition-colors hover:bg-gray-800 hover:text-white"
+          :title="isSidebarCollapsed ? 'Notificaciones' : ''"
+          @click="showNotificationsPanel = !showNotificationsPanel"
+        >
+          <span class="relative w-6 select-none text-center text-xl">
+            🔔
+            <span
+              v-if="notificationsStore.unreadCount > 0"
+              class="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-0.5 text-[10px] font-bold leading-none text-white"
+            >{{ notificationsStore.unreadCount > 9 ? '9+' : notificationsStore.unreadCount }}</span>
+          </span>
+          <span v-if="!isSidebarCollapsed" class="ml-3 text-sm font-medium">Notificaciones</span>
+        </button>
 
         <div class="mt-4 border-t border-gray-800 pb-2 pt-4">
           <router-link
@@ -93,30 +117,39 @@
       </main>
     </div>
 
+    <NotificationsPanel
+      :isOpen="showNotificationsPanel"
+      :sidebarOffset="sidebarWidth"
+      @close="showNotificationsPanel = false"
+    />
     <MobileNav v-if="isMobile" @open-drawer="openDrawer" />
     <MobileDrawer v-model="isDrawerOpen" />
   </div>
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { supabase } from '../../services/supabase'
 import { useAccountStore } from '../../stores/account'
 import { useSourcesStore } from '../../stores/sources'
 import { usePermissions } from '../../composables/usePermissions'
 import { useBreakpoint } from '../../composables/useBreakpoint'
+import { useNotificationsStore } from '../../stores/notifications'
 import MobileNav from './MobileNav.vue'
 import MobileDrawer from './MobileDrawer.vue'
+import NotificationsPanel from '../notifications/NotificationsPanel.vue'
 import LogoImage from '../../assets/logo.jpeg'
 
 const isSidebarCollapsed = ref(false)
 const isDrawerOpen = ref(false)
+const showNotificationsPanel = ref(false)
 const router = useRouter()
 const accountStore = useAccountStore()
 const sourcesStore = useSourcesStore()
 const { can } = usePermissions()
 const { isMobile, isTablet, isDesktop } = useBreakpoint()
+const notificationsStore = useNotificationsStore()
 
 const EXPANDED_WIDTH = 220
 const COLLAPSED_WIDTH = 56
@@ -214,4 +247,8 @@ const logout = async () => {
   accountStore.clear()
   router.push({ name: 'login' })
 }
+
+onMounted(() => {
+  notificationsStore.fetchNotifications()
+})
 </script>

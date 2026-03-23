@@ -71,6 +71,7 @@ import { supabase } from '../../services/supabase'
 import { useAccountStore } from '../../stores/account'
 import { useToast } from '../../composables/useToast'
 import { getAvailableTransitions, getStatusLabel } from '../../utils/reservationUtils'
+import { notifyReservaCancelada } from '../../services/notificationService'
 import BaseModal from '../ui/BaseModal.vue'
 import {
   AppSelect,
@@ -204,6 +205,9 @@ const submitChange = async () => {
 
     if (logError) throw logError
 
+    if (form.value.newStatus === 'cancelled') {
+      try { await notifyReservaCancelada(accountId, { id: props.reservationId, guest_name: props.guestName }) } catch (e) { /* silencioso */ }
+    }
     toast.success(`Estado actualizado → ${getStatusLabel(form.value.newStatus)}`)
     emit('updated', form.value.newStatus)
     emit('close')

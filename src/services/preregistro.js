@@ -1,5 +1,6 @@
 import { supabase } from './supabase'
 import { useAccountStore } from '../stores/account'
+import { notifyPreregistroCompletado } from './notificationService'
 
 const getAccountId = () => {
   const accountStore = useAccountStore()
@@ -170,6 +171,14 @@ export const completeReservationPreregistro = async ({ reservationId, guests }) 
     })
 
   if (logError) throw logError
+
+  try {
+    await notifyPreregistroCompletado(accountId, {
+      id: reservationId,
+      guest_name: primaryGuest.name,
+      check_in: reservation.check_in,
+    })
+  } catch (e) { /* silencioso */ }
 
   return {
     primaryGuest,

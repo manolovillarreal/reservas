@@ -85,6 +85,7 @@ import BaseModal from '../ui/BaseModal.vue'
 import { supabase } from '../../services/supabase'
 import { useAccountStore } from '../../stores/account'
 import { useToast } from '../../composables/useToast'
+import { notifyAnticipoRegistrado } from '../../services/notificationService'
 import {
   AppInput,
   AppSelect,
@@ -273,6 +274,8 @@ const submitPayment = async () => {
     if (insertError) throw insertError
 
     const newPaidAmount = await recalculatePaidAmount(props.reservationId, accountId)
+
+    try { await notifyAnticipoRegistrado(accountId, { amount: Number(form.amount) }, { id: props.reservationId }) } catch (e) { /* silencioso */ }
 
     emit('saved', { paidAmount: newPaidAmount })
     emit('close')

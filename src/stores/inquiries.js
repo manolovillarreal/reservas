@@ -5,6 +5,7 @@ import { useAccountStore } from './account'
 import { getSourceLabel } from '../utils/sourceUtils'
 import { generateInquiryNumber, generateUniqueReferenceCode } from '../utils/referenceUtils'
 import { isValidInquiryTransition } from '../utils/inquiryUtils'
+import { notifyNuevaConsulta } from '../services/notificationService'
 
 const INQUIRY_SELECT = `
   *,
@@ -171,6 +172,7 @@ export const useInquiriesStore = defineStore('inquiries', () => {
 
     const createdInquiry = await getInquiryById(data.id)
     await fetchInquiries()
+    try { await notifyNuevaConsulta(accountId, createdInquiry) } catch (e) { /* silencioso */ }
     return createdInquiry
   }
 

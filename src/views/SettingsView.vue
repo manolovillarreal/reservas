@@ -81,6 +81,56 @@
       </div>
     </div>
 
+    <div v-if="can('settings', 'edit')" class="card">
+      <div class="mb-5 flex items-center justify-between">
+        <div>
+          <h2 class="text-lg font-semibold text-gray-900">Notificaciones</h2>
+          <p class="text-sm text-gray-500">Controla qué eventos generan notificaciones in-app.</p>
+        </div>
+        <button type="button" class="btn-primary text-sm" :disabled="savingNotifSettings" @click="saveNotifSettings">
+          {{ savingNotifSettings ? 'Guardando...' : 'Guardar' }}
+        </button>
+      </div>
+
+      <div v-for="group in notifTypeGroups" :key="group.title" class="mb-6 last:mb-0">
+        <h3 class="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-400">{{ group.title }}</h3>
+        <div class="divide-y divide-gray-100 rounded-md border border-gray-200">
+          <div
+            v-for="item in group.items"
+            :key="item.key"
+            class="flex items-center justify-between px-4 py-3"
+          >
+            <span class="text-sm text-gray-700">{{ item.label }}</span>
+            <div class="flex items-center gap-3">
+              <div v-if="item.daysLabel && notifSettings[item.key]" class="flex items-center gap-1.5">
+                <input
+                  type="number"
+                  min="1"
+                  max="30"
+                  class="w-14 rounded border border-gray-300 px-2 py-1 text-center text-sm disabled:opacity-40"
+                  :disabled="!notifSettings[item.key]?.enabled"
+                  v-model.number="notifSettings[item.key].days"
+                />
+                <span class="text-xs text-gray-500">{{ item.daysLabel }}</span>
+              </div>
+              <button
+                v-if="notifSettings[item.key]"
+                type="button"
+                class="relative inline-flex h-5 w-9 cursor-pointer rounded-full border-2 border-transparent transition-colors"
+                :class="notifSettings[item.key]?.enabled ? 'bg-indigo-600' : 'bg-gray-200'"
+                @click="notifSettings[item.key].enabled = !notifSettings[item.key].enabled"
+              >
+                <span
+                  class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition"
+                  :class="notifSettings[item.key]?.enabled ? 'translate-x-4' : 'translate-x-0'"
+                />
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="card">
       <h2 class="text-sm font-semibold uppercase tracking-wide text-gray-900">Cuenta activa</h2>
       <div class="mt-3 grid grid-cols-1 gap-3 text-sm md:grid-cols-3">
@@ -215,6 +265,7 @@ import { useAccountStore } from '../stores/account'
 import { usePermissions } from '../composables/usePermissions'
 import { useToast } from '../composables/useToast'
 import { useBreakpoint } from '../composables/useBreakpoint'
+import { getNotificationSettings, saveNotificationSettings as saveNotifSettingsApi } from '../services/notificationService'
 import BottomSheet from '../components/ui/BottomSheet.vue'
 import DataCard from '../components/ui/DataCard.vue'
 import { AppInlineAlert, AppSelect } from '@/components/ui/forms'
@@ -235,6 +286,40 @@ const selectedUser = ref(null)
 const selectedRole = ref('')
 const voucherConditions = ref('')
 const savingConditions = ref(false)
+const notifSettings = ref({})
+const savingNotifSettings = ref(false)
+
+const notifTypeGroups = [
+  {
+    title: 'Reservas y consultas',
+    items: [
+      { key: 'nueva_consulta', label: 'Nueva consulta' },
+      { key: 'nueva_reserva', label: 'Nueva reserva' },
+      { key: 'reserva_cancelada', label: 'Reserva cancelada' },
+      { key: 'inquiry_expiring_soon', label: 'Cotización próxima a vencer', daysLabel: 'días antes de vencer' },
+      { key: 'inquiry_no_activity', label: 'Consulta sin actividad', daysLabel: 'días sin cambios' },
+    ],
+  },
+  {
+    title: 'Llegada y salida',
+    items: [
+      { key: 'preregistro_completado', label: 'Pre-registro completado' },
+      { key: 'preregistro_pending', label: 'Pre-registro pendiente', daysLabel: 'días antes del check-in' },
+      { key: 'checkin_del_dia', label: 'Check-in del día' },
+      { key: 'checkin_realizado', label: 'Check-in registrado' },
+      { key: 'checkout_del_dia', label: 'Check-out del día' },
+      { key: 'checkout_vencido', label: 'Check-out vencido' },
+    ],
+  },
+  {
+    title: 'Pagos',
+    items: [
+      { key: 'anticipo_registrado', label: 'Pago registrado' },
+      { key: 'balance_pending', label: 'Saldo pendiente antes de check-in', daysLabel: 'días antes del check-in' },
+      { key: 'reservation_no_payment', label: 'Reserva sin pago', daysLabel: 'días desde la confirmación' },
+    ],
+  },
+]
 
 let successMessageTimeout = null
 
@@ -285,6 +370,29 @@ const fetchUsers = async () => {
     toast.error(err.message)
   } finally {
     loading.value = false
+  }
+}
+
+const fetchNotifSettings = async () => {
+  if (!can('settings', 'edit')) return
+  try {
+    const accountId = accountStore.getRequiredAccountId()
+    notifSettings.value = await getNotificationSettings(accountId)
+  } catch (err) {
+    toast.error(err.message)
+  }
+}
+
+const saveNotifSettings = async () => {
+  savingNotifSettings.value = true
+  try {
+    const accountId = accountStore.getRequiredAccountId()
+    await saveNotifSettingsApi(accountId, notifSettings.value)
+    toast.success('Configuración de notificaciones guardada.')
+  } catch (err) {
+    toast.error(err.message)
+  } finally {
+    savingNotifSettings.value = false
   }
 }
 
@@ -405,6 +513,6 @@ const removeUser = async (item) => {
 }
 
 onMounted(async () => {
-  await Promise.all([fetchUsers(), fetchVoucherConditions()])
+  await Promise.all([fetchUsers(), fetchVoucherConditions(), fetchNotifSettings()])
 })
 </script>

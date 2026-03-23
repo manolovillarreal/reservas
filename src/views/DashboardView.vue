@@ -10,6 +10,9 @@
 
     <AvailabilityWidget />
 
+    <NotificationsWidget />
+
+    <template v-if="notificationsStore.notifications.length === 0">
     <div v-if="overdueReservations.length > 0 || preregPendingReservations.length > 0" class="space-y-3">
       <AppInlineAlert
         v-for="res in overdueReservations"
@@ -34,6 +37,7 @@
         </template>
       </AppInlineAlert>
     </div>
+    </template>
 
     <div class="card !py-4 flex flex-wrap items-end gap-4 bg-white">
       <div class="w-full md:w-64">
@@ -152,10 +156,13 @@ import { useToast } from '../composables/useToast'
 import { AppInlineAlert } from '@/components/ui/forms'
 import { getNetAmount } from '../utils/reservations'
 import AvailabilityWidget from '../components/dashboard/AvailabilityWidget.vue'
+import { useNotificationsStore } from '../stores/notifications'
+import NotificationsWidget from '../components/dashboard/NotificationsWidget.vue'
 
 const store = useReservationsStore()
 const router = useRouter()
 const toast = useToast()
+const notificationsStore = useNotificationsStore()
 
 const incomeFilterPreset = ref('last_week')
 const customIncomeRange = ref({
@@ -278,6 +285,7 @@ const weekRangeLabel = computed(() => {
 
 onMounted(async () => {
   await store.fetchReservations()
+  notificationsStore.fetchNotifications()
   calculateMetrics()
   generateWeekDays()
 })
