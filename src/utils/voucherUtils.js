@@ -23,6 +23,12 @@ const normalizeDate = (value) => {
 
 export const formatCop = (value) => currencyFormatter.format(Number(value || 0))
 
+export const buildQuotePublicUrl = (token) => {
+  if (!token) return ''
+  const base = (import.meta.env?.VITE_SUPABASE_URL || '').replace(/\/$/, '')
+  return `${base}/functions/v1/public-quote?token=${token}`
+}
+
 export const formatDateLongEs = (value) => {
   const date = normalizeDate(value)
   if (!date) return '-'
@@ -81,7 +87,7 @@ export const copyAsWhatsApp = async (reservation, profile) => {
   return message
 }
 
-export const copyQuotationAsWhatsApp = async (inquiry, profile) => {
+export const copyQuotationAsWhatsApp = async (inquiry, profile, quoteUrl = '') => {
   const guestName = inquiry?.guest_name || 'huesped'
   const businessName = profile?.commercial_name || profile?.legal_name || 'nuestro alojamiento'
   const contactPhone = profile?.phone || '-'
@@ -143,6 +149,11 @@ export const copyQuotationAsWhatsApp = async (inquiry, profile) => {
   if (inquiry?.quote_expires_at) {
     lines.push('')
     lines.push(`⏰ Válida hasta: ${longDateWithoutWeekday(inquiry.quote_expires_at)}`)
+  }
+
+  if (quoteUrl) {
+    lines.push('')
+    lines.push(`🔗 Ver cotización: ${quoteUrl}`)
   }
 
   lines.push('')

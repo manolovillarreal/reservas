@@ -92,7 +92,7 @@ import { supabase } from '../services/supabase'
 import { useAccountStore } from '../stores/account'
 import { useToast } from '../composables/useToast'
 import { useBreakpoint } from '../composables/useBreakpoint'
-import { copyQuotationAsWhatsApp, formatCop } from '../utils/voucherUtils'
+import { copyQuotationAsWhatsApp, formatCop, buildQuotePublicUrl } from '../utils/voucherUtils'
 import { formatReferenceDisplay } from '../utils/referenceUtils'
 import { getDocumentSettings } from '../services/documentSettingsService'
 
@@ -125,7 +125,7 @@ const fetchData = async () => {
     ] = await Promise.all([
       supabase
         .from('inquiries')
-        .select('id, account_id, inquiry_number, reference_code, guest_name, guest_phone, check_in, check_out, adults, children, price_per_night, discount_percentage, quote_expires_at, source_detail_info:source_details!inquiries_source_detail_id_fkey(id, name, label_es), inquiry_units(unit_id, units(name))')
+        .select('id, account_id, inquiry_number, reference_code, quote_token, guest_name, guest_phone, check_in, check_out, adults, children, price_per_night, discount_percentage, quote_expires_at, source_detail_info:source_details!inquiries_source_detail_id_fkey(id, name, label_es), inquiry_units(unit_id, units(name))') 
         .eq('account_id', accountId)
         .eq('id', route.params.id)
         .single(),
@@ -247,7 +247,8 @@ const handleCopyWhatsApp = async () => {
         units_label: unitsLabel.value,
         total_amount: totalCustomer.value,
       },
-      profile.value
+      profile.value,
+      buildQuotePublicUrl(inquiry.value.quote_token)
     )
 
     toast.success('Copiado al portapapeles')

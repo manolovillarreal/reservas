@@ -14,6 +14,12 @@ const router = createRouter({
       meta: { guestOnly: true, plainLayout: true }
     },
     {
+      path: '/q/:token',
+      name: 'cotizacion-publica',
+      component: () => import('../views/PublicQuotationView.vue'),
+      meta: { plainLayout: true }
+    },
+    {
       path: '/prerregistro/:token',
       name: 'preregistro',
       component: () => import('../views/PreRegistroView.vue'),

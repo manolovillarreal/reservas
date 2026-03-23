@@ -14,6 +14,12 @@ const INQUIRY_SELECT = `
   inquiry_units(unit_id)
 `
 
+const generateQuoteToken = () => {
+  const bytes = new Uint8Array(32)
+  crypto.getRandomValues(bytes)
+  return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('')
+}
+
 const normalizeDate = (value) => {
   if (!value) return null
   if (typeof value === 'string') {
@@ -117,7 +123,8 @@ export const useInquiriesStore = defineStore('inquiries', () => {
       source_type_id: payload.source_type_id || null,
       source_detail_id: payload.source_detail_id || null,
       status,
-      notes: payload.notes || null
+      notes: payload.notes || null,
+      quote_token: generateQuoteToken()
     }
 
     const { data, error: supaError } = await supabase
@@ -304,6 +311,19 @@ export const useInquiriesStore = defineStore('inquiries', () => {
     }
   }
 
+  const generateInquiryQuoteToken = async (id) => {
+    const accountId = accountStore.getRequiredAccountId()
+    const token = generateQuoteToken()
+    const { error: supaError } = await supabase
+      .from('inquiries')
+      .update({ quote_token: token })
+      .eq('account_id', accountId)
+      .eq('id', id)
+
+    if (supaError) throw supaError
+    return token
+  }
+
   const createInquiryHold = async (payload) => {
     const accountId = accountStore.getRequiredAccountId()
     const inquiryId = payload.inquiry_id
@@ -372,6 +392,7 @@ export const useInquiriesStore = defineStore('inquiries', () => {
     updateInquiryStatus,
     deleteInquiry,
     getInquiryById,
-    createInquiryHold
+    createInquiryHold,
+    generateInquiryQuoteToken
   }
 })

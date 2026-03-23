@@ -4,6 +4,18 @@
       <router-link to="/consultas" class="text-sm font-medium text-gray-500 hover:text-gray-900">← Volver a Consultas</router-link>
       <div class="flex items-center gap-2">
         <button
+          v-if="inquiry && inquiry.guest_name"
+          class="btn-secondary text-sm"
+          @click="copyInquiryAsWhatsApp"
+          :disabled="!inquiry"
+        >Copiar para WhatsApp</button>
+        <button
+          v-if="inquiry"
+          class="btn-secondary text-sm"
+          :disabled="generatingToken"
+          @click="handleQuoteLink"
+        >{{ generatingToken ? 'Generando...' : (inquiry.quote_token ? 'Copiar link de cotización' : 'Generar link de cotización') }}</button>
+        <button
           v-if="canViewQuotation"
           class="btn-secondary text-sm"
           :title="quotationWarningTooltip"
@@ -16,12 +28,6 @@
           @click="openConversionModal"
           :disabled="!inquiry"
         >Convertir en reserva</button>
-          <button
-            v-if="inquiry && inquiry.guest_name"
-            class="btn-secondary text-sm"
-            @click="copyInquiryAsWhatsApp"
-            :disabled="!inquiry"
-          >Copiar para WhatsApp</button>
         <button v-if="can('inquiries', 'edit')" class="btn-secondary text-sm" @click="openEditModal" :disabled="!inquiry">Editar</button>
       </div>
     </div>
@@ -318,7 +324,7 @@ import { usePermissions } from '../composables/usePermissions'
 import { useAccountStore } from '../stores/account'
 import { useToast } from '../composables/useToast'
 import { formatReferenceDisplay } from '../utils/referenceUtils'
-import { copyQuotationAsWhatsApp } from '../utils/voucherUtils'
+import { copyQuotationAsWhatsApp, buildQuotePublicUrl } from '../utils/voucherUtils'
 import {
   getInquiryStatusLabel,
   getInquiryStatusStyle,
@@ -347,6 +353,9 @@ const toast = useToast()
 const loading = ref(true)
 const inquiry = ref(null)
 const profile = ref({})
+const generatingToken = ref(false)
+
+const quotePublicUrl = computed(() => buildQuotePublicUrl(inquiry.value?.quote_token))
 
 const availableTransitions = computed(() => getAvailableInquiryTransitions(inquiry.value?.status))
 const inquiryReferenceDisplay = computed(() => formatReferenceDisplay(inquiry.value?.reference_code, inquiry.value?.guest_name))
@@ -522,11 +531,39 @@ const copyInquiryAsWhatsApp = async () => {
         units_label: inquiryUnitsLabel.value,
         total_amount: inquiryCustomerTotal.value,
       },
-      profile.value
+      profile.value,
+      quotePublicUrl.value || ''
     )
     toast.success('Mensaje de WhatsApp copiado al portapapeles.')
   } catch (error) {
     toast.error(error.message || 'No se pudo copiar el mensaje de WhatsApp.')
+  }
+}
+
+const handleQuoteLink = async () => {
+  if (!inquiry.value) return
+  // If token already exists — just copy the URL
+  if (inquiry.value.quote_token) {
+    try {
+      await navigator.clipboard.writeText(quotePublicUrl.value)
+      toast.success('Link de cotización copiado al portapapeles.')
+    } catch {
+      toast.error('No se pudo copiar el link.')
+    }
+    return
+  }
+  // Generate token, persist in DB, then copy
+  generatingToken.value = true
+  try {
+    const token = await store.generateInquiryQuoteToken(inquiry.value.id)
+    inquiry.value = { ...inquiry.value, quote_token: token }
+    const url = buildQuotePublicUrl(token)
+    await navigator.clipboard.writeText(url)
+    toast.success('Link de cotización generado y copiado al portapapeles.')
+  } catch (err) {
+    toast.error(err.message || 'No se pudo generar el link de cotización.')
+  } finally {
+    generatingToken.value = false
   }
 }
 
