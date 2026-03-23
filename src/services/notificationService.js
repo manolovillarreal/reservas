@@ -18,9 +18,8 @@ export const DEFAULT_NOTIFICATION_SETTINGS = {
   checkout_del_dia:       { enabled: true },
   checkout_vencido:       { enabled: true },
   // Pagos
-  anticipo_registrado:    { enabled: true },
-  balance_pending:        { enabled: true, days: 2 },
-  reservation_no_payment: { enabled: true, days: 3 },
+  anticipo_registrado:          { enabled: true },
+  balance_pending_post_checkin: { enabled: true, hours: 12 },
 }
 
 // ============================================================
@@ -399,64 +398,30 @@ async function _runInquiryNoActivity(accountId) {
   }
 }
 
-// cron: '0 8 * * *' — diario a las 8am
-// Notifica reservas confirmadas con saldo pendiente antes del check-in.
-async function _runBalancePending(accountId) {
+// cron: '0 * * * *' — cada hora
+// Notifica reservas in_stay con saldo >0 y check-in hace más de N horas.
+async function _runBalancePendingPostCheckin(accountId) {
   const settings = await getNotificationSettings(accountId)
-  if (!settings.balance_pending?.enabled) return
+  if (!settings.balance_pending_post_checkin?.enabled) return
 
-  const days = settings.balance_pending?.days ?? 2
-  const todayIso = new Date().toISOString().slice(0, 10)
-  const targetDate = new Date()
-  targetDate.setDate(targetDate.getDate() + days)
-  const targetIso = targetDate.toISOString().slice(0, 10)
+  const hours = settings.balance_pending_post_checkin?.hours ?? 12
+  const cutoffIso = new Date(Date.now() - hours * 3600000).toISOString().slice(0, 10)
 
   const { data: reservations } = await supabase
     .from('reservations')
     .select('id, guest_name, check_in, total_amount, paid_amount')
     .eq('account_id', accountId)
-    .eq('status', 'confirmed')
-    .gte('check_in', todayIso)
-    .lte('check_in', targetIso)
+    .eq('status', 'in_stay')
+    .lte('check_in', cutoffIso)
 
   for (const res of reservations || []) {
     const balance = Number(res.total_amount || 0) - Number(res.paid_amount || 0)
     if (balance <= 0) continue
-    if (await isDuplicateNotification(accountId, 'balance_pending', res.id)) continue
+    if (await isDuplicateNotification(accountId, 'balance_pending_post_checkin', res.id)) continue
     await createNotification(accountId, {
-      type: 'balance_pending',
+      type: 'balance_pending_post_checkin',
       title: `Saldo pendiente: ${res.guest_name || 'Huésped'}`,
-      message: `Saldo: $${balance.toLocaleString('es-CO')} · Check-in: ${formatDate(res.check_in)}`,
-      related_type: 'reservation',
-      related_id: res.id,
-    })
-  }
-}
-
-// cron: '0 8 * * *' — diario a las 8am
-// Notifica reservas confirmadas sin ningún pago registrado después de N días.
-async function _runReservationNoPayment(accountId) {
-  const settings = await getNotificationSettings(accountId)
-  if (!settings.reservation_no_payment?.enabled) return
-
-  const days = settings.reservation_no_payment?.days ?? 3
-  const cutoffDate = new Date()
-  cutoffDate.setDate(cutoffDate.getDate() - days)
-
-  const { data: reservations } = await supabase
-    .from('reservations')
-    .select('id, guest_name, created_at, paid_amount')
-    .eq('account_id', accountId)
-    .eq('status', 'confirmed')
-    .eq('paid_amount', 0)
-    .lte('created_at', cutoffDate.toISOString())
-
-  for (const res of reservations || []) {
-    if (await isDuplicateNotification(accountId, 'reservation_no_payment', res.id)) continue
-    await createNotification(accountId, {
-      type: 'reservation_no_payment',
-      title: `Sin pago registrado: ${res.guest_name || 'Huésped'}`,
-      message: `Reserva confirmada hace ${days}+ días sin anticipo`,
+      message: `Saldo: $${balance.toLocaleString('es-CO')} · Lleva más de ${hours}h en el alojamiento`,
       related_type: 'reservation',
       related_id: res.id,
     })
@@ -473,5 +438,4 @@ async function _runReservationNoPayment(accountId) {
 // export const runPreregistroPending   = _runPreregistroPending
 // export const runInquiryExpiringSoon  = _runInquiryExpiringSoon
 // export const runInquiryNoActivity    = _runInquiryNoActivity
-// export const runBalancePending       = _runBalancePending
-// export const runReservationNoPayment = _runReservationNoPayment
+// export const runBalancePendingPostCheckin = _runBalancePendingPostCheckin

@@ -151,6 +151,12 @@ const router = createRouter({
       meta: { requiresAuth: true }
     },
     {
+      path: '/configuracion/notificaciones',
+      name: 'configuracion-notificaciones',
+      component: () => import('../views/NotificationSettingsView.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
       path: '/account-association-error',
       name: 'account-association-error',
       component: () => import('../views/AccountAssociationErrorView.vue'),
