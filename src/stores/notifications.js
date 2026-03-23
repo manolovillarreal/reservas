@@ -30,10 +30,9 @@ export const useNotificationsStore = defineStore('notifications', () => {
     try {
       await supabase
         .from('notifications')
-        .update({ is_read: true })
+        .delete()
         .eq('id', id)
-      const n = notifications.value.find(n => n.id === id)
-      if (n) n.is_read = true
+      notifications.value = notifications.value.filter(n => n.id !== id)
     } catch (e) {
       console.warn('[notifications] markAsRead failed:', e?.message)
     }
@@ -44,10 +43,10 @@ export const useNotificationsStore = defineStore('notifications', () => {
       const accountId = accountStore.getRequiredAccountId()
       await supabase
         .from('notifications')
-        .update({ is_read: true })
+        .delete()
         .eq('account_id', accountId)
         .eq('is_read', false)
-      notifications.value.forEach(n => { n.is_read = true })
+      notifications.value = notifications.value.filter(n => n.is_read)
     } catch (e) {
       console.warn('[notifications] markAllAsRead failed:', e?.message)
     }

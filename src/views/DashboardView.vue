@@ -12,33 +12,6 @@
 
     <AvailabilityWidget />
 
-    <template v-if="notificationsStore.notifications.length === 0">
-    <div v-if="overdueReservations.length > 0 || preregPendingReservations.length > 0" class="space-y-3">
-      <AppInlineAlert
-        v-for="res in overdueReservations"
-        :key="`deadline-${res.id}`"
-        type="warning"
-        :message="`${res.guest_display_name || 'Reserva'} — deadline de pago vencido el ${formatDate(res.payment_deadline)}`"
-      >
-        <template #actions>
-          <router-link :to="`/reservas/${res.id}`" class="text-sm font-medium underline">Ver reserva</router-link>
-        </template>
-      </AppInlineAlert>
-
-      <AppInlineAlert
-        v-for="res in preregPendingReservations"
-        :key="`prereg-${res.id}`"
-        type="info"
-        :message="`${res.guest_display_name || 'Reserva'} llega el ${formatDate(res.check_in)} — pre-registro pendiente`"
-      >
-        <template #actions>
-          <router-link :to="`/reservas/${res.id}`" class="text-sm font-medium underline">Ver reserva</router-link>
-          <button type="button" class="btn-secondary text-sm" @click="copyPreregistroLink(res)">Copiar link</button>
-        </template>
-      </AppInlineAlert>
-    </div>
-    </template>
-
     <div class="card !py-4 flex flex-wrap items-end gap-4 bg-white">
       <div class="w-full md:w-64">
         <label class="block text-xs font-semibold uppercase tracking-wide text-gray-500">Rango de ingresos</label>
@@ -153,7 +126,6 @@ import { ref, onMounted, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useReservationsStore } from '../stores/reservations'
 import { useToast } from '../composables/useToast'
-import { AppInlineAlert } from '@/components/ui/forms'
 import { getNetAmount } from '../utils/reservations'
 import AvailabilityWidget from '../components/dashboard/AvailabilityWidget.vue'
 import { useNotificationsStore } from '../stores/notifications'
@@ -389,25 +361,6 @@ const getMiniCalendarStyles = (status) => {
 
 const formatCurrency = (val) => {
   return val.toLocaleString('es-CO')
-}
-
-const copyPreregistroLink = async (reservation) => {
-  if (!reservation?.id) return
-
-  try {
-    const { data, error } = await supabase.functions.invoke('generate-preregistro-token', {
-      body: { reservation_id: reservation.id }
-    })
-
-    if (error) throw error
-
-    const rawPath = String(data?.checkin_url || '')
-    const fullUrl = rawPath.startsWith('http') ? rawPath : `${window.location.origin}${rawPath}`
-    await navigator.clipboard.writeText(fullUrl)
-    toast.success('Link de pre-registro copiado')
-  } catch (error) {
-    toast.error(error?.message || 'No se pudo copiar el link de pre-registro.')
-  }
 }
 
 const openDetails = (res) => {

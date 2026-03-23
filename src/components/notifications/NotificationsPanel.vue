@@ -85,12 +85,11 @@
             <li
               v-for="notification in store.notifications"
               :key="notification.id"
-              class="flex cursor-pointer items-start gap-3 px-4 py-3 transition-colors hover:bg-gray-50"
-              :class="!notification.is_read ? 'bg-indigo-50/50' : ''"
+              class="flex cursor-pointer items-start gap-3 px-4 py-3 transition-colors bg-indigo-50/50 hover:bg-indigo-100/50"
               @click="handleItemClick(notification)"
             >
               <!-- Unread dot -->
-              <div class="mt-1.5 h-2 w-2 shrink-0 rounded-full" :class="!notification.is_read ? 'bg-indigo-500' : 'bg-transparent'" />
+              <div class="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-indigo-500" />
               <div class="min-w-0 flex-1">
                 <p class="truncate text-sm font-medium leading-snug text-gray-900">{{ notification.title }}</p>
                 <p v-if="notification.message" class="mt-0.5 line-clamp-2 text-xs text-gray-500">{{ notification.message }}</p>
@@ -174,9 +173,7 @@ const getNavigationPath = (notification) => {
 }
 
 const handleItemClick = async (notification) => {
-  if (!notification.is_read) {
-    await store.markAsRead(notification.id)
-  }
+  await store.markAsRead(notification.id)
   const path = getNavigationPath(notification)
   if (path) {
     router.push(path)
