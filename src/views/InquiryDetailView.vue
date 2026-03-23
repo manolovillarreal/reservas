@@ -398,6 +398,16 @@ const inquiryNights = computed(() => getNumericNights(inquiry.value?.check_in, i
 const inquirySubtotal = computed(() => Number(inquiry.value?.price_per_night || 0) * inquiryNights.value)
 const inquiryDiscountAmount = computed(() => inquirySubtotal.value * Number(inquiry.value?.discount_percentage || 0) / 100)
 const inquiryCustomerTotal = computed(() => Math.max(inquirySubtotal.value - inquiryDiscountAmount.value, 0))
+const inquiryUnitsLabel = computed(() =>
+  (inquiry.value?.unit_ids || [])
+    .map(id => units.value.find(u => u.id === id)?.name)
+    .filter(Boolean)
+    .join(', ')
+)
+const inquiryQuotationNumber = computed(() => {
+  const n = inquiry.value?.inquiry_number || ''
+  return n.startsWith('INQ-') ? n.replace('INQ-', 'COT-') : (n || '-')
+})
 const editNights = computed(() => getNumericNights(editForm.value.check_in, editForm.value.check_out) || 0)
 const editSubtotal = computed(() => Number(editForm.value.price_per_night || 0) * editNights.value)
 const editDiscountAmount = computed(() => editSubtotal.value * Number(editForm.value.discount_percentage || 0) / 100)
@@ -504,7 +514,16 @@ const confirmMarkAsLost = async () => {
 const copyInquiryAsWhatsApp = async () => {
   if (!inquiry.value) return
   try {
-    await copyQuotationAsWhatsApp(inquiry.value, profile.value)
+    await copyQuotationAsWhatsApp(
+      {
+        ...inquiry.value,
+        quotation_number: inquiryQuotationNumber.value,
+        nights: inquiryNights.value,
+        units_label: inquiryUnitsLabel.value,
+        total_amount: inquiryCustomerTotal.value,
+      },
+      profile.value
+    )
     toast.success('Mensaje de WhatsApp copiado al portapapeles.')
   } catch (error) {
     toast.error(error.message || 'No se pudo copiar el mensaje de WhatsApp.')
