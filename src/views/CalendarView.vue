@@ -189,54 +189,66 @@
           </button>
 
           <div v-if="!isVenueCollapsed(venue.id)" class="overflow-x-auto border-t border-gray-100 p-3">
-            <table class="min-w-full table-fixed border-collapse text-xs">
-              <thead>
-                <tr>
-                  <th class="sticky left-0 z-10 w-28 border border-gray-200 bg-gray-50 px-3 py-2 text-left text-sm font-semibold text-gray-700">Habitacion</th>
-                  <th
-                    v-for="day in calendarDays"
-                    :key="`complete-head-${venue.id}-${day.date}`"
-                    class="border border-gray-200 bg-gray-50 px-2 py-2 text-center font-semibold text-gray-600"
-                  >
-                    {{ day.dayNumber }}
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="unit in getUnitsByVenue(venue.id)" :key="`complete-unit-${unit.id}`">
-                  <td class="sticky left-0 border border-gray-200 bg-white px-3 py-2 font-medium text-gray-700">{{ unit.name }}</td>
-                  <td :colspan="calendarDays.length" class="border border-gray-200 py-1 px-0">
-                    <div class="relative" :style="timelineGridStyle">
-                      <div class="pointer-events-none absolute inset-0 grid" :style="timelineGridStyle">
-                        <div
-                          v-for="day in calendarDays"
-                          :key="`complete-bg-${unit.id}-${day.date}`"
-                          class="border-r border-gray-100 last:border-r-0"
-                        ></div>
-                      </div>
+            <!--
+              Pure CSS grid: col 1 = unit name (7rem fixed), cols 2..N+1 = one per day (equal 1fr).
+              Header cells and every unit row share this exact same grid → no misalignment possible.
+            -->
+            <div class="grid min-w-max border-l border-t border-gray-200 text-xs" :style="completeGridStyle">
 
-                      <div class="relative grid gap-px" :style="timelineGridStyle">
-                        <button
-                          v-for="segment in getUnitSegmentsForComplete(unit.id)"
-                          :key="`complete-segment-${segment.id}-${segment.colStart}-${segment.colEnd}`"
-                          data-occ-trigger="true"
-                          type="button"
-                          class="block w-full truncate rounded px-1 py-0.5 text-left text-[10px] text-white"
-                          :class="occupancyColor(segment)"
-                          :style="{ gridColumn: `${segment.colStart} / ${segment.colEnd}` }"
-                          @mouseenter="openDesktopTooltip($event, segment, segment.contextDate)"
-                          @mousemove="openDesktopTooltip($event, segment, segment.contextDate)"
-                          @mouseleave="closeDesktopTooltip"
-                          @click="onOccupancyClick($event, segment, segment.contextDate)"
-                        >
-                          {{ getOccupancyDisplayLabel(segment, 'completa') }}
-                        </button>
-                      </div>
-                    </div>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+              <!-- Header row: name label -->
+              <div class="sticky left-0 z-20 border-b border-r border-gray-200 bg-gray-50 px-3 py-2 text-sm font-semibold text-gray-700">
+                Habitacion
+              </div>
+              <!-- Header row: day numbers (one cell per day) -->
+              <div
+                v-for="day in calendarDays"
+                :key="`ch-${venue.id}-${day.date}`"
+                class="border-b border-r border-gray-200 bg-gray-50 px-1 py-2 text-center font-semibold text-gray-600"
+              >
+                {{ day.dayNumber }}
+              </div>
+
+              <!-- Unit rows -->
+              <template v-for="(unit, ui) in getUnitsByVenue(venue.id)" :key="`unit-row-${unit.id}`">
+
+                <!-- Unit name cell (col 1, sticky) -->
+                <div
+                  class="sticky left-0 z-10 border-b border-r border-gray-200 bg-white px-3 py-1.5 font-medium text-gray-700"
+                  :style="{ gridRow: ui + 2, gridColumn: 1 }"
+                >
+                  {{ unit.name }}
+                </div>
+
+                <!-- Background day cells: define row height and vertical grid lines -->
+                <div
+                  v-for="(day, di) in calendarDays"
+                  :key="`bg-${unit.id}-${day.date}`"
+                  class="pointer-events-none border-b border-r border-gray-100"
+                  :style="{ gridRow: ui + 2, gridColumn: di + 2, minHeight: '2rem' }"
+                />
+
+                <!-- Segments: colStart/colEnd from JS; +1 offset to skip the unit-name column -->
+                <button
+                  v-for="segment in getUnitSegmentsForComplete(unit.id)"
+                  :key="`seg-${segment.id}-${segment.colStart}`"
+                  data-occ-trigger="true"
+                  type="button"
+                  class="relative z-10 truncate rounded px-1 py-0.5 text-left text-[10px] text-white"
+                  :class="[
+                    occupancyColor(segment),
+                    segment.checkinInView ? 'border-l-4 border-l-green-300' : ''
+                  ]"
+                  :style="{ gridRow: ui + 2, gridColumn: `${segment.colStart + 1} / ${segment.colEnd + 1}`, margin: '6px 0' }"
+                  @mouseenter="openDesktopTooltip($event, segment, segment.contextDate)"
+                  @mousemove="openDesktopTooltip($event, segment, segment.contextDate)"
+                  @mouseleave="closeDesktopTooltip"
+                  @click="onOccupancyClick($event, segment, segment.contextDate)"
+                >
+                  {{ getOccupancyDisplayLabel(segment, 'completa') }}
+                </button>
+
+              </template>
+            </div>
           </div>
         </div>
       </div>
@@ -528,6 +540,13 @@ const timelineGridStyle = computed(() => ({
   gridTemplateColumns: `repeat(${Math.max(calendarDays.value.length, 1)}, minmax(0, 1fr))`
 }))
 
+// Single CSS grid shared by header and every unit row → guaranteed perfect alignment.
+// Col 1: unit name (fixed 7rem). Cols 2…N+1: fixed 1.5rem per day (no 1fr so columns
+// don't stretch to fill the overflow-x-auto container).
+const completeGridStyle = computed(() => ({
+  gridTemplateColumns: `7rem repeat(${Math.max(calendarDays.value.length, 1)}, 1.7rem)`
+}))
+
 const calendarDayIndexMap = computed(() => {
   const map = new Map()
   calendarDays.value.forEach((day, index) => {
@@ -720,7 +739,11 @@ function getUnitSegmentsForComplete(unitId) {
         ...occ,
         colStart,
         colEnd,
-        contextDate: startClamped
+        contextDate: startClamped,
+        // true when the checkout falls within the visible range (not clamped to the right edge)
+        checkoutInView: occEnd < rangeEndExclusive,
+        // true when the check-in falls within the visible range (not clamped to the left edge)
+        checkinInView: occStart >= rangeStart
       }
     })
     .filter(Boolean)
