@@ -25,7 +25,6 @@
             <option value="clasica">Clásica</option>
             <option value="completa">Completa</option>
             <option value="por_unidad">Por unidad</option>
-            <option value="agenda">Agenda</option>
           </select>
         </div>
 
@@ -54,7 +53,7 @@
     </div>
 
     <div
-      v-if="viewMode === 'completa'"
+      v-if="viewMode === 'completa' && !showAgendaView"
       class="rounded-lg border border-gray-200 bg-white p-4 shadow-sm"
     >
       <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Filtro de sedes</p>
@@ -103,11 +102,17 @@
         <button class="btn-secondary text-sm" @click="goToNextMonth">Mes siguiente →</button>
       </div>
 
+      <div v-if="showAgendaView" class="mb-4 flex items-center justify-between gap-2">
+        <button class="btn-secondary text-sm" @click="goToPreviousDay">← Día anterior</button>
+        <span class="text-sm font-medium text-gray-700">{{ agendaDayLabel }}</span>
+        <button class="btn-secondary text-sm" @click="goToNextDay">Día siguiente →</button>
+      </div>
+
       <div v-if="loading" class="rounded-md border border-gray-200 bg-gray-50 px-4 py-6 text-sm text-gray-500">
         Cargando ocupaciones...
       </div>
 
-      <div v-else-if="viewMode === 'agenda'" class="space-y-3">
+      <div v-else-if="showAgendaView" class="space-y-3">
         <div v-if="todayAgendaEvents.length === 0" class="rounded-md border border-gray-200 bg-gray-50 px-4 py-6 text-sm text-gray-500">
           <p class="flex items-center gap-2">
             <span class="text-base text-gray-400">◌</span>
@@ -183,7 +188,7 @@
             @mouseleave="closeDesktopTooltip"
             @click="onOccupancyClick($event, segment, segment.contextDate)"
           >
-            {{ getOccupancyDisplayLabel(segment, 'clasica') }}<span v-if="segment.occupancy_type === 'reservation' && segment.reservations?.guest_name" class="opacity-80"> · {{ segment.reservations.guest_name }}</span>
+            {{ getOccupancyDisplayLabel(segment, 'clasica') }}<span v-if="segment.occupancy_type === 'reservation' && segment.reservations?.guest_name" class="opacity-80"> · {{ segment.reservations.guest_name }}</span><span v-else-if="segment.occupancy_type === 'external' && getExternalSource(segment)" class="opacity-80"> · {{ getExternalSource(segment) }}</span>
           </button>
         </div>
       </div>
@@ -211,7 +216,7 @@
             <div class="grid min-w-max border-l border-t border-gray-200 text-xs" :style="completeGridStyle">
 
               <!-- Header row: name label -->
-              <div class="sticky left-0 z-20 border-b border-r border-gray-200 bg-gray-50 px-3 py-2 text-sm font-semibold text-gray-700">
+              <div class="sticky left-0 z-30 border-b border-r border-gray-200 bg-gray-50 px-3 py-2 text-sm font-semibold text-gray-700">
                 Habitacion
               </div>
               <!-- Header row: day numbers (one cell per day) -->
@@ -228,7 +233,7 @@
 
                 <!-- Unit name cell (col 1, sticky) -->
                 <div
-                  class="sticky left-0 z-10 border-b border-r border-gray-200 bg-white px-3 py-1.5 font-medium text-gray-700"
+                  class="sticky left-0 z-20 border-b border-r border-gray-200 bg-white px-3 py-1.5 font-medium text-gray-700"
                   :style="{ gridRow: ui + 2, gridColumn: 1 }"
                 >
                   {{ unit.name }}
@@ -248,7 +253,7 @@
                   :key="`seg-${segment.id}-${segment.colStart}`"
                   data-occ-trigger="true"
                   type="button"
-                  class="relative z-10 truncate rounded px-1 py-0.5 text-left text-[10px] text-white"
+                  class="relative z-0 truncate rounded px-1 py-0.5 text-left text-[10px] text-white"
                   :class="[
                     occupancyColor(segment),
                     segment.checkinInView ? 'border-l-4 border-l-green-300' : '',
@@ -260,7 +265,7 @@
                   @mouseleave="closeDesktopTooltip"
                   @click="onOccupancyClick($event, segment, segment.contextDate)"
                 >
-                  {{ getOccupancyDisplayLabel(segment, 'completa') }}
+                  {{ getOccupancyDisplayLabel(segment, 'completa') }}<span v-if="segment.occupancy_type === 'external' && getExternalSource(segment)" class="opacity-90"> · {{ getExternalSource(segment) }}</span>
                 </button>
 
               </template>
@@ -428,6 +433,22 @@ const mobileViewPreset = computed({
 const daySheetOccupancies = computed(() => {
   if (!selectedDayForSheet.value) return []
   return getOccupanciesForDay(selectedDayForSheet.value)
+})
+
+const showAgendaView = computed(() => {
+  if (!periodFrom.value || !periodTo.value) return false
+  return periodFrom.value === periodTo.value
+})
+
+const agendaDayLabel = computed(() => {
+  if (!periodFrom.value) return ''
+  return new Date(periodFrom.value).toLocaleDateString('es-CO', {
+    weekday: 'long',
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC'
+  }).replace(/^./, (char) => char.toUpperCase())
 })
 
 function toIsoDate(value) {
@@ -920,6 +941,12 @@ function getOccupancyDisplayLabel(occ, mode) {
   return occ.units?.name || 'Unidad'
 }
 
+function getExternalSource(occ) {
+  if (!occ?.notes) return ''
+  const notesFirstLine = String(occ.notes).split('\n')[0].trim()
+  return notesFirstLine.match(/\(([^)]+)\)/)?.[1] || notesFirstLine
+}
+
 function getOccupancyTypeLabel(occ, contextDate = null) {
   if (occ.occupancy_type === 'reservation') {
     const checkIn = occ.reservations?.check_in || occ.start_date
@@ -1045,13 +1072,17 @@ const tooltipDetails = computed(() => {
   }
 
   const pax = Number(occ.reservations?.adults || 0) + Number(occ.reservations?.children || 0)
-  const balance = Math.max(0, Number(occ.reservations?.total_amount || 0) - Number(occ.reservations?.paid_amount || 0))
+  const balance = occ.occupancy_type === 'reservation'
+    ? Math.max(0, Number(occ.reservations?.total_amount || 0) - Number(occ.reservations?.paid_amount || 0))
+    : 0
   const nights = Math.max(
     0,
     Math.ceil((new Date(occ.end_date) - new Date(occ.start_date)) / (1000 * 60 * 60 * 24))
   )
+  const notesFirstLine = occ.notes ? String(occ.notes).split('\n')[0].trim() : ''
+  const externalSource = occ.occupancy_type === 'external' ? getExternalSource(occ) : ''
   const reason = ['maintenance', 'owner_use'].includes(occ.occupancy_type)
-    ? (occ.notes ? String(occ.notes).split('\n')[0] : '')
+    ? notesFirstLine
     : ''
 
   return {
@@ -1063,7 +1094,7 @@ const tooltipDetails = computed(() => {
     paxLabel: occ.occupancy_type === 'reservation' ? String(pax) : '',
     sourceLabel: occ.occupancy_type === 'reservation'
       ? (occ.reservations?.source_detail_info?.label_es || occ.reservations?.source || '')
-      : '',
+      : occ.occupancy_type === 'external' ? externalSource : '',
     balance,
     reason
   }
@@ -1114,6 +1145,26 @@ function goToPreviousMonth() {
 
 function goToNextMonth() {
   monthStart.value = new Date(monthStart.value.getFullYear(), monthStart.value.getMonth() + 1, 1)
+}
+
+function goToPreviousDay() {
+  if (!periodFrom.value) return
+  const previous = addIsoDays(periodFrom.value, -1)
+  periodFrom.value = previous
+  periodTo.value = previous
+  if (periodPreset.value !== 'custom') {
+    periodPreset.value = 'custom'
+  }
+}
+
+function goToNextDay() {
+  if (!periodFrom.value) return
+  const next = addIsoDays(periodFrom.value, 1)
+  periodFrom.value = next
+  periodTo.value = next
+  if (periodPreset.value !== 'custom') {
+    periodPreset.value = 'custom'
+  }
 }
 
 onMounted(async () => {
