@@ -189,10 +189,10 @@
           </button>
 
           <div v-if="!isVenueCollapsed(venue.id)" class="overflow-x-auto border-t border-gray-100 p-3">
-            <table class="min-w-full border-collapse text-xs">
+            <table class="min-w-full table-fixed border-collapse text-xs">
               <thead>
                 <tr>
-                  <th class="sticky left-0 z-10 border border-gray-200 bg-gray-50 px-3 py-2 text-left text-sm font-semibold text-gray-700">Habitacion</th>
+                  <th class="sticky left-0 z-10 w-28 border border-gray-200 bg-gray-50 px-3 py-2 text-left text-sm font-semibold text-gray-700">Habitacion</th>
                   <th
                     v-for="day in calendarDays"
                     :key="`complete-head-${venue.id}-${day.date}`"
@@ -205,7 +205,7 @@
               <tbody>
                 <tr v-for="unit in getUnitsByVenue(venue.id)" :key="`complete-unit-${unit.id}`">
                   <td class="sticky left-0 border border-gray-200 bg-white px-3 py-2 font-medium text-gray-700">{{ unit.name }}</td>
-                  <td :colspan="calendarDays.length" class="border border-gray-200 p-1">
+                  <td :colspan="calendarDays.length" class="border border-gray-200 py-1 px-0">
                     <div class="relative" :style="timelineGridStyle">
                       <div class="pointer-events-none absolute inset-0 grid" :style="timelineGridStyle">
                         <div
@@ -215,7 +215,7 @@
                         ></div>
                       </div>
 
-                      <div class="relative grid gap-1" :style="timelineGridStyle">
+                      <div class="relative grid gap-px" :style="timelineGridStyle">
                         <button
                           v-for="segment in getUnitSegmentsForComplete(unit.id)"
                           :key="`complete-segment-${segment.id}-${segment.colStart}-${segment.colEnd}`"
@@ -408,10 +408,28 @@ function toIsoDate(value) {
   return adjusted.toISOString().slice(0, 10)
 }
 
+function normalizeIsoDate(value) {
+  if (!value) return ''
+  const raw = String(value).trim()
+  if (!raw) return ''
+  const direct = raw.slice(0, 10)
+  if (/^\d{4}-\d{2}-\d{2}$/.test(direct)) return direct
+  return toIsoDate(raw)
+}
+
 function addDays(value, days) {
   const date = new Date(value)
   date.setDate(date.getDate() + days)
   return date
+}
+
+// UTC-safe +n days for ISO date strings.
+// addDays(new Date(isoString), n) breaks in UTC- timezones: new Date("YYYY-MM-DD")
+// parses as UTC midnight, which in e.g. UTC-5 is the previous local day, causing
+// getDate() to return d-1 and setDate to advance from the wrong base.
+function addIsoDays(isoDate, n) {
+  const [y, m, d] = isoDate.split('-').map(Number)
+  return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10)
 }
 
 function getWeekStartMonday(value) {
@@ -509,6 +527,14 @@ const weekRangeLabel = computed(() => {
 const timelineGridStyle = computed(() => ({
   gridTemplateColumns: `repeat(${Math.max(calendarDays.value.length, 1)}, minmax(0, 1fr))`
 }))
+
+const calendarDayIndexMap = computed(() => {
+  const map = new Map()
+  calendarDays.value.forEach((day, index) => {
+    map.set(day.date, index + 1)
+  })
+  return map
+})
 
 const selectedVenueSet = computed(() => new Set(selectedVenueIds.value))
 
@@ -621,7 +647,7 @@ async function fetchOccupancies() {
   loading.value = true
 
   try {
-    const toExclusive = toIsoDate(addDays(new Date(periodTo.value), 1))
+    const toExclusive = addIsoDays(periodTo.value, 1)
 
     const accountId = accountStore.getRequiredAccountId()
     const { data } = await supabase
@@ -632,7 +658,18 @@ async function fetchOccupancies() {
       .gte('end_date', periodFrom.value)
       .or('occupancy_type.neq.inquiry_hold,expires_at.gt.now()')
 
-    occupancies.value = data || []
+    occupancies.value = (data || []).map((occ) => ({
+      ...occ,
+      start_date: normalizeIsoDate(occ.start_date),
+      end_date: normalizeIsoDate(occ.end_date),
+      reservations: occ.reservations
+        ? {
+            ...occ.reservations,
+            check_in: normalizeIsoDate(occ.reservations.check_in),
+            check_out: normalizeIsoDate(occ.reservations.check_out)
+          }
+        : occ.reservations
+    }))
   } finally {
     loading.value = false
   }
@@ -660,17 +697,22 @@ function getUnitSegmentsForComplete(unitId) {
   if (!periodFrom.value || !periodTo.value || calendarDays.value.length === 0) return []
 
   const rangeStart = periodFrom.value
-  const rangeEndExclusive = toIsoDate(addDays(new Date(periodTo.value), 1))
+  const rangeEndExclusive = addIsoDays(periodTo.value, 1)
   const totalDays = calendarDays.value.length
+  const indexMap = calendarDayIndexMap.value
 
   return getUnitOccupancies(unitId)
     .map((occ) => {
-      const startClamped = occ.start_date > rangeStart ? occ.start_date : rangeStart
-      const endClamped = occ.end_date < rangeEndExclusive ? occ.end_date : rangeEndExclusive
+      const occStart = normalizeIsoDate(occ.start_date)
+      const occEnd = normalizeIsoDate(occ.end_date)
 
-      const colStart = Math.max(1, Math.floor((new Date(startClamped) - new Date(rangeStart)) / 86400000) + 1)
-      const rawColEnd = Math.floor((new Date(endClamped) - new Date(rangeStart)) / 86400000) + 1
-      const colEnd = Math.min(totalDays + 1, rawColEnd)
+      const startClamped = occStart > rangeStart ? occStart : rangeStart
+      const endClamped = occEnd < rangeEndExclusive ? occEnd : rangeEndExclusive
+
+      const colStart = indexMap.get(startClamped) || 1
+      const colEnd = endClamped >= rangeEndExclusive
+        ? totalDays + 1
+        : (indexMap.get(endClamped) || totalDays + 1)
 
       if (colEnd <= colStart) return null
 
