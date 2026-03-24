@@ -31,7 +31,7 @@ export function useAvailability() {
       // 1. Fetch all active units for the account, eagerly joining their venue
       const { data: unitsData, error: unitsError } = await supabase
         .from('units')
-        .select('id, name, capacity, venue_id, venues(id, name)')
+        .select('id, name, capacity, venue_id, price_base, price_min, price_extra_person, venues(id, name)')
         .eq('account_id', accountId)
         .eq('is_active', true)
         .order('name', { ascending: true })

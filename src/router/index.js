@@ -151,6 +151,12 @@ const router = createRouter({
       meta: { requiresAuth: true }
     },
     {
+      path: '/configuracion/tarifas',
+      name: 'configuracion-tarifas',
+      component: () => import('../views/TariffSettingsView.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
       path: '/configuracion/notificaciones',
       name: 'configuracion-notificaciones',
       component: () => import('../views/NotificationSettingsView.vue'),

@@ -55,6 +55,10 @@
     { "id": 53, "t": "Toggle tabla/cards en todas las vistas", "c": "Ajuste UI", "s": "d" },
     { "id": 54, "t": "Arquitectura multi-tenant con RLS", "c": "Infraestructura", "s": "d" },
     { "id": 55, "t": "Roles y permisos: admin, manager, staff", "c": "Feature", "s": "d" },
-    { "id": 56, "t": "Reserva sin huésped no aparece en lista de reservas", "c": "Bug", "s": "d" }
+    { "id": 56, "t": "Reserva sin huésped no aparece en lista de reservas", "c": "Bug", "s": "d" },
+    { "id": 57, "t": "Tarifas base por unidad — precio mínimo, base y persona adicional", "c": "Feature", "s": "d" },
+    { "id": 58, "t": "Políticas globales de precio — fin de semana, pico y niños", "c": "Feature", "s": "d" },
+    { "id": 59, "t": "Tarifas dinámicas por temporada y fechas — fase 2", "c": "Feature", "s": "e" },
+    { "id": 60, "t": "Cálculo inverso — de precio por unidad a tarifa general", "c": "Feature", "s": "e" }
   ]
 }

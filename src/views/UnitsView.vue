@@ -127,6 +127,38 @@
           <AppToggle v-model="form.is_active" label="Unidad activa" />
         </AppFormSection>
 
+        <AppFormSection title="Tarifas" :divider="true">
+          <AppFormGrid :columns="2">
+            <AppInput
+              v-model="form.price_base"
+              type="number"
+              label="Precio base por noche"
+              prefix="$"
+              :hint="generalHint(generalPricing.price_general_base)"
+            />
+            <AppInput
+              v-model="form.price_min"
+              type="number"
+              label="Precio minimo por noche"
+              prefix="$"
+              :hint="generalHint(generalPricing.price_general_min)"
+            />
+            <AppInput
+              v-model="form.price_extra_person"
+              type="number"
+              label="Precio por persona adicional"
+              prefix="$"
+              :hint="generalHint(generalPricing.price_general_extra)"
+            />
+          </AppFormGrid>
+          <AppToggle
+            :model-value="false"
+            label="Activar tarifas dinamicas"
+            description="Proximamente"
+            :disabled="true"
+          />
+        </AppFormSection>
+
         <AppFormActions
           :submit-label="editingUnit ? 'Actualizar unidad' : 'Guardar unidad'"
           cancel-label="Cancelar"
@@ -170,6 +202,8 @@ import { ref, onMounted } from 'vue'
 import { useUnitsStore } from '../stores/units'
 import { useVenuesStore } from '../stores/venues'
 import { useReservationsStore } from '../stores/reservations'
+import { useAccountStore } from '../stores/account'
+import { supabase } from '../services/supabase'
 import BaseModal from '../components/ui/BaseModal.vue'
 import ConfirmActionModal from '../components/ui/ConfirmActionModal.vue'
 import BottomSheet from '../components/ui/BottomSheet.vue'
@@ -179,11 +213,12 @@ import { useToast } from '../composables/useToast'
 import { useBreakpoint } from '../composables/useBreakpoint'
 import { useViewMode } from '../composables/useViewMode'
 import ViewModeToggle from '../components/ui/ViewModeToggle.vue'
-import { AppInput, AppSelect, AppTextarea, AppToggle, AppFormSection, AppFormActions } from '@/components/ui/forms'
+import { AppInput, AppSelect, AppTextarea, AppToggle, AppFormGrid, AppFormSection, AppFormActions } from '@/components/ui/forms'
 
 const store = useUnitsStore()
 const venuesStore = useVenuesStore()
 const reservationsStore = useReservationsStore()
+const accountStore = useAccountStore()
 const { can } = usePermissions()
 const { isMobile } = useBreakpoint()
 const { viewMode, isTable, isCards } = useViewMode('unidades')
@@ -203,7 +238,16 @@ const form = ref({
   venue_id: '',
   name: '',
   description: '',
-  is_active: true
+  is_active: true,
+  price_base: '',
+  price_min: '',
+  price_extra_person: ''
+})
+
+const generalPricing = ref({
+  price_general_base: null,
+  price_general_min: null,
+  price_general_extra: null,
 })
 
 const venueOptions = ref([])
@@ -212,8 +256,46 @@ onMounted(async () => {
   await venuesStore.fetchVenues()
   venueOptions.value = venuesStore.venues.map((venue) => ({ value: venue.id, label: venue.name }))
   await reservationsStore.fetchReservations()
+  await loadGeneralPricing()
   await fetchFilteredUnits()
 })
+
+const loadGeneralPricing = async () => {
+  try {
+    const accountId = accountStore.getRequiredAccountId()
+    const { data: settingsData } = await supabase
+      .from('settings')
+      .select('price_general_base, price_general_min, price_general_extra')
+      .eq('account_id', accountId)
+      .maybeSingle()
+
+    generalPricing.value = {
+      price_general_base: settingsData?.price_general_base ?? null,
+      price_general_min: settingsData?.price_general_min ?? null,
+      price_general_extra: settingsData?.price_general_extra ?? null,
+    }
+  } catch (_err) {
+    generalPricing.value = {
+      price_general_base: null,
+      price_general_min: null,
+      price_general_extra: null,
+    }
+  }
+}
+
+const toNumberOrNull = (value) => {
+  if (value === '' || value === null || value === undefined) return null
+  const number = Number(value)
+  if (Number.isNaN(number)) return null
+  return number
+}
+
+const formatCop = (value) => Number(value || 0).toLocaleString('es-CO')
+
+const generalHint = (value) => {
+  if (value === null || value === undefined || value === '') return 'General: no configurado'
+  return `General: $${formatCop(value)}`
+}
 
 const fetchFilteredUnits = async () => {
   await store.fetchUnits(selectedVenue.value || null)
@@ -242,13 +324,27 @@ const buildUnitCardMeta = (unit) => {
 
 const openCreateModal = () => {
   editingUnit.value = null
-  form.value = { venue_id: selectedVenue.value, name: '', description: '', is_active: true }
+  form.value = {
+    venue_id: selectedVenue.value,
+    name: '',
+    description: '',
+    is_active: true,
+    price_base: '',
+    price_min: '',
+    price_extra_person: ''
+  }
   showModal.value = true
 }
 
 const openEditModal = (unit) => {
   editingUnit.value = unit
-  form.value = { ...unit, is_active: unit.is_active !== false }
+  form.value = {
+    ...unit,
+    is_active: unit.is_active !== false,
+    price_base: unit.price_base ?? '',
+    price_min: unit.price_min ?? '',
+    price_extra_person: unit.price_extra_person ?? ''
+  }
   showModal.value = true
 }
 
@@ -260,11 +356,18 @@ const closeModal = () => {
 const submitForm = async () => {
   submitting.value = true
   try {
+    const payload = {
+      ...form.value,
+      price_base: toNumberOrNull(form.value.price_base),
+      price_min: toNumberOrNull(form.value.price_min),
+      price_extra_person: toNumberOrNull(form.value.price_extra_person),
+    }
+
     if (editingUnit.value) {
-      await store.updateUnit(editingUnit.value.id, form.value)
+      await store.updateUnit(editingUnit.value.id, payload)
       toast.success('Unidad actualizada correctamente.')
     } else {
-      await store.createUnit(form.value)
+      await store.createUnit(payload)
       toast.success('Unidad creada correctamente.')
     }
     closeModal()

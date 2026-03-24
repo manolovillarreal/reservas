@@ -21,6 +21,10 @@
         <span>Personalización documentos</span>
         <span class="text-gray-400">›</span>
       </RouterLink>
+      <RouterLink to="/configuracion/tarifas" class="flex items-center justify-between border-b border-gray-100 px-4 py-3 text-sm text-gray-800">
+        <span>Tarifas</span>
+        <span class="text-gray-400">›</span>
+      </RouterLink>
       <RouterLink to="/configuracion/notificaciones" class="flex items-center justify-between border-b border-gray-100 px-4 py-3 text-sm text-gray-800">
         <span>Notificaciones</span>
         <span class="text-gray-400">›</span>
@@ -59,6 +63,18 @@
         </div>
         <RouterLink to="/configuracion/perfil" class="btn-primary text-sm">
           Abrir personalización
+        </RouterLink>
+      </div>
+    </div>
+
+    <div v-if="can('settings', 'edit') && !isMobile" class="card">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 class="text-lg font-semibold text-gray-900">Tarifas</h2>
+          <p class="text-sm text-gray-500">Configura tarifas generales, politicas globales y modalidad full house.</p>
+        </div>
+        <RouterLink to="/configuracion/tarifas" class="btn-primary text-sm">
+          Abrir configuracion de tarifas
         </RouterLink>
       </div>
     </div>

@@ -92,8 +92,42 @@
           type="number"
           label="Precio por noche"
           prefix="$"
-          hint="Opcional"
+          :hint="suggestionHint"
         />
+
+        <AppInlineAlert
+          v-if="pricingSuggestion.estimatedLabel"
+          type="info"
+          :message="pricingSuggestion.estimatedLabel"
+        />
+
+        <div v-if="pricingSuggestion.unitBreakdown?.length" class="rounded-md border border-gray-200 bg-gray-50 p-3 text-xs text-gray-700 space-y-2">
+          <p class="font-semibold text-gray-900">Sugerido por unidad</p>
+          <div
+            v-for="item in pricingSuggestion.unitBreakdown"
+            :key="item.unitId"
+            class="flex flex-wrap items-center justify-between gap-2"
+          >
+            <span>{{ item.unitName }} · {{ item.label }}</span>
+            <span class="font-medium text-gray-900">{{ item.nightly === null ? 'Sin tarifa' : `$${Math.round(item.nightly).toLocaleString('es-CO')}/noche` }}</span>
+          </div>
+        </div>
+
+        <div v-if="pricingSuggestion.extras" class="rounded-md border border-gray-200 bg-white p-3 text-xs text-gray-700 space-y-1">
+          <p class="font-semibold text-gray-900">Adicional personas</p>
+          <p>{{ pricingSuggestion.extras.capacityIncluded }} adultos incluidos en tarifa base</p>
+          <p>{{ pricingSuggestion.extras.extraAdults }} adulto(s) adicional(es) · ${{ Math.round(pricingSuggestion.extras.extraRate).toLocaleString('es-CO') }}/noche</p>
+          <p>{{ pricingSuggestion.extras.childrenCount }} nino(s) · ${{ Math.round(pricingSuggestion.extras.childRate).toLocaleString('es-CO') }}/noche ({{ pricingSuggestion.extras.childPct }}%)</p>
+          <p class="font-semibold text-gray-900">Adicional personas: ${{ Math.round(pricingSuggestion.extras.nightlyTotal).toLocaleString('es-CO') }}/noche</p>
+        </div>
+
+        <div v-if="showFullHouseToggle" class="space-y-2 rounded-md border border-gray-200 p-3">
+          <AppToggle v-model="useFullHousePricing" label="Aplicar tarifa full house" description="Reemplaza la suma por unidad por tarifa de propiedad completa" />
+        </div>
+
+        <div v-if="hasPeakPolicy" class="rounded-md border border-gray-200 p-3">
+          <AppToggle v-model="usePeakPricing" label="Aplicar precio pico" description="Activa politica global de temporada pico" />
+        </div>
 
         <AppFormGrid :columns="2">
           <AppInput v-model="form.discount_percentage" type="number" label="Descuento" suffix="%" hint="Opcional" />
@@ -199,6 +233,7 @@ import {
   AppTextarea,
   AppDatePicker,
   AppCounter,
+  AppToggle,
   AppFieldGroup,
   AppFormSection,
   AppFormActions,
@@ -207,6 +242,7 @@ import {
   AppFormGrid,
   PricingCalculatorPanel
 } from '@/components/ui/forms'
+import { buildPricingSuggestion } from '../../utils/pricingUtils'
 
 const props = defineProps({
   isOpen: { type: Boolean, default: false },
@@ -227,6 +263,21 @@ const submitting = ref(false)
 const errorMessage = ref('')
 const selectedUnavailableNames = ref([])
 const syncIssue = ref(null)
+const useFullHousePricing = ref(false)
+const usePeakPricing = ref(false)
+
+const accountPricing = ref({
+  price_general_base: null,
+  price_general_min: null,
+  price_general_extra: null,
+  price_per_person_base: null,
+  price_weekend_pct: null,
+  price_peak_pct: null,
+  price_child_pct: 50,
+  price_full_house_min: null,
+  price_full_house_base: null,
+  price_full_house_peak: null,
+})
 
 const form = ref(buildEmptyForm())
 const touched = reactive({ guest_name: false, check_in: false, check_out: false, unit_ids: false })
@@ -268,12 +319,68 @@ const customerTotal = computed(() => Math.max(subtotal.value - discountAmount.va
 const guestsTotal = computed(() => Number(form.value.adults || 0) + Number(form.value.children || 0))
 const hasAvailabilityConflict = computed(() => selectedUnavailableNames.value.length > 0)
 
+const selectedUnits = computed(() => {
+  const selectedSet = new Set(form.value.unit_ids || [])
+  return units.value.filter((unit) => selectedSet.has(unit.id))
+})
+
+const allUnitsSelected = computed(() => {
+  if (!units.value.length) return false
+  const selectedSet = new Set(form.value.unit_ids || [])
+  return units.value.every((unit) => selectedSet.has(unit.id))
+})
+
+const hasFullHouseTariff = computed(() => {
+  const config = accountPricing.value
+  return config.price_full_house_base !== null || config.price_full_house_peak !== null || config.price_full_house_min !== null
+})
+
+const hasPeakPolicy = computed(() => accountPricing.value.price_peak_pct !== null && accountPricing.value.price_peak_pct !== 0)
+
+const showFullHouseToggle = computed(() => allUnitsSelected.value && hasFullHouseTariff.value)
+
+const pricingSuggestion = computed(() => buildPricingSuggestion({
+  selectedUnits: selectedUnits.value,
+  settings: accountPricing.value,
+  checkIn: form.value.check_in,
+  checkOut: form.value.check_out,
+  adults: Number(form.value.adults || 0),
+  children: Number(form.value.children || 0),
+  usePeak: usePeakPricing.value,
+  useFullHouse: useFullHousePricing.value,
+  allUnitsSelected: allUnitsSelected.value,
+}))
+
+const suggestionHint = computed(() => pricingSuggestion.value.originLabel || 'Opcional')
+
 watch(() => props.isOpen, async (open) => {
   if (!open) return
   await loadUnits()
+  await loadAccountPricing()
   hydrateForm()
   await evaluateAvailability()
 }, { immediate: true })
+
+watch(showFullHouseToggle, (enabled) => {
+  if (!enabled) {
+    useFullHousePricing.value = false
+  }
+})
+
+watch(hasPeakPolicy, (enabled) => {
+  if (!enabled) {
+    usePeakPricing.value = false
+  }
+})
+
+watch(
+  () => pricingSuggestion.value.nightly,
+  (nightly) => {
+    if (form.value.price_per_night !== '' && form.value.price_per_night !== null) return
+    if (nightly === null) return
+    form.value.price_per_night = Math.round(nightly)
+  }
+)
 
 watch(
   () => [form.value.check_in, form.value.check_out, (form.value.unit_ids || []).join(',')],
@@ -315,11 +422,33 @@ const loadUnits = async () => {
   const accountId = accountStore.getRequiredAccountId()
   const { data } = await supabase
     .from('units')
-    .select('id, name, venue_id')
+    .select('id, name, venue_id, capacity, price_base, price_min, price_extra_person')
     .eq('account_id', accountId)
     .eq('is_active', true)
     .order('name', { ascending: true })
   units.value = data || []
+}
+
+const loadAccountPricing = async () => {
+  const accountId = accountStore.getRequiredAccountId()
+  const { data } = await supabase
+    .from('settings')
+    .select('price_general_base, price_general_min, price_general_extra, price_per_person_base, price_weekend_pct, price_peak_pct, price_child_pct, price_full_house_min, price_full_house_base, price_full_house_peak')
+    .eq('account_id', accountId)
+    .maybeSingle()
+
+  accountPricing.value = {
+    price_general_base: data?.price_general_base ?? null,
+    price_general_min: data?.price_general_min ?? null,
+    price_general_extra: data?.price_general_extra ?? null,
+    price_per_person_base: data?.price_per_person_base ?? null,
+    price_weekend_pct: data?.price_weekend_pct ?? null,
+    price_peak_pct: data?.price_peak_pct ?? null,
+    price_child_pct: data?.price_child_pct ?? 50,
+    price_full_house_min: data?.price_full_house_min ?? null,
+    price_full_house_base: data?.price_full_house_base ?? null,
+    price_full_house_peak: data?.price_full_house_peak ?? null,
+  }
 }
 
 const hydrateForm = () => {
@@ -349,6 +478,8 @@ const hydrateForm = () => {
   submitAttempted.value = false
   errorMessage.value = ''
   syncIssue.value = null
+  useFullHousePricing.value = false
+  usePeakPricing.value = false
 }
 
 const updateSourceSelection = (value) => {
