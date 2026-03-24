@@ -3,6 +3,11 @@ import { ref } from 'vue'
 import { supabase } from '../services/supabase'
 import { useAccountStore } from './account'
 
+const normalizePhone = (value) => {
+  const digits = String(value || '').replace(/\D+/g, '')
+  return digits || ''
+}
+
 export const useGuestsStore = defineStore('guests', () => {
   const accountStore = useAccountStore()
   const guests = ref([])
@@ -50,6 +55,53 @@ export const useGuestsStore = defineStore('guests', () => {
       if (supaError) throw supaError
       await fetchGuests()
       return data
+    } catch (err) {
+      error.value = err.message
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  const getOrCreateGuestByPhone = async (guestData = {}) => {
+    loading.value = true
+    error.value = null
+
+    try {
+      const accountId = accountStore.getRequiredAccountId()
+      const name = String(guestData.name || '').trim()
+      const phone = String(guestData.phone || '').trim() || null
+      const email = String(guestData.email || '').trim() || null
+      const normalizedPhone = normalizePhone(phone)
+
+      if (normalizedPhone) {
+        const { data: existingGuests, error: existingError } = await supabase
+          .from('guests')
+          .select('id, name, phone, email')
+          .eq('account_id', accountId)
+          .not('phone', 'is', null)
+
+        if (existingError) throw existingError
+
+        const matched = (existingGuests || []).find((guest) => normalizePhone(guest.phone) === normalizedPhone)
+        if (matched) {
+          return matched
+        }
+      }
+
+      const fallbackName = name || phone || email
+      if (!fallbackName) {
+        return null
+      }
+
+      const created = await createGuest({
+        ...guestData,
+        name: fallbackName,
+        phone,
+        email,
+      })
+
+      return created
     } catch (err) {
       error.value = err.message
       throw err
@@ -120,5 +172,5 @@ export const useGuestsStore = defineStore('guests', () => {
     }
   }
 
-  return { guests, loading, error, fetchGuests, createGuest, updateGuest, deleteGuest }
+  return { guests, loading, error, fetchGuests, createGuest, getOrCreateGuestByPhone, updateGuest, deleteGuest }
 })

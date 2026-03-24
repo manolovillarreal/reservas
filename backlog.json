@@ -54,6 +54,7 @@
     { "id": 52, "t": "PWA instalable + diseño responsive completo", "c": "Feature", "s": "d" },
     { "id": 53, "t": "Toggle tabla/cards en todas las vistas", "c": "Ajuste UI", "s": "d" },
     { "id": 54, "t": "Arquitectura multi-tenant con RLS", "c": "Infraestructura", "s": "d" },
-    { "id": 55, "t": "Roles y permisos: admin, manager, staff", "c": "Feature", "s": "d" }
+    { "id": 55, "t": "Roles y permisos: admin, manager, staff", "c": "Feature", "s": "d" },
+    { "id": 56, "t": "Reserva sin huésped no aparece en lista de reservas", "c": "Bug", "s": "d" }
   ]
 }

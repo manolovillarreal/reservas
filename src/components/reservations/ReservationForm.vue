@@ -407,6 +407,7 @@ import { supabase } from '../../services/supabase'
 import BaseModal from '../ui/BaseModal.vue'
 import SourceSelector from '../sources/SourceSelector.vue'
 import { useAccountStore } from '../../stores/account'
+import { useGuestsStore } from '../../stores/guests'
 import { useToast } from '../../composables/useToast'
 import { useBreakpoint } from '../../composables/useBreakpoint'
 import {
@@ -418,6 +419,7 @@ import {
 
 const store = useReservationsStore()
 const accountStore = useAccountStore()
+const guestsStore = useGuestsStore()
 const router = useRouter()
 const route = useRoute()
 const toast = useToast()
@@ -923,27 +925,22 @@ const submitCreateGuest = async () => {
   newGuestErrorMessage.value = ''
 
   try {
-    const accountId = getAccountId()
     const payload = {
-      account_id: accountId,
       name: newGuestForm.value.name?.trim(),
       phone: newGuestForm.value.phone?.trim() || null,
-      email: newGuestForm.value.email?.trim() || null
+      email: newGuestForm.value.email?.trim() || null,
     }
 
-    if (!payload.name) {
+    if (!payload.name && !payload.phone && !payload.email) {
       throw new Error('El nombre del huésped es obligatorio.')
     }
 
-    const { data, error } = await supabase
-      .from('guests')
-      .insert(payload)
-      .select('id, name, phone')
-      .single()
+    const guest = await guestsStore.getOrCreateGuestByPhone(payload)
+    if (!guest?.id) {
+      throw new Error('No se pudo crear o vincular el huésped.')
+    }
 
-    if (error) throw error
-
-    selectGuestSuggestion(data)
+    selectGuestSuggestion(guest)
     showCreateGuestModal.value = false
   } catch (err) {
     newGuestErrorMessage.value = err.message

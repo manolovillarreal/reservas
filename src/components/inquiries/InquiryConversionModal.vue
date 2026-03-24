@@ -189,6 +189,7 @@ import { supabase } from '../../services/supabase'
 import { useAccountStore } from '../../stores/account'
 import { useReservationsStore } from '../../stores/reservations'
 import { useInquiriesStore } from '../../stores/inquiries'
+import { useGuestsStore } from '../../stores/guests'
 import { useToast } from '../../composables/useToast'
 import { generateUniqueReferenceCode } from '../../utils/referenceUtils'
 import BaseModal from '../ui/BaseModal.vue'
@@ -218,6 +219,7 @@ const router = useRouter()
 const accountStore = useAccountStore()
 const reservationsStore = useReservationsStore()
 const inquiriesStore = useInquiriesStore()
+const guestsStore = useGuestsStore()
 const toast = useToast()
 
 const units = ref([])
@@ -401,9 +403,16 @@ const submitConversion = async () => {
       await inquiriesStore.updateInquiry(props.inquiry.id, { reference_code: referenceCode })
     }
 
+    const guestRecord = await guestsStore.getOrCreateGuestByPhone({
+      name: form.value.guest_name?.trim() || null,
+      phone: form.value.guest_phone?.trim() || null,
+      email: null,
+    })
+
     const payload = {
       venue_id: resolveVenueId(),
       unit_ids: [...form.value.unit_ids],
+      guest_id: guestRecord?.id || null,
       guest_name: form.value.guest_name?.trim() || null,
       guest_phone: form.value.guest_phone?.trim() || null,
       check_in: form.value.check_in,

@@ -610,7 +610,7 @@ const save = async () => {
       // Crear perfil de huésped solo si no viene de uno existente
       const guestRecord = form.value.guest_id
         ? { id: form.value.guest_id }
-        : await guestsStore.createGuest({
+        : await guestsStore.getOrCreateGuestByPhone({
             name: form.value.guest_name,
             phone: form.value.guest_phone || null,
             email: form.value.guest_email || null

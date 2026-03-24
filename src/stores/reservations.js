@@ -33,6 +33,11 @@ const getDaysDifference = (checkIn, checkOut) => {
   return Math.ceil(Math.abs(outDate - inDate) / (1000 * 60 * 60 * 24))
 }
 
+const normalizePhone = (value) => {
+  const digits = String(value || '').replace(/\D+/g, '')
+  return digits || ''
+}
+
 export const useReservationsStore = defineStore('reservations', () => {
   const accountStore = useAccountStore()
   const reservations = ref([])
@@ -95,7 +100,7 @@ export const useReservationsStore = defineStore('reservations', () => {
         .eq('account_id', accountId)
 
       if (search) {
-        query = query.or(`guest_name.ilike.%${search}%,guests.name.ilike.%${search}%,reference_code.ilike.%${search}%,reservation_number.ilike.%${search}%`)
+        query = query.or(`guest_name.ilike.%${search}%,guest_phone.ilike.%${search}%,reference_code.ilike.%${search}%,reservation_number.ilike.%${search}%`)
       }
 
       if (status) {
@@ -338,6 +343,48 @@ export const useReservationsStore = defineStore('reservations', () => {
         inquiryId: reservationData.inquiry_id || null,
         providedCode: reservationData.reference_code || null
       })
+      const guestName = String(reservationData.guest_name || '').trim() || null
+      const guestPhone = String(reservationData.guest_phone || '').trim() || null
+      const guestEmail = String(reservationData.guest_email || '').trim() || null
+      let resolvedGuestId = reservationData.guest_id || null
+
+      if (!resolvedGuestId && (guestName || guestPhone || guestEmail)) {
+        const normalizedGuestPhone = normalizePhone(guestPhone)
+
+        if (normalizedGuestPhone) {
+          const { data: existingGuests, error: existingGuestsError } = await supabase
+            .from('guests')
+            .select('id, phone')
+            .eq('account_id', accountId)
+            .not('phone', 'is', null)
+
+          if (existingGuestsError) throw existingGuestsError
+
+          const matchedGuest = (existingGuests || []).find((guest) => normalizePhone(guest.phone) === normalizedGuestPhone)
+          if (matchedGuest) {
+            resolvedGuestId = matchedGuest.id
+          }
+        }
+
+        if (!resolvedGuestId) {
+          const guestPayload = {
+            account_id: accountId,
+            name: guestName || guestPhone || guestEmail,
+            phone: guestPhone,
+            email: guestEmail,
+          }
+
+          const { data: createdGuest, error: createdGuestError } = await supabase
+            .from('guests')
+            .insert(guestPayload)
+            .select('id')
+            .single()
+
+          if (createdGuestError) throw createdGuestError
+          resolvedGuestId = createdGuest.id
+        }
+      }
+
       const adults = Number(reservationData.adults || 1)
       const children = Number(reservationData.children || 0)
       const nights = getDaysDifference(normalizedCheckIn, normalizedCheckOut)
@@ -348,9 +395,9 @@ export const useReservationsStore = defineStore('reservations', () => {
         account_id: accountId,
         reservation_number: reservationNumber,
         venue_id: reservationData.venue_id,
-        guest_id: reservationData.guest_id || null,
-        guest_name: reservationData.guest_name || null,
-        guest_phone: reservationData.guest_phone || null,
+        guest_id: resolvedGuestId,
+        guest_name: guestName,
+        guest_phone: guestPhone,
         adults,
         children,
         check_in: normalizedCheckIn,
