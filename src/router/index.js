@@ -133,6 +133,12 @@ const router = createRouter({
       meta: { requiresAuth: true }
     },
     {
+      path: '/mensajes/:id/editar',
+      name: 'editar-mensaje',
+      component: () => import('../views/MessageEditorView.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
       path: '/configuracion',
       name: 'configuracion',
       component: () => import('../views/SettingsView.vue'),

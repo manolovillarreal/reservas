@@ -2,6 +2,9 @@ import { supabase } from './supabase'
 
 export const DEFAULT_MESSAGE_SETTINGS = {
   show_unit_amenities: true,
+  show_unit_count: true,
+  show_unit_name: true,
+  show_unit_description: false,
   quotation_greeting: 'Hola {{nombre_huesped}}! 👋',
   quotation_intro: 'Te compartimos tu cotización de {{nombre_alojamiento}}.',
   quotation_closing: 'Para confirmar la reserva se solicita un anticipo del {{porcentaje_anticipo}}%.',
@@ -76,6 +79,9 @@ export const saveMessageSettings = async (accountId, payload) => {
       {
         account_id: accountId,
         show_unit_amenities: Boolean(normalized.show_unit_amenities),
+        show_unit_count: Boolean(normalized.show_unit_count),
+        show_unit_name: Boolean(normalized.show_unit_name),
+        show_unit_description: Boolean(normalized.show_unit_description),
         quotation_greeting: normalized.quotation_greeting || null,
         quotation_intro: normalized.quotation_intro || null,
         quotation_closing: normalized.quotation_closing || null,

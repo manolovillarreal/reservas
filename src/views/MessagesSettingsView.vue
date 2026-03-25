@@ -10,9 +10,6 @@
     <div class="card space-y-4">
       <div class="flex items-center justify-between">
         <h2 class="text-sm font-semibold uppercase tracking-wide text-gray-900">Mensajes del sistema</h2>
-        <button type="button" class="btn-primary text-sm" :disabled="savingSystem" @click="saveSystemSettings">
-          {{ savingSystem ? 'Guardando...' : 'Guardar configuración' }}
-        </button>
       </div>
 
       <div class="space-y-4">
@@ -23,23 +20,13 @@
               <button type="button" class="btn-secondary text-xs" @click="toggleSystemPreview('quotation')">
                 {{ showQuotationPreview ? 'Ocultar mensaje' : 'Ver mensaje' }}
               </button>
-              <button type="button" class="btn-secondary text-xs" @click="toggleSystemEditor('quotation')">
-                {{ openSystemEditor === 'quotation' ? 'Cerrar' : 'Editar' }}
-              </button>
-              <button type="button" class="btn-secondary text-xs" @click="resetQuotationDefaults">Restablecer valores predeterminados</button>
+              <button type="button" class="btn-secondary text-xs" :disabled="!systemMessageByKey.quotation" @click="openMessageEditor(systemMessageByKey.quotation)">Editar</button>
             </div>
           </div>
           <pre v-if="showQuotationPreview" class="mt-3 whitespace-pre-wrap rounded bg-gray-50 p-3 text-sm text-gray-800">{{ quotationPreview.text }}</pre>
           <p v-if="showQuotationPreview && quotationPreview.missing.length" class="mt-2 text-xs text-amber-700">
             Faltan variables: {{ quotationPreview.missing.join(', ') }}
           </p>
-
-          <div v-if="openSystemEditor === 'quotation'" class="mt-4 space-y-3 rounded border border-gray-100 p-3">
-            <AppTextarea v-model="systemForm.quotation_greeting" label="Saludo" :rows="2" :autoResize="true" />
-            <AppTextarea v-model="systemForm.quotation_intro" label="Introducción" :rows="2" :autoResize="true" />
-            <AppTextarea v-model="systemForm.quotation_closing" label="Cierre" :rows="2" :autoResize="true" />
-            <AppTextarea v-model="systemForm.quotation_signature" label="Firma" :rows="2" :autoResize="true" />
-          </div>
         </div>
 
         <div class="rounded-md border border-gray-200 p-4">
@@ -49,32 +36,13 @@
               <button type="button" class="btn-secondary text-xs" @click="toggleSystemPreview('voucher')">
                 {{ showVoucherPreview ? 'Ocultar mensaje' : 'Ver mensaje' }}
               </button>
-              <button type="button" class="btn-secondary text-xs" @click="toggleSystemEditor('voucher')">
-                {{ openSystemEditor === 'voucher' ? 'Cerrar' : 'Editar' }}
-              </button>
-              <button type="button" class="btn-secondary text-xs" @click="resetVoucherDefaults">Restablecer valores predeterminados</button>
+              <button type="button" class="btn-secondary text-xs" :disabled="!systemMessageByKey.voucher" @click="openMessageEditor(systemMessageByKey.voucher)">Editar</button>
             </div>
           </div>
           <pre v-if="showVoucherPreview" class="mt-3 whitespace-pre-wrap rounded bg-gray-50 p-3 text-sm text-gray-800">{{ voucherPreview.text }}</pre>
           <p v-if="showVoucherPreview && voucherPreview.missing.length" class="mt-2 text-xs text-amber-700">
             Faltan variables: {{ voucherPreview.missing.join(', ') }}
           </p>
-
-          <div v-if="openSystemEditor === 'voucher'" class="mt-4 space-y-3 rounded border border-gray-100 p-3">
-            <AppTextarea v-model="systemForm.voucher_greeting" label="Saludo" :rows="2" :autoResize="true" />
-            <AppTextarea v-model="systemForm.voucher_intro" label="Introducción" :rows="2" :autoResize="true" />
-            <AppTextarea v-model="systemForm.voucher_closing" label="Cierre" :rows="2" :autoResize="true" />
-            <AppTextarea v-model="systemForm.voucher_signature" label="Firma" :rows="2" :autoResize="true" />
-            <AppToggle
-              v-model="systemForm.show_unit_amenities"
-              label="Mostrar amenidades por unidad"
-              description="Cuando está activo, se incluye descripción por unidad en el mensaje de voucher."
-            />
-            <AppFormGrid :columns="2">
-              <AppInput v-model="systemForm.checkin_time" label="Hora check-in" placeholder="3:00 PM" />
-              <AppInput v-model="systemForm.checkout_time" label="Hora check-out" placeholder="12:00 PM" />
-            </AppFormGrid>
-          </div>
         </div>
       </div>
     </div>
@@ -98,7 +66,7 @@
             <div class="flex shrink-0 items-center gap-2">
               <button type="button" class="btn-secondary text-xs" @click="moveMessage(index, -1)" :disabled="index === 0">↑</button>
               <button type="button" class="btn-secondary text-xs" @click="moveMessage(index, 1)" :disabled="index === customMessages.length - 1">↓</button>
-              <button type="button" class="btn-secondary text-xs" @click="openEditCustom(msg)">Editar</button>
+              <button type="button" class="btn-secondary text-xs" @click="openMessageEditor(msg.id)">Editar</button>
               <button type="button" class="btn-secondary text-xs text-red-700" @click="removeCustom(msg.id)">Eliminar</button>
             </div>
           </div>
@@ -106,7 +74,7 @@
       </div>
     </div>
 
-    <BaseModal :isOpen="showCustomModal" :title="editingCustomId ? 'Editar mensaje' : 'Nuevo mensaje'" @close="closeCustomModal">
+    <BaseModal :isOpen="showCustomModal" title="Nuevo mensaje" @close="closeCustomModal">
       <form class="space-y-4" @submit.prevent="saveCustomMessage">
         <AppInput v-model="customForm.name" label="Nombre del mensaje" placeholder="Seguimiento 24h" required />
         <AppTextarea
@@ -133,6 +101,7 @@
 
 <script setup>
 import { computed, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { supabase } from '../services/supabase'
 import { useAccountStore } from '../stores/account'
 import { usePermissions } from '../composables/usePermissions'
@@ -141,13 +110,10 @@ import BaseModal from '../components/ui/BaseModal.vue'
 import {
   AppInput,
   AppTextarea,
-  AppToggle,
-  AppFormGrid,
 } from '@/components/ui/forms'
 import {
   DEFAULT_MESSAGE_SETTINGS,
   getMessageSettings,
-  saveMessageSettings,
   getPredefinedMessages,
   savePredefinedMessage,
   deletePredefinedMessage,
@@ -162,14 +128,12 @@ import {
 const { can } = usePermissions()
 const accountStore = useAccountStore()
 const toast = useToast()
+const router = useRouter()
 
-const openSystemEditor = ref('')
 const showQuotationPreview = ref(false)
 const showVoucherPreview = ref(false)
-const savingSystem = ref(false)
 const savingCustom = ref(false)
 const showCustomModal = ref(false)
-const editingCustomId = ref('')
 
 const profile = ref({})
 const accountSettings = ref({})
@@ -180,6 +144,14 @@ const customForm = ref({ name: '', body: '' })
 
 const customMessages = computed(() => {
   return messages.value.filter((msg) => msg.type === 'custom')
+})
+
+const systemMessageByKey = computed(() => {
+  const systemMessages = messages.value.filter((msg) => msg.type === 'system')
+  return {
+    quotation: systemMessages.find((msg) => msg.key === 'quotation')?.id || '',
+    voucher: systemMessages.find((msg) => msg.key === 'voucher')?.id || '',
+  }
 })
 
 const sampleInquiry = computed(() => ({
@@ -270,10 +242,6 @@ const loadData = async () => {
   }
 }
 
-const toggleSystemEditor = (key) => {
-  openSystemEditor.value = openSystemEditor.value === key ? '' : key
-}
-
 const toggleSystemPreview = (key) => {
   if (key === 'quotation') {
     showQuotationPreview.value = !showQuotationPreview.value
@@ -285,48 +253,8 @@ const toggleSystemPreview = (key) => {
   }
 }
 
-const resetQuotationDefaults = () => {
-  systemForm.value.quotation_greeting = DEFAULT_MESSAGE_SETTINGS.quotation_greeting
-  systemForm.value.quotation_intro = DEFAULT_MESSAGE_SETTINGS.quotation_intro
-  systemForm.value.quotation_closing = DEFAULT_MESSAGE_SETTINGS.quotation_closing
-  systemForm.value.quotation_signature = DEFAULT_MESSAGE_SETTINGS.quotation_signature
-}
-
-const resetVoucherDefaults = () => {
-  systemForm.value.voucher_greeting = DEFAULT_MESSAGE_SETTINGS.voucher_greeting
-  systemForm.value.voucher_intro = DEFAULT_MESSAGE_SETTINGS.voucher_intro
-  systemForm.value.voucher_closing = DEFAULT_MESSAGE_SETTINGS.voucher_closing
-  systemForm.value.voucher_signature = DEFAULT_MESSAGE_SETTINGS.voucher_signature
-  systemForm.value.show_unit_amenities = DEFAULT_MESSAGE_SETTINGS.show_unit_amenities
-  systemForm.value.checkin_time = DEFAULT_MESSAGE_SETTINGS.checkin_time
-  systemForm.value.checkout_time = DEFAULT_MESSAGE_SETTINGS.checkout_time
-}
-
-const saveSystemSettings = async () => {
-  savingSystem.value = true
-  try {
-    const accountId = accountStore.getRequiredAccountId()
-    systemForm.value = await saveMessageSettings(accountId, systemForm.value)
-    toast.success('Mensajes del sistema actualizados.')
-  } catch (err) {
-    toast.error(err.message || 'No se pudieron guardar los mensajes del sistema.')
-  } finally {
-    savingSystem.value = false
-  }
-}
-
 const openNewCustom = () => {
-  editingCustomId.value = ''
   customForm.value = { name: '', body: '' }
-  showCustomModal.value = true
-}
-
-const openEditCustom = (message) => {
-  editingCustomId.value = message.id
-  customForm.value = {
-    name: message.name || '',
-    body: message.body || '',
-  }
   showCustomModal.value = true
 }
 
@@ -335,17 +263,19 @@ const closeCustomModal = () => {
   showCustomModal.value = false
 }
 
+const openMessageEditor = (id) => {
+  if (!id) return
+  router.push(`/mensajes/${id}/editar`)
+}
+
 const saveCustomMessage = async () => {
   savingCustom.value = true
   try {
     const accountId = accountStore.getRequiredAccountId()
     const existing = customMessages.value
-    const sortOrder = editingCustomId.value
-      ? existing.find((row) => row.id === editingCustomId.value)?.sort_order || 0
-      : ((existing[existing.length - 1]?.sort_order || 0) + 1)
+    const sortOrder = (existing[existing.length - 1]?.sort_order || 0) + 1
 
     await savePredefinedMessage(accountId, {
-      id: editingCustomId.value || undefined,
       name: customForm.value.name,
       body: customForm.value.body,
       type: 'custom',

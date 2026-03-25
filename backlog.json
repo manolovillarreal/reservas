@@ -62,6 +62,7 @@
     { "id": 60, "t": "Cálculo inverso — de precio por unidad a tarifa general", "c": "Feature", "s": "e" },
     { "id": 61, "t": "Descripción corta y URL de ubicación en configuración del alojamiento", "c": "Feature", "s": "d" },
     { "id": 62, "t": "Repositorio de mensajes predefinidos para WhatsApp", "c": "Feature", "s": "d" },
-    { "id": 63, "t": "Mensajes con contexto de reserva o consulta — fase 2", "c": "Feature", "s": "e" }
+    { "id": 63, "t": "Mensajes con contexto de reserva o consulta — fase 2", "c": "Feature", "s": "e" },
+    { "id": 64, "t": "Editor dedicado de mensajes con preview Raw/Render", "c": "Feature", "s": "d" }
   ]
 }
