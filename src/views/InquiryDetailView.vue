@@ -12,6 +12,12 @@
         <button
           v-if="inquiry"
           class="btn-secondary text-sm"
+          @click="showMessagesPanel = true"
+          :disabled="!inquiry"
+        >Mensajes</button>
+        <button
+          v-if="inquiry"
+          class="btn-secondary text-sm"
           :disabled="generatingToken"
           @click="handleQuoteLink"
         >{{ generatingToken ? 'Generando...' : (inquiry.quote_token ? 'Copiar link de cotización' : 'Generar link de cotización') }}</button>
@@ -287,6 +293,19 @@
       @converted="onReservationCreated"
     />
 
+    <MessagesPanel
+      v-model="showMessagesPanel"
+      mode="inquiry"
+      :inquiry="inquiry"
+      :profile="profile"
+      :accountSettings="accountSettings"
+      :systemSettings="systemMessageSettings"
+      :messages="predefinedMessages"
+      :availableUnits="units"
+      :voucherConditions="String(accountSettings?.voucher_conditions || '')"
+      @copied="toast.success('Mensaje copiado al portapapeles.')"
+    />
+
       <BottomSheet v-model="showLostSheet" title="Marcar consulta como perdida" height="half">
         <div class="space-y-3">
           <p class="text-sm text-gray-600">Esta acción cambiará el estado de la consulta a perdida.</p>
@@ -317,6 +336,7 @@ import { supabase } from '../services/supabase'
 import BaseModal from '../components/ui/BaseModal.vue'
 import ConfirmActionModal from '../components/ui/ConfirmActionModal.vue'
 import BottomSheet from '../components/ui/BottomSheet.vue'
+import MessagesPanel from '../components/messages/MessagesPanel.vue'
 import SourceSelector from '../components/sources/SourceSelector.vue'
 import InquiryConversionModal from '../components/inquiries/InquiryConversionModal.vue'
 import { useInquiriesStore } from '../stores/inquiries'
@@ -325,6 +345,7 @@ import { useAccountStore } from '../stores/account'
 import { useToast } from '../composables/useToast'
 import { formatReferenceDisplay } from '../utils/referenceUtils'
 import { copyQuotationAsWhatsApp, buildQuotePublicUrl } from '../utils/voucherUtils'
+import { getMessageSettings, getPredefinedMessages } from '../services/messageSettingsService'
 import {
   getInquiryStatusLabel,
   getInquiryStatusStyle,
@@ -356,6 +377,10 @@ const profile = ref({})
 const generatingToken = ref(false)
 
 const quotePublicUrl = computed(() => buildQuotePublicUrl(inquiry.value?.quote_token))
+const showMessagesPanel = ref(false)
+const predefinedMessages = ref([])
+const systemMessageSettings = ref({})
+const accountSettings = ref({})
 
 const availableTransitions = computed(() => getAvailableInquiryTransitions(inquiry.value?.status))
 const inquiryReferenceDisplay = computed(() => formatReferenceDisplay(inquiry.value?.reference_code, inquiry.value?.guest_name))
@@ -441,13 +466,30 @@ const loadInquiry = async () => {
     inquiry.value = await store.getInquiryById(route.params.id)
 
     const accountId = accountStore.getRequiredAccountId()
-    const { data: profileData } = await supabase
-      .from('account_profile')
-      .select('*')
-      .eq('account_id', accountId)
-      .maybeSingle()
+    const [
+      { data: profileData },
+      { data: settingsData },
+      loadedMessageSettings,
+      loadedMessages,
+    ] = await Promise.all([
+      supabase
+        .from('account_profile')
+        .select('*')
+        .eq('account_id', accountId)
+        .maybeSingle(),
+      supabase
+        .from('settings')
+        .select('voucher_conditions, property_name, price_general_min')
+        .eq('account_id', accountId)
+        .maybeSingle(),
+      getMessageSettings(accountId),
+      getPredefinedMessages(accountId),
+    ])
 
     profile.value = profileData || {}
+    accountSettings.value = settingsData || {}
+    systemMessageSettings.value = loadedMessageSettings || {}
+    predefinedMessages.value = loadedMessages || []
   } catch (err) {
     inquiry.value = null
     toast.error(err.message || 'No se pudo cargar la consulta')
@@ -493,7 +535,7 @@ const fetchMasterData = async () => {
   const accountId = accountStore.getRequiredAccountId()
   const [{ data: venuesData }, { data: unitsData }] = await Promise.all([
     supabase.from('venues').select('id, name').eq('account_id', accountId).order('name', { ascending: true }),
-    supabase.from('units').select('id, name, venue_id').eq('account_id', accountId).eq('is_active', true).order('name', { ascending: true })
+    supabase.from('units').select('id, name, description, capacity, venue_id').eq('account_id', accountId).eq('is_active', true).order('name', { ascending: true })
   ])
 
   venues.value = venuesData || []

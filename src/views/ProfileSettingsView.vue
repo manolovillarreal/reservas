@@ -47,6 +47,21 @@
           </AppFormGrid>
         </AppFormSection>
 
+        <AppFormSection title="Informacion publica" description="Estos campos se usan en mensajes y contenido compartido." :collapsible="isMobile" :defaultOpen="!isMobile">
+          <AppTextarea
+            v-model="profileForm.short_description"
+            label="Descripcion corta"
+            :rows="3"
+            :autoResize="true"
+            placeholder="Nuestra casa está ubicada en el corazón de la isla, a pocos pasos de la playa..."
+          />
+          <AppInput
+            v-model="profileForm.location_url"
+            label="Ubicacion (Google Maps)"
+            placeholder="https://maps.app.goo.gl/xxxxx"
+          />
+        </AppFormSection>
+
         <AppFormSection title="Logo" description="Se usa en documentos y vistas compartidas." :collapsible="isMobile" :defaultOpen="!isMobile">
           <AppFieldGroup tone="info" compact>
             <div class="flex flex-wrap items-start gap-4">
@@ -119,6 +134,7 @@ import { useBreakpoint } from '../composables/useBreakpoint'
 import { calculateNitDigit, formatNit } from '../utils/nitUtils'
 import {
   AppInput,
+  AppTextarea,
   AppFieldHint,
   AppFieldGroup,
   AppFormSection,
@@ -156,6 +172,8 @@ const profileForm = ref({
   slogan: '',
   logo_url: '',
   reference_prefix: '',
+  short_description: '',
+  location_url: '',
 })
 
 const MAX_LOGO_BYTES = 2 * 1024 * 1024
@@ -189,6 +207,8 @@ const setProfileForm = (data = {}) => {
     slogan: data.slogan || '',
     logo_url: data.logo_url || '',
     reference_prefix: data.reference_prefix || '',
+    short_description: data.short_description || '',
+    location_url: data.location_url || '',
   }
 }
 
@@ -356,6 +376,8 @@ const saveProfile = async () => {
       slogan: profileForm.value.slogan || null,
       logo_url: logoUrl,
       reference_prefix: profilePrefix.value,
+      short_description: profileForm.value.short_description || null,
+      location_url: profileForm.value.location_url || null,
     }
 
     const { error } = await supabase

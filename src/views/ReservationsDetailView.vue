@@ -9,6 +9,7 @@
       </router-link>
       <div class="flex items-center gap-3">
         <button v-if="can('vouchers', 'generate')" class="btn-secondary touch-target text-sm" @click="openVoucher">Generar Voucher</button>
+        <button class="btn-secondary touch-target text-sm" @click="showMessagesPanel = true">Mensajes</button>
       </div>
     </div>
 
@@ -395,6 +396,18 @@
       @close="closeStatusModal"
       @updated="handleStatusUpdated"
     />
+
+    <MessagesPanel
+      v-model="showMessagesPanel"
+      mode="reservation"
+      :reservation="res"
+      :profile="profile"
+      :accountSettings="accountSettings"
+      :systemSettings="systemMessageSettings"
+      :messages="predefinedMessages"
+      :voucherConditions="String(accountSettings?.voucher_conditions || '')"
+      @copied="toast.success('Mensaje copiado al portapapeles.')"
+    />
   </div>
 </template>
 
@@ -410,6 +423,7 @@ import ConfirmActionModal from '../components/ui/ConfirmActionModal.vue'
 import PreRegistroForm from '../components/preregistro/PreRegistroForm.vue'
 import PaymentModal from '../components/payments/PaymentModal.vue'
 import StatusChangeModal from '../components/reservations/StatusChangeModal.vue'
+import MessagesPanel from '../components/messages/MessagesPanel.vue'
 import { completeReservationPreregistro } from '../services/preregistro'
 import { getCommissionSummary, getReservationGuestName, getReservationGuestPhone } from '../utils/reservations'
 import { formatReferenceDisplay } from '../utils/referenceUtils'
@@ -418,6 +432,7 @@ import { useAccountStore } from '../stores/account'
 import { useToast } from '../composables/useToast'
 import { useBreakpoint } from '../composables/useBreakpoint'
 import { notifyCheckinRealizado } from '../services/notificationService'
+import { getMessageSettings, getPredefinedMessages } from '../services/messageSettingsService'
 
 const route = useRoute()
 const router = useRouter()
@@ -449,6 +464,11 @@ const showCheckinConfirmModal = ref(false)
 const checkinSubmitting = ref(false)
 const occupancyRowCount = ref(0)
 const syncingOccupancy = ref(false)
+const showMessagesPanel = ref(false)
+const profile = ref({})
+const accountSettings = ref({})
+const predefinedMessages = ref([])
+const systemMessageSettings = ref({})
 
 const isSyncMissing = computed(() =>
   res.value != null
@@ -464,14 +484,39 @@ const fetchReservation = async () => {
   loading.value = true
   try {
     const accountId = accountStore.getRequiredAccountId()
-    const { data, error } = await supabase
-      .from('reservations')
-      .select('*, source_type_info:source_types!reservations_source_type_id_fkey(id, name, label_es, is_active), source_detail_info:source_details!reservations_source_detail_id_fkey(id, source_type_id, name, label_es, suggested_commission_percentage, suggested_discount_percentage, is_active), guests!reservations_guest_id_fkey(*), venues(name), reservation_units(unit_id, units(*)), reservation_guests(is_primary, guest_id, guests!reservation_guests_guest_id_fkey(*))')
-      .eq('account_id', accountId)
-      .eq('id', route.params.id)
-      .single()
+    const [
+      { data, error },
+      { data: profileData },
+      { data: settingsData },
+      loadedMessageSettings,
+      loadedMessages,
+    ] = await Promise.all([
+      supabase
+        .from('reservations')
+        .select('*, source_type_info:source_types!reservations_source_type_id_fkey(id, name, label_es, is_active), source_detail_info:source_details!reservations_source_detail_id_fkey(id, source_type_id, name, label_es, suggested_commission_percentage, suggested_discount_percentage, is_active), guests!reservations_guest_id_fkey(*), venues(name), reservation_units(unit_id, units(*)), reservation_guests(is_primary, guest_id, guests!reservation_guests_guest_id_fkey(*))')
+        .eq('account_id', accountId)
+        .eq('id', route.params.id)
+        .single(),
+      supabase
+        .from('account_profile')
+        .select('*')
+        .eq('account_id', accountId)
+        .maybeSingle(),
+      supabase
+        .from('settings')
+        .select('voucher_conditions, property_name, price_general_min')
+        .eq('account_id', accountId)
+        .maybeSingle(),
+      getMessageSettings(accountId),
+      getPredefinedMessages(accountId),
+    ])
 
     if (error) throw error
+
+    profile.value = profileData || {}
+    accountSettings.value = settingsData || {}
+    systemMessageSettings.value = loadedMessageSettings || {}
+    predefinedMessages.value = loadedMessages || []
       
     if (data) {
       res.value = data

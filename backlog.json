@@ -59,6 +59,9 @@
     { "id": 57, "t": "Tarifas base por unidad — precio mínimo, base y persona adicional", "c": "Feature", "s": "d" },
     { "id": 58, "t": "Políticas globales de precio — fin de semana, pico y niños", "c": "Feature", "s": "d" },
     { "id": 59, "t": "Tarifas dinámicas por temporada y fechas — fase 2", "c": "Feature", "s": "e" },
-    { "id": 60, "t": "Cálculo inverso — de precio por unidad a tarifa general", "c": "Feature", "s": "e" }
+    { "id": 60, "t": "Cálculo inverso — de precio por unidad a tarifa general", "c": "Feature", "s": "e" },
+    { "id": 61, "t": "Descripción corta y URL de ubicación en configuración del alojamiento", "c": "Feature", "s": "d" },
+    { "id": 62, "t": "Repositorio de mensajes predefinidos para WhatsApp", "c": "Feature", "s": "d" },
+    { "id": 63, "t": "Mensajes con contexto de reserva o consulta — fase 2", "c": "Feature", "s": "e" }
   ]
 }
