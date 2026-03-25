@@ -262,6 +262,26 @@ const reservationContext = computed(() => {
   }
 })
 
+const buildSystemTemplateFromSettings = (key, settings) => {
+  if (!settings || (key !== 'quotation' && key !== 'voucher')) return ''
+
+  if (key === 'quotation') {
+    return [
+      String(settings.quotation_greeting || '').trim(),
+      String(settings.quotation_intro || '').trim(),
+      String(settings.quotation_closing || '').trim(),
+      String(settings.quotation_signature || '').trim(),
+    ].filter(Boolean).join('\n\n')
+  }
+
+  return [
+    String(settings.voucher_greeting || '').trim(),
+    String(settings.voucher_intro || '').trim(),
+    String(settings.voucher_closing || '').trim(),
+    String(settings.voucher_signature || '').trim(),
+  ].filter(Boolean).join('\n\n')
+}
+
 const previewVariables = computed(() => {
   const context = isQuotationMessage.value ? quoteContext.value : reservationContext.value
   const globalVars = buildGlobalVariables({
@@ -422,12 +442,20 @@ const loadData = async () => {
     if (reservationError) throw reservationError
 
     message.value = row || null
-    body.value = String(row?.body || '')
     profile.value = profileData || {}
     accountSettings.value = settingsData || {}
     latestInquiry.value = inquiryData || null
     latestReservation.value = reservationData || null
     systemForm.value = { ...DEFAULT_MESSAGE_SETTINGS, ...messageSettings }
+
+    const persistedBody = String(row?.body || '')
+    if (persistedBody.trim()) {
+      body.value = persistedBody
+    } else if (row?.type === 'system') {
+      body.value = buildSystemTemplateFromSettings(row.key, systemForm.value)
+    } else {
+      body.value = ''
+    }
   } catch (err) {
     toast.error(err.message || 'No se pudo cargar el editor de mensajes.')
   } finally {
