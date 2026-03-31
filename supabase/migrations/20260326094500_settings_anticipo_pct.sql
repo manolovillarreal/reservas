@@ -1,0 +1,2 @@
+ALTER TABLE IF EXISTS settings
+  ADD COLUMN IF NOT EXISTS anticipo_pct numeric DEFAULT 50;

@@ -35,6 +35,46 @@ Para confirmar se realiza un anticipo del
 Escríbenos para cualquier duda.
 {{nombre_alojamiento}} · {{telefono}}`
 
+export const DEFAULT_VOUCHER_TEMPLATE = `Hola {{nombre_huesped}}! 👋
+Te compartimos el resumen de tu reserva en {{nombre_alojamiento}}.
+
+🗓 Check-in: {{fecha_checkin_larga}}
+🗓 Check-out: {{fecha_checkout_larga}}
+🌙 {{noches}} noches · {{personas}} personas
+
+{{#unidades}}
+🚪 {{nombre_unidad}}
+{{descripcion_unidad}}
+{{/unidades}}
+
+💳 Código: {{codigo_referencia}}
+
+{{#pago_completo}}
+💵 Total: {{total}}
+✅ Pagado: {{pagado}}
+{{/pago_completo}}
+
+{{#saldo_pendiente}}
+💵 Total: {{total}}
+💳 Pagado: {{pagado}}
+⚠️ Saldo pendiente: {{saldo_pendiente}}
+{{/saldo_pendiente}}
+
+{{#sin_pagos}}
+💵 Total: {{total}}
+⏳ Pendiente: {{total}}
+{{/sin_pagos}}
+
+🕐 Check-in: {{hora_checkin}}
+🕐 Check-out: {{hora_checkout}}
+
+{{#condiciones}}
+📋 {{condiciones}}
+{{/condiciones}}
+
+Cualquier duda estamos a tu disposición.
+{{nombre_alojamiento}} · {{telefono}}`
+
 const currencyFormatter = new Intl.NumberFormat('es-CO', {
   style: 'currency',
   currency: 'COP',

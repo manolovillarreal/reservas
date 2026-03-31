@@ -27,6 +27,13 @@
         <AppFormSection title="Politicas globales" :divider="true" :collapsible="isMobile" :defaultOpen="true">
           <AppFormGrid :columns="2">
             <AppInput
+              v-model="form.anticipo_pct"
+              type="number"
+              label="Anticipo para cotización"
+              suffix="%"
+              hint="Se usa en la variable {{porcentaje_anticipo}} de mensajes"
+            />
+            <AppInput
               v-model="form.price_weekend_pct"
               type="number"
               label="Incremento fin de semana (vie-sab)"
@@ -112,6 +119,7 @@ const buildEmpty = () => ({
   price_general_min: '',
   price_general_extra: '',
   price_per_person_base: '',
+  anticipo_pct: '50',
   price_weekend_pct: '',
   price_peak_pct: '',
   price_child_pct: '50',
@@ -137,7 +145,7 @@ const loadSettings = async () => {
     const accountId = accountStore.getRequiredAccountId()
     const { data, error } = await supabase
       .from('settings')
-      .select('price_general_base, price_general_min, price_general_extra, price_per_person_base, price_weekend_pct, price_peak_pct, price_child_pct, price_full_house_min, price_full_house_base, price_full_house_peak')
+      .select('price_general_base, price_general_min, price_general_extra, price_per_person_base, anticipo_pct, price_weekend_pct, price_peak_pct, price_child_pct, price_full_house_min, price_full_house_base, price_full_house_peak')
       .eq('account_id', accountId)
       .maybeSingle()
 
@@ -148,6 +156,7 @@ const loadSettings = async () => {
       price_general_min: data?.price_general_min ?? '',
       price_general_extra: data?.price_general_extra ?? '',
       price_per_person_base: data?.price_per_person_base ?? '',
+      anticipo_pct: data?.anticipo_pct ?? 50,
       price_weekend_pct: data?.price_weekend_pct ?? '',
       price_peak_pct: data?.price_peak_pct ?? '',
       price_child_pct: data?.price_child_pct ?? 50,
@@ -174,6 +183,7 @@ const saveSettings = async () => {
       price_general_min: toNumberOrNull(form.value.price_general_min),
       price_general_extra: toNumberOrNull(form.value.price_general_extra),
       price_per_person_base: toNumberOrNull(form.value.price_per_person_base),
+      anticipo_pct: toNumberOrNull(form.value.anticipo_pct) ?? 50,
       price_weekend_pct: toNumberOrNull(form.value.price_weekend_pct),
       price_peak_pct: toNumberOrNull(form.value.price_peak_pct),
       price_child_pct: toNumberOrNull(form.value.price_child_pct) ?? 50,

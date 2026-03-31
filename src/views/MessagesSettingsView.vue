@@ -235,7 +235,7 @@ const voucherPreview = computed(() => buildVoucherMessage({
 const loadProfileAndSettings = async (accountId) => {
   const [{ data: profileData }, { data: settingsData }] = await Promise.all([
     supabase.from('account_profile').select('*').eq('account_id', accountId).maybeSingle(),
-    supabase.from('settings').select('voucher_conditions, property_name, price_general_min').eq('account_id', accountId).maybeSingle(),
+    supabase.from('settings').select('voucher_conditions, property_name, price_general_min, anticipo_pct').eq('account_id', accountId).maybeSingle(),
   ])
 
   profile.value = profileData || {}

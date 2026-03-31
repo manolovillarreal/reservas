@@ -110,7 +110,7 @@ export const buildGlobalVariables = ({ profile = {}, accountSettings = {}, conte
   const telefono = profile.phone || '-'
   const ubicacion = profile.location_url || '-'
   const descripcionAlojamiento = profile.short_description || '-'
-  const porcentajeAnticipo = accountSettings.price_general_min != null ? Number(accountSettings.price_general_min) : ''
+  const porcentajeAnticipo = accountSettings.anticipo_pct != null ? Number(accountSettings.anticipo_pct) : 50
 
   return {
     nombre_alojamiento: nombreAlojamiento,

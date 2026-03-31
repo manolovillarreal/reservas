@@ -479,7 +479,7 @@ const loadInquiry = async () => {
         .maybeSingle(),
       supabase
         .from('settings')
-        .select('voucher_conditions, property_name, price_general_min')
+        .select('voucher_conditions, property_name, price_general_min, anticipo_pct')
         .eq('account_id', accountId)
         .maybeSingle(),
       getMessageSettings(accountId),

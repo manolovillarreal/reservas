@@ -165,7 +165,7 @@
           v-if="viewMode === 'raw'"
           ref="textareaRef"
           v-model="body"
-          rows="16"
+          rows="35"
           class="w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
           placeholder="Escribe el mensaje con variables como {{nombre_huesped}}"
           @click="syncCursor"
@@ -284,7 +284,12 @@ import {
   savePredefinedMessage,
 } from '../services/messageSettingsService'
 import { buildGlobalVariables, resolveTemplate } from '../utils/messageUtils'
-import { buildQuotePublicUrl, buildQuotationWhatsAppMessage, DEFAULT_QUOTATION_TEMPLATE } from '../utils/voucherUtils'
+import {
+  buildQuotePublicUrl,
+  buildQuotationWhatsAppMessage,
+  DEFAULT_QUOTATION_TEMPLATE,
+  DEFAULT_VOUCHER_TEMPLATE,
+} from '../utils/voucherUtils'
 
 const route = useRoute()
 const router = useRouter()
@@ -317,6 +322,7 @@ const variableGroups = [
       { label: 'Telefono', token: 'telefono' },
       { label: 'Ubicacion', token: 'ubicacion' },
       { label: 'Descripcion', token: 'descripcion_alojamiento' },
+      { label: 'Porcentaje Anticipo', token: 'porcentaje_anticipo' },
     ],
   },
   {
@@ -338,6 +344,9 @@ const variableGroups = [
       { label: 'Porcentaje descuento', token: 'porcentaje_descuento' },
       { label: 'Valor descuento', token: 'valor_descuento' },
       { label: 'Vigencia', token: 'fecha_vigencia' },
+      { label: 'Hora check-in', token: 'hora_checkin' },
+      { label: 'Hora check-out', token: 'hora_checkout' },
+      { label: 'Condiciones', token: 'condiciones' },
       { label: 'Nombre unidad (itera)', token: 'nombre_unidad' },
       { label: 'Descripcion unidad (itera)', token: 'descripcion_unidad' },
       { label: 'Amenidades comunes', token: 'amenidades_comunes' },
@@ -362,6 +371,22 @@ const blockSnippets = [
   {
     label: 'Vigencia condicional',
     snippet: '{{#fecha_vigencia}}\n⏰ Válida hasta: {{fecha_vigencia}}\n{{/fecha_vigencia}}',
+  },
+  {
+    label: 'Pago completo',
+    snippet: '{{#pago_completo}}\n💵 Total: {{total}}\n✅ Pagado: {{pagado}}\n{{/pago_completo}}',
+  },
+  {
+    label: 'Saldo pendiente',
+    snippet: '{{#saldo_pendiente}}\n💵 Total: {{total}}\n💳 Pagado: {{pagado}}\n⚠️ Saldo pendiente: {{saldo_pendiente}}\n{{/saldo_pendiente}}',
+  },
+  {
+    label: 'Sin pagos',
+    snippet: '{{#sin_pagos}}\n💵 Total: {{total}}\n⏳ Pendiente: {{total}}\n{{/sin_pagos}}',
+  },
+  {
+    label: 'Condiciones',
+    snippet: '{{#condiciones}}\n📋 {{condiciones}}\n{{/condiciones}}',
   },
 ]
 
@@ -445,6 +470,14 @@ const longDateFormatter = new Intl.DateTimeFormat('es-CO', {
   year: 'numeric',
 })
 
+const longDateWithWeekdayFormatter = new Intl.DateTimeFormat('es-CO', {
+  weekday: 'long',
+  day: 'numeric',
+  month: 'long',
+  year: 'numeric',
+  timeZone: 'UTC',
+})
+
 const toDate = (value) => {
   if (!value) return null
   const date = new Date(value)
@@ -456,6 +489,12 @@ const formatDateRange = (checkIn, checkOut, fallback = '-') => {
   const end = toDate(checkOut)
   if (!start || !end) return fallback
   return `${longDateFormatter.format(start)} al ${longDateFormatter.format(end)}`
+}
+
+const formatDateLongWithWeekday = (value, fallback = '-') => {
+  const date = toDate(value)
+  if (!date) return fallback
+  return longDateWithWeekdayFormatter.format(date)
 }
 
 const diffNights = (checkIn, checkOut) => {
@@ -559,6 +598,13 @@ const buildSystemTemplateFromSettings = (key, settings) => {
 const previewVariables = computed(() => {
   const context = isQuotationMessage.value ? quoteContext.value : reservationContext.value
   const record = activeRecord.value
+  const reservationUnits = (record?.reservation_units || []).map((row) => row.units).filter(Boolean)
+  const total = isQuotationMessage.value
+    ? Number(record?.price_per_night || 0) * Number(context.noches || 0)
+    : Number(record?.total_amount || 0)
+  const paid = Number(record?.paid_amount || 0)
+  const balance = Math.max(0, total - paid)
+  const conditionsText = String(accountSettings.value?.voucher_conditions || '').trim()
 
   const globalVars = buildGlobalVariables({
     profile: profile.value,
@@ -570,17 +616,29 @@ const previewVariables = computed(() => {
       nights: context.noches,
       personas: context.personas,
       reference: context.codigo_referencia,
-      total: isQuotationMessage.value
-        ? Number(record?.price_per_night || 0) * Number(context.noches || 0)
-        : Number(record?.total_amount || 0),
-      paid: Number(record?.paid_amount || 0),
-      balance: Math.max(0, Number(record?.total_amount || 0) - Number(record?.paid_amount || 0)),
+      total,
+      paid,
+      balance,
     },
   })
 
   return {
     ...globalVars,
     ...context,
+    fecha_checkin_larga: formatDateLongWithWeekday(record?.check_in),
+    fecha_checkout_larga: formatDateLongWithWeekday(record?.check_out),
+    hora_checkin: systemForm.value?.checkin_time || '3:00 PM',
+    hora_checkout: systemForm.value?.checkout_time || '12:00 PM',
+    condiciones: conditionsText,
+    unidades: reservationUnits.map((unit) => ({
+      nombre_unidad: unit?.name || 'Unidad',
+      descripcion_unidad: unit?.description || '',
+    })),
+    pago_completo: total > 0 && paid >= total ? { total: globalVars.total, pagado: globalVars.pagado } : null,
+    saldo_pendiente: paid > 0 && balance > 0
+      ? { total: globalVars.total, pagado: globalVars.pagado, saldo_pendiente: globalVars.saldo_pendiente }
+      : null,
+    sin_pagos: paid <= 0 ? { total: globalVars.total } : null,
   }
 })
 
@@ -627,6 +685,11 @@ const restoreDefaultMessage = () => {
 
   if (isQuotationMessage.value) {
     body.value = DEFAULT_QUOTATION_TEMPLATE
+    return
+  }
+
+  if (message.value?.key === 'voucher') {
+    body.value = DEFAULT_VOUCHER_TEMPLATE
     return
   }
 
@@ -735,7 +798,7 @@ const loadData = async () => {
         .maybeSingle(),
       supabase
         .from('settings')
-        .select('property_name, price_general_min, voucher_conditions')
+        .select('property_name, price_general_min, anticipo_pct, voucher_conditions')
         .eq('account_id', accountId)
         .maybeSingle(),
       supabase
@@ -746,7 +809,7 @@ const loadData = async () => {
         .limit(10),
       supabase
         .from('reservations')
-        .select('id, guest_name, guest_phone, check_in, check_out, adults, children, reference_code, reservation_number, price_per_night, total_amount, paid_amount, created_at')
+        .select('id, guest_name, guest_phone, check_in, check_out, adults, children, reference_code, reservation_number, price_per_night, total_amount, paid_amount, created_at, reservation_units(unit_id, units(name, description))')
         .eq('account_id', accountId)
         .order('created_at', { ascending: false })
         .limit(10),
@@ -773,7 +836,9 @@ const loadData = async () => {
     } else if (row?.type === 'system') {
       body.value = row.key === 'quotation'
         ? DEFAULT_QUOTATION_TEMPLATE
-        : buildSystemTemplateFromSettings(row.key, systemForm.value)
+        : row.key === 'voucher'
+          ? DEFAULT_VOUCHER_TEMPLATE
+          : buildSystemTemplateFromSettings(row.key, systemForm.value)
     } else {
       body.value = ''
     }
