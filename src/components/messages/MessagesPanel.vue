@@ -7,48 +7,75 @@
     @update:modelValue="emit('update:modelValue', $event)"
   >
     <div class="space-y-4">
-      <div class="rounded-md border border-gray-200 bg-gray-50 p-3">
-        <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Sistema: Cotización</p>
-        <pre class="mt-2 whitespace-pre-wrap text-sm text-gray-800">{{ systemQuotation.text }}</pre>
-        <p v-if="systemQuotation.missing.length" class="mt-2 text-xs text-amber-700">
-          Faltan variables: {{ systemQuotation.missing.join(', ') }}
-        </p>
-        <p class="mt-2 text-xs text-gray-500">Disponible para visualización. Usa el botón de WhatsApp del flujo para compartir.</p>
+      <div class="flex items-center justify-between">
+        <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">{{ allMessages.length }} mensaje(s)</p>
+        <button
+          type="button"
+          class="inline-flex h-8 w-8 items-center justify-center rounded-md text-gray-500 transition hover:bg-gray-100 hover:text-gray-700"
+          @click="closePanel"
+          aria-label="Cerrar panel de mensajes"
+          title="Cerrar"
+        >
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M18 6L6 18"></path>
+            <path d="M6 6l12 12"></path>
+          </svg>
+        </button>
       </div>
 
-      <div class="rounded-md border border-gray-200 bg-gray-50 p-3">
-        <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Sistema: Voucher</p>
-        <pre class="mt-2 whitespace-pre-wrap text-sm text-gray-800">{{ systemVoucher.text }}</pre>
-        <p v-if="systemVoucher.missing.length" class="mt-2 text-xs text-amber-700">
-          Faltan variables: {{ systemVoucher.missing.join(', ') }}
-        </p>
-        <p class="mt-2 text-xs text-gray-500">Disponible para visualización. Usa el botón de WhatsApp del flujo para compartir.</p>
+      <div v-if="allMessages.length === 0" class="rounded-md border border-dashed border-gray-300 p-4 text-sm text-gray-500">
+        No hay mensajes configurados.
       </div>
 
-      <div>
-        <div class="mb-2 flex items-center justify-between">
-          <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Mensajes personalizados</p>
-          <span class="text-xs text-gray-400">{{ customMessages.length }} mensaje(s)</span>
-        </div>
-
-        <div v-if="customMessages.length === 0" class="rounded-md border border-dashed border-gray-300 p-4 text-sm text-gray-500">
-          No hay mensajes personalizados configurados.
-        </div>
-
-        <div v-else class="space-y-3">
-          <div
-            v-for="msg in renderedCustomMessages"
-            :key="msg.id"
-            class="rounded-md border border-gray-200 bg-white p-3"
-          >
-            <div class="mb-2 flex items-center justify-between gap-2">
+      <div v-else class="space-y-3">
+        <div
+          v-for="msg in allMessages"
+          :key="msg.id"
+          class="rounded-md border border-gray-200 bg-white"
+        >
+          <div class="flex items-center gap-2 px-3 py-2">
+            <button
+              type="button"
+              class="flex flex-1 items-center justify-between text-left"
+              @click="toggleMessage(msg.id)"
+              :aria-expanded="String(isMessageOpen(msg.id))"
+            >
               <p class="text-sm font-semibold text-gray-900">{{ msg.name }}</p>
-              <button type="button" class="btn-secondary text-xs" @click="copyText(msg.text)">Copiar</button>
-            </div>
+              <svg
+                class="h-4 w-4 text-gray-500 transition-transform"
+                :class="isMessageOpen(msg.id) ? 'rotate-180' : ''"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M6 9l6 6 6-6"></path>
+              </svg>
+            </button>
+
+            <button
+              type="button"
+              class="inline-flex h-8 w-8 items-center justify-center rounded-md text-gray-500 transition hover:bg-gray-100 hover:text-gray-700"
+              @click.stop="copyText(msg.text)"
+              :aria-label="`Copiar ${msg.name}`"
+              title="Copiar mensaje"
+            >
+              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+            </button>
+          </div>
+
+          <div v-if="isMessageOpen(msg.id)" class="border-t border-gray-100 px-3 pb-3 pt-2">
             <pre class="whitespace-pre-wrap text-sm text-gray-800">{{ msg.text }}</pre>
             <p v-if="msg.missing.length" class="mt-2 text-xs text-amber-700">
               Faltan variables: {{ msg.missing.join(', ') }}
             </p>
+            <p v-if="msg.note" class="mt-2 text-xs text-gray-500">{{ msg.note }}</p>
           </div>
         </div>
       </div>
@@ -57,7 +84,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import BottomSheet from '../ui/BottomSheet.vue'
 import {
   buildGlobalVariables,
@@ -80,6 +107,7 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['update:modelValue', 'copied'])
+const openMessageIds = ref([])
 
 const currentContext = computed(() => {
   if (props.mode === 'reservation') {
@@ -193,6 +221,51 @@ const renderedCustomMessages = computed(() => {
       missing: resolved.missing,
     }
   })
+})
+
+const allMessages = computed(() => {
+  const systemMessages = [
+    {
+      id: 'system-quotation',
+      name: 'Sistema: Cotización',
+      text: systemQuotation.value.text,
+      missing: systemQuotation.value.missing || [],
+      note: 'Disponible para visualización. Usa el botón de WhatsApp del flujo para compartir.'
+    },
+    {
+      id: 'system-voucher',
+      name: 'Sistema: Voucher',
+      text: systemVoucher.value.text,
+      missing: systemVoucher.value.missing || [],
+      note: 'Disponible para visualización. Usa el botón de WhatsApp del flujo para compartir.'
+    }
+  ]
+
+  const custom = renderedCustomMessages.value.map((msg) => ({
+    ...msg,
+    note: ''
+  }))
+
+  return [...systemMessages, ...custom]
+})
+
+const closePanel = () => emit('update:modelValue', false)
+
+const toggleMessage = (messageId) => {
+  if (openMessageIds.value.includes(messageId)) {
+    openMessageIds.value = openMessageIds.value.filter((id) => id !== messageId)
+    return
+  }
+
+  openMessageIds.value = [...openMessageIds.value, messageId]
+}
+
+const isMessageOpen = (messageId) => openMessageIds.value.includes(messageId)
+
+watch(() => props.modelValue, (isOpen) => {
+  if (isOpen) {
+    openMessageIds.value = []
+  }
 })
 
 const copyText = async (text) => {

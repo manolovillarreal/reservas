@@ -389,6 +389,7 @@ const route = useRoute()
 const router = useRouter()
 const accountStore = useAccountStore()
 const { isMobile } = useBreakpoint()
+const CALENDAR_STATE_STORAGE_KEY = 'calendar_state'
 
 const occupancies = ref([])
 const units = ref([])
@@ -501,6 +502,80 @@ function formatDate(value) {
 
 function formatCurrency(value) {
   return Number(value || 0).toLocaleString('es-CO')
+}
+
+function saveCalendarState() {
+  const state = {
+    viewMode: showAgendaView.value ? 'agenda' : viewMode.value,
+    periodPreset: periodPreset.value
+  }
+
+  if (periodPreset.value === 'custom') {
+    state.periodFrom = periodFrom.value
+    state.periodTo = periodTo.value
+  }
+
+  localStorage.setItem(CALENDAR_STATE_STORAGE_KEY, JSON.stringify(state))
+}
+
+function restoreCalendarState() {
+  const rawState = localStorage.getItem(CALENDAR_STATE_STORAGE_KEY)
+  if (!rawState) return false
+
+  let parsedState = null
+  try {
+    parsedState = JSON.parse(rawState)
+  } catch {
+    return false
+  }
+
+  const allowedViewModes = new Set(['clasica', 'completa', 'por_unidad', 'agenda'])
+  const allowedPresets = new Set(['today', 'this_week', 'next_30', 'custom', 'this_month'])
+
+  const restoredViewMode = String(parsedState?.viewMode || '')
+  const restoredPreset = String(parsedState?.periodPreset || '')
+
+  if (allowedViewModes.has(restoredViewMode) && restoredViewMode !== 'agenda') {
+    viewMode.value = restoredViewMode
+  }
+
+  if (restoredViewMode === 'agenda') {
+    const restoredFrom = normalizeIsoDate(parsedState?.periodFrom)
+    const restoredTo = normalizeIsoDate(parsedState?.periodTo)
+    const fallbackDate = toIsoDate(new Date())
+
+    periodPreset.value = 'custom'
+    periodFrom.value = restoredFrom || fallbackDate
+    periodTo.value = restoredTo || periodFrom.value
+    return true
+  }
+
+  if (!allowedPresets.has(restoredPreset)) return false
+
+  periodPreset.value = restoredPreset
+  if (restoredPreset === 'custom') {
+    const restoredFrom = normalizeIsoDate(parsedState?.periodFrom)
+    const restoredTo = normalizeIsoDate(parsedState?.periodTo)
+    const fallbackDate = toIsoDate(new Date())
+
+    periodFrom.value = restoredFrom || fallbackDate
+    periodTo.value = restoredTo || periodFrom.value
+    return true
+  }
+
+  applyPreset()
+  return true
+}
+
+function applyQueryPeriodOverrides() {
+  const queryFrom = normalizeIsoDate(route.query.from)
+  const queryTo = normalizeIsoDate(route.query.to)
+  if (!queryFrom || !queryTo) return false
+
+  periodPreset.value = 'custom'
+  periodFrom.value = queryFrom
+  periodTo.value = queryTo
+  return true
 }
 
 function applyPreset() {
@@ -1170,13 +1245,13 @@ function goToNextDay() {
 onMounted(async () => {
   isTouchDevice.value = Boolean(window.matchMedia?.('(pointer: coarse)')?.matches || 'ontouchstart' in window)
 
-  if (route.query.from && route.query.to) {
-    periodPreset.value = 'custom'
-    periodFrom.value = String(route.query.from).slice(0, 10)
-    periodTo.value = String(route.query.to).slice(0, 10)
-  } else {
+  const restored = restoreCalendarState()
+  const queryOverrideApplied = applyQueryPeriodOverrides()
+
+  if (!restored && !queryOverrideApplied) {
     applyPreset()
   }
+
   await fetchMasterData()
   await fetchOccupancies()
 
@@ -1184,6 +1259,7 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => {
+  saveCalendarState()
   document.removeEventListener('click', onOutsideClick)
 })
 

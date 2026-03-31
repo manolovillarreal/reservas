@@ -3,10 +3,10 @@
     
     <!-- Top Nav Actions -->
     <div class="flex items-center justify-between">
-      <router-link to="/reservas" class="touch-target inline-flex items-center gap-1 text-sm font-medium text-gray-500 transition-colors hover:text-gray-900">
+      <button type="button" class="touch-target inline-flex items-center gap-1 text-sm font-medium text-gray-500 transition-colors hover:text-gray-900" @click="goBackToReservations">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
-        Volver a Reservas
-      </router-link>
+        Volver
+      </button>
       <div class="flex items-center gap-3">
         <button v-if="can('vouchers', 'generate')" class="btn-secondary touch-target text-sm" @click="openVoucher">Generar Voucher</button>
         <button class="btn-secondary touch-target text-sm" @click="showMessagesPanel = true">Mensajes</button>
@@ -738,6 +738,15 @@ const openCancelModal = () => {
 const openVoucher = () => {
   if (!res.value?.id) return
   router.push(`/reservas/${res.value.id}/voucher`)
+}
+
+const goBackToReservations = () => {
+  if (window.history.state?.back) {
+    router.back()
+    return
+  }
+
+  router.push('/reservas')
 }
 
 const closePaymentModal = () => {

@@ -65,6 +65,7 @@
     { "id": 63, "t": "Mensajes con contexto de reserva o consulta — fase 2", "c": "Feature", "s": "e" },
     { "id": 64, "t": "Editor dedicado de mensajes con preview Raw/Render", "c": "Feature", "s": "d" },
     { "id": 65, "t": "Editor mensajes — emojis, contexto navegable, mobile drawer", "c": "Ajuste UI", "s": "d" },
-    { "id": 66, "t": "Motor Mustache — bloques iterantes y condicionales en editor de mensajes", "c": "Feature", "s": "d" }
+    { "id": 66, "t": "Motor Mustache — bloques iterantes y condicionales en editor de mensajes", "c": "Feature", "s": "d" },
+    { "id": 67, "t": "Calendario — persistir estado de vista y periodo, volver con historial", "c": "Ajuste UI", "s": "d" }
   ]
 }
