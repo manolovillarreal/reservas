@@ -86,8 +86,8 @@
 
       <div v-if="calendarMetrics && !loading" class="mb-4 flex flex-wrap gap-6 rounded-md border border-gray-100 bg-gray-50 px-4 py-3 text-sm text-gray-700">
         <span>Ocupación: <span class="font-semibold text-gray-900">{{ calendarMetrics.occupancyPct }}%</span></span>
-        <span>Llegadas: <span class="font-semibold text-gray-900">{{ calendarMetrics.arrivals }}</span></span>
-        <span>Huéspedes: <span class="font-semibold text-gray-900">{{ calendarMetrics.totalGuests }}</span></span>
+        <span>Entradas: <span class="font-semibold text-gray-900">{{ calendarMetrics.arrivals }}</span></span>
+        <span>Salidas: <span class="font-semibold text-gray-900">{{ calendarMetrics.departures }}</span></span>
       </div>
 
       <div v-if="periodPreset === 'this_week'" class="mb-4 flex items-center justify-between gap-2">
@@ -324,6 +324,61 @@
       </div>
     </div>
 
+    <!-- Entradas y Salidas del periodo -->
+    <div v-if="!showAgendaView && !loading" class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+      <div>
+        <h2 class="mb-3 text-sm font-semibold uppercase tracking-wider text-gray-500">Entradas</h2>
+        <div v-if="periodoEntradas.length === 0" class="rounded-md border border-dashed border-gray-200 bg-gray-50 px-4 py-4 text-sm italic text-gray-400">
+          Sin entradas en el periodo.
+        </div>
+        <div v-else class="space-y-2">
+          <button
+            v-for="item in periodoEntradas"
+            :key="`entrada-${item.key}`"
+            type="button"
+            class="w-full rounded-md border border-gray-200 bg-white p-3 text-left shadow-sm transition-shadow hover:border-gray-300 hover:shadow"
+            @click="router.push(`/reservas/${item.reservationId}`)"
+          >
+            <div class="flex items-start justify-between gap-2">
+              <div class="min-w-0">
+                <p class="text-xs font-medium text-gray-500">{{ formatDate(item.date) }}</p>
+                <p class="truncate text-sm font-semibold text-gray-900">{{ item.guestName }}</p>
+                <p class="truncate text-xs text-gray-600">{{ item.unitLabel }}</p>
+                <p class="text-xs text-gray-500">{{ item.pax }} personas</p>
+              </div>
+              <ReservationBadge :status="item.status" />
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <div>
+        <h2 class="mb-3 text-sm font-semibold uppercase tracking-wider text-gray-500">Salidas</h2>
+        <div v-if="periodoSalidas.length === 0" class="rounded-md border border-dashed border-gray-200 bg-gray-50 px-4 py-4 text-sm italic text-gray-400">
+          Sin salidas en el periodo.
+        </div>
+        <div v-else class="space-y-2">
+          <button
+            v-for="item in periodoSalidas"
+            :key="`salida-${item.key}`"
+            type="button"
+            class="w-full rounded-md border border-gray-200 bg-white p-3 text-left shadow-sm transition-shadow hover:border-gray-300 hover:shadow"
+            @click="router.push(`/reservas/${item.reservationId}`)"
+          >
+            <div class="flex items-start justify-between gap-2">
+              <div class="min-w-0">
+                <p class="text-xs font-medium text-gray-500">{{ formatDate(item.date) }}</p>
+                <p class="truncate text-sm font-semibold text-gray-900">{{ item.guestName }}</p>
+                <p class="truncate text-xs text-gray-600">{{ item.unitLabel }}</p>
+                <p class="text-xs text-gray-500">{{ item.pax }} personas</p>
+              </div>
+              <ReservationBadge :status="item.status" />
+            </div>
+          </button>
+        </div>
+      </div>
+    </div>
+
     <div
       v-if="tooltip.visible && periodPreset !== 'today'"
       ref="tooltipRef"
@@ -383,6 +438,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { supabase } from '../services/supabase'
 import { useAccountStore } from '../stores/account'
 import BottomSheet from '../components/ui/BottomSheet.vue'
+import ReservationBadge from '../components/ui/ReservationBadge.vue'
 import { useBreakpoint } from '../composables/useBreakpoint'
 
 const route = useRoute()
@@ -780,8 +836,9 @@ const calendarMetrics = computed(() => {
 
   let occupiedUnitDays = 0
   let arrivals = 0
-  let totalGuests = 0
-  const seenReservations = new Set()
+  let departures = 0
+  const seenArrivals = new Set()
+  const seenDepartures = new Set()
 
   filteredOccupancies.value.forEach((occ) => {
     if (occ.occupancy_type !== 'reservation') return
@@ -792,17 +849,78 @@ const calendarMetrics = computed(() => {
 
     occupiedUnitDays += Math.round((new Date(end) - new Date(start)) / 86400000)
 
-    const checkIn = occ.reservations?.check_in || occ.start_date
     const resId = occ.reservation_id || occ.id
-    if (!seenReservations.has(resId) && checkIn >= periodFrom.value && checkIn <= periodTo.value) {
-      seenReservations.add(resId)
+    const checkIn = occ.reservations?.check_in || occ.start_date
+    if (!seenArrivals.has(resId) && checkIn >= periodFrom.value && checkIn <= periodTo.value) {
+      seenArrivals.add(resId)
       arrivals++
-      totalGuests += Number(occ.reservations?.adults || 0) + Number(occ.reservations?.children || 0)
+    }
+
+    const checkOut = occ.reservations?.check_out || occ.end_date
+    if (!seenDepartures.has(resId) && checkOut >= periodFrom.value && checkOut <= periodTo.value) {
+      seenDepartures.add(resId)
+      departures++
     }
   })
 
   const occupancyPct = totalUnitDays > 0 ? Math.round((occupiedUnitDays / totalUnitDays) * 100) : 0
-  return { occupancyPct, arrivals, totalGuests }
+  return { occupancyPct, arrivals, departures }
+})
+
+const periodoEntradas = computed(() => {
+  if (!periodFrom.value || !periodTo.value) return []
+  const map = new Map()
+  filteredOccupancies.value
+    .filter((occ) => occ.occupancy_type === 'reservation')
+    .forEach((occ) => {
+      const checkIn = occ.reservations?.check_in || occ.start_date
+      if (checkIn < periodFrom.value || checkIn > periodTo.value) return
+      const key = occ.reservation_id || occ.id
+      if (!map.has(key)) {
+        map.set(key, {
+          key,
+          date: checkIn,
+          guestName: occ.reservations?.guest_name || '-',
+          pax: Number(occ.reservations?.adults || 0) + Number(occ.reservations?.children || 0),
+          status: occ.reservations?.status || '',
+          unitNames: [],
+          reservationId: occ.reservation_id,
+        })
+      }
+      const name = occ.units?.name
+      if (name && !map.get(key).unitNames.includes(name)) map.get(key).unitNames.push(name)
+    })
+  return Array.from(map.values())
+    .map((e) => ({ ...e, unitLabel: e.unitNames.join(', ') }))
+    .sort((a, b) => a.date.localeCompare(b.date))
+})
+
+const periodoSalidas = computed(() => {
+  if (!periodFrom.value || !periodTo.value) return []
+  const map = new Map()
+  filteredOccupancies.value
+    .filter((occ) => occ.occupancy_type === 'reservation')
+    .forEach((occ) => {
+      const checkOut = occ.reservations?.check_out || occ.end_date
+      if (checkOut < periodFrom.value || checkOut > periodTo.value) return
+      const key = occ.reservation_id || occ.id
+      if (!map.has(key)) {
+        map.set(key, {
+          key,
+          date: checkOut,
+          guestName: occ.reservations?.guest_name || '-',
+          pax: Number(occ.reservations?.adults || 0) + Number(occ.reservations?.children || 0),
+          status: occ.reservations?.status || '',
+          unitNames: [],
+          reservationId: occ.reservation_id,
+        })
+      }
+      const name = occ.units?.name
+      if (name && !map.get(key).unitNames.includes(name)) map.get(key).unitNames.push(name)
+    })
+  return Array.from(map.values())
+    .map((e) => ({ ...e, unitLabel: e.unitNames.join(', ') }))
+    .sort((a, b) => a.date.localeCompare(b.date))
 })
 
 const todayAgendaEvents = computed(() => {
@@ -872,7 +990,7 @@ async function fetchOccupancies() {
     const accountId = accountStore.getRequiredAccountId()
     const { data } = await supabase
       .from('occupancies')
-        .select('id, unit_id, start_date, end_date, occupancy_type, reservation_id, inquiry_id, notes, units(name, venue_id, venues(name)), reservations(id, guest_name, adults, children, source, source_detail_info:source_details!reservations_source_detail_id_fkey(label_es), total_amount, paid_amount, check_in, check_out)')
+        .select('id, unit_id, start_date, end_date, occupancy_type, reservation_id, inquiry_id, notes, units(name, venue_id, venues(name)), reservations(id, guest_name, adults, children, source, source_detail_info:source_details!reservations_source_detail_id_fkey(label_es), total_amount, paid_amount, check_in, check_out, status)')
       .eq('account_id', accountId)
       .lt('start_date', toExclusive)
       .gte('end_date', periodFrom.value)
