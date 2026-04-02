@@ -1023,7 +1023,8 @@ const copyPreregistroLink = async () => {
   }
 
   const rawPath = String(data?.checkin_url || '')
-  const fullUrl = rawPath.startsWith('http') ? rawPath : `${window.location.origin}${rawPath}`
+  const appOrigin = (import.meta.env.VITE_APP_URL || window.location.origin).replace(/\/$/, '')
+  const fullUrl = rawPath.startsWith('http') ? rawPath : `${appOrigin}${rawPath}`
 
   await navigator.clipboard.writeText(fullUrl)
   toast.success('Link copiado al portapapeles')
