@@ -243,7 +243,7 @@ const goBack = () => {
 }
 
 const printQuotation = () => {
-  window.print()
+  window.open(`/consultas/${route.params.id}/cotizacion/print`, '_blank')
 }
 
 const handleCopyWhatsApp = async () => {

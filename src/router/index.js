@@ -50,6 +50,12 @@ const router = createRouter({
       meta: { requiresAuth: true, plainLayout: true }
     },
     {
+      path: '/reservas/:id/voucher/print',
+      name: 'voucher-reserva-print',
+      component: () => import('../views/VoucherPrintView.vue'),
+      meta: { requiresAuth: true, plainLayout: true }
+    },
+    {
       path: '/consultas',
       name: 'consultas',
       component: () => import('../views/InquiriesView.vue'),
@@ -65,6 +71,12 @@ const router = createRouter({
       path: '/consultas/:id/cotizacion',
       name: 'cotizacion-consulta',
       component: () => import('../views/QuotationView.vue'),
+      meta: { requiresAuth: true, plainLayout: true }
+    },
+    {
+      path: '/consultas/:id/cotizacion/print',
+      name: 'cotizacion-consulta-print',
+      component: () => import('../views/QuotationPrintView.vue'),
       meta: { requiresAuth: true, plainLayout: true }
     },
     {

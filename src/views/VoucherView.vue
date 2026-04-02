@@ -278,7 +278,7 @@ const goBack = () => {
 }
 
 const printVoucher = () => {
-  window.print()
+  window.open(`/reservas/${route.params.id}/voucher/print`, '_blank')
 }
 
 const handleCopyWhatsApp = async () => {

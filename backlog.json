@@ -70,6 +70,7 @@
     { "id": 68, "t": "Eliminar payment_deadline — no aplica al modelo de negocio", "c": "Ajuste UI", "s": "d" },
     { "id": 69, "t": "Catálogo centralizado de variables y generación dinámica de prompt IA", "c": "Feature", "s": "d" },
     { "id": 70, "t": "Flujo de estados â€" checkin, checkout, finalizar anticipado, devoluciÃ³n", "c": "Feature", "s": "d" },
-    { "id": 72, "t": "Dashboard â€" widget entradas/salidas, separar alertas de notificaciones, push en alertas", "c": "Feature", "s": "d" }
+    { "id": 72, "t": "Dashboard â€" widget entradas/salidas, separar alertas de notificaciones, push en alertas", "c": "Feature", "s": "d" },
+    { "id": 73, "t": "Documentos PDF — vista de impresión dedicada con encabezado y footer por página", "c": "Feature", "s": "d" }
   ]
 }
