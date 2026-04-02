@@ -68,6 +68,7 @@
     { "id": 66, "t": "Motor Mustache — bloques iterantes y condicionales en editor de mensajes", "c": "Feature", "s": "d" },
     { "id": 67, "t": "Calendario — persistir estado de vista y periodo, volver con historial", "c": "Ajuste UI", "s": "d" },
     { "id": 68, "t": "Eliminar payment_deadline — no aplica al modelo de negocio", "c": "Ajuste UI", "s": "d" },
-    { "id": 69, "t": "Catálogo centralizado de variables y generación dinámica de prompt IA", "c": "Feature", "s": "d" }
+    { "id": 69, "t": "Catálogo centralizado de variables y generación dinámica de prompt IA", "c": "Feature", "s": "d" },
+    { "id": 70, "t": "Flujo de estados — checkin, checkout, finalizar anticipado, devolución", "c": "Feature", "s": "d" }
   ]
 }

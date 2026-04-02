@@ -39,7 +39,7 @@
               <p class="mb-1 font-mono text-xs text-gray-500">{{ res.reservation_number || '' }} · {{ reservationReferenceDisplay }}</p>
               <div class="flex items-center gap-3 mb-2">
                 <h1 class="text-2xl font-semibold text-gray-900">{{ guestDisplayName }}</h1>
-                <ReservationBadge :status="res.status" class="cursor-pointer hover:ring-2 ring-offset-1 transition-all" @click="openStatusModal" title="Cambiar estado" />
+                <ReservationBadge :status="res.status" />
               </div>
               <p class="text-gray-500 text-sm flex items-center gap-2">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
@@ -216,27 +216,68 @@
           </div>
         </div>
 
+        <!-- Acciones por estado -->
         <div class="card">
-          <h2 class="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wider">Check-in físico</h2>
+          <h2 class="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wider">Acciones</h2>
 
-          <div v-if="res.checkin_at" class="space-y-2 text-sm text-gray-700">
-            <p class="inline-flex rounded-full bg-indigo-100 px-2.5 py-1 text-xs font-semibold text-indigo-700">Llegada registrada</p>
-            <p>Registrado: <span class="font-medium text-gray-900">{{ formatDateTime(res.checkin_at) }}</span></p>
-          </div>
-
-          <div v-else-if="res.status === 'confirmed'" class="space-y-3 text-sm text-gray-700">
-            <p class="text-gray-600">Registrar la llegada real del huésped cambia el estado de la reserva a in_stay.</p>
+          <!-- confirmed: registrar llegada -->
+          <div v-if="res.status === 'confirmed'" class="space-y-3">
+            <p class="text-sm text-gray-600">Registra la llegada física del huésped para cambiar la reserva a "En estadía".</p>
             <button
               v-if="can('reservations', 'checkin')"
               class="touch-target w-full rounded-md bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-100"
-              @click="openCheckinConfirmModal"
+              @click="showCheckinModal = true"
             >
               Registrar llegada
             </button>
           </div>
 
+          <!-- in_stay: registrar salida o finalizar anticipado -->
+          <div v-else-if="res.status === 'in_stay'" class="space-y-3">
+            <div class="space-y-2 text-sm text-gray-700">
+              <p v-if="res.checkin_at">Llegada: <span class="font-medium text-gray-900">{{ formatDateTime(res.checkin_at) }}</span></p>
+            </div>
+            <button
+              v-if="can('reservations', 'edit') && isCheckoutDay"
+              class="touch-target w-full rounded-md bg-indigo-50 px-3 py-2 text-sm font-medium text-indigo-700 hover:bg-indigo-100"
+              @click="showCheckoutModal = true"
+            >
+              Registrar salida
+            </button>
+            <p v-else-if="can('reservations', 'edit') && !isCheckoutDay" class="text-xs text-gray-400 text-center">
+              Salida disponible el {{ formatDate(res.check_out) }}
+            </p>
+            <button
+              v-if="can('reservations', 'edit')"
+              class="touch-target w-full rounded-md bg-amber-50 px-3 py-2 text-sm font-medium text-amber-700 hover:bg-amber-100"
+              @click="showFinalizeModal = true"
+            >
+              Finalizar anticipadamente
+            </button>
+          </div>
+
+          <!-- completed -->
+          <div v-else-if="res.status === 'completed'" class="space-y-2 text-sm text-gray-700">
+            <p class="inline-flex rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700">Estadía completada</p>
+            <p v-if="res.checkout_date">Salida: <span class="font-medium text-gray-900">{{ formatDateTime(res.checkout_date) }}</span></p>
+            <p v-if="res.finalization_notes" class="text-xs text-gray-500">{{ res.finalization_notes }}</p>
+          </div>
+
+          <!-- finalized -->
+          <div v-else-if="res.status === 'finalized'" class="space-y-2 text-sm text-gray-700">
+            <p class="inline-flex rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-700">Finalizada anticipadamente</p>
+            <p v-if="res.finalized_date">Salida: <span class="font-medium text-gray-900">{{ formatDateTime(res.finalized_date) }}</span></p>
+            <p v-if="res.finalization_reason">Motivo: <span class="font-medium text-gray-900">{{ getFinalizationReasonLabel(res.finalization_reason) }}</span></p>
+            <p v-if="res.finalization_notes" class="text-xs text-gray-500">{{ res.finalization_notes }}</p>
+          </div>
+
+          <!-- cancelled -->
+          <div v-else-if="res.status === 'cancelled'" class="text-sm text-gray-500">
+            Esta reserva ha sido cancelada.
+          </div>
+
           <div v-else class="text-sm text-gray-500">
-            La llegada física solo se registra desde estado confirmed.
+            No hay acciones disponibles.
           </div>
         </div>
         <!-- Occupancy sync alert -->
@@ -271,8 +312,8 @@
           </button>
         </div>
 
-        <!-- Danger Zone -->
-        <div class="card border-red-100 bg-red-50/30">
+        <!-- Danger Zone: solo para confirmed -->
+        <div v-if="res.status === 'confirmed'" class="card border-red-100 bg-red-50/30">
           <h2 class="text-sm font-semibold text-red-800 mb-2">Zona de Peligro</h2>
           <p class="text-xs text-red-600 mb-4">Al cancelar una reserva, se liberarán las fechas en el calendario inmediatamente.</p>
           <button @click="openCancelModal" class="touch-target w-full rounded-md border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-700 transition-colors hover:bg-red-50">
@@ -370,14 +411,28 @@
       @confirm="confirmDeletePayment"
     />
 
-    <ConfirmActionModal
-      :isOpen="showCheckinConfirmModal"
-      title="Registrar llegada"
-      :message="checkinConfirmationMessage"
-      confirmLabel="Confirmar llegada"
-      :loading="checkinSubmitting"
-      @close="closeCheckinConfirmModal"
-      @confirm="confirmCheckin"
+    <CheckinModal
+      v-if="res"
+      :isOpen="showCheckinModal"
+      :reservation="res"
+      @close="showCheckinModal = false"
+      @saved="fetchReservation"
+    />
+
+    <CheckoutModal
+      v-if="res"
+      :isOpen="showCheckoutModal"
+      :reservation="res"
+      @close="showCheckoutModal = false"
+      @saved="fetchReservation"
+    />
+
+    <FinalizeModal
+      v-if="res"
+      :isOpen="showFinalizeModal"
+      :reservation="res"
+      @close="showFinalizeModal = false"
+      @saved="fetchReservation"
     />
 
     <StatusChangeModal
@@ -417,6 +472,10 @@ import ConfirmActionModal from '../components/ui/ConfirmActionModal.vue'
 import PreRegistroForm from '../components/preregistro/PreRegistroForm.vue'
 import PaymentModal from '../components/payments/PaymentModal.vue'
 import StatusChangeModal from '../components/reservations/StatusChangeModal.vue'
+import CheckinModal from '../components/reservations/CheckinModal.vue'
+import CheckoutModal from '../components/reservations/CheckoutModal.vue'
+import FinalizeModal from '../components/reservations/FinalizeModal.vue'
+import { getFinalizationReasonLabel } from '../utils/reservationUtils'
 import MessagesPanel from '../components/messages/MessagesPanel.vue'
 import { completeReservationPreregistro } from '../services/preregistro'
 import { getCommissionSummary, getReservationGuestName, getReservationGuestPhone } from '../utils/reservations'
@@ -454,6 +513,9 @@ const showPaymentModal = ref(false)
 const showDeletePaymentModal = ref(false)
 const deletingPayment = ref(false)
 const selectedPayment = ref(null)
+const showCheckinModal = ref(false)
+const showCheckoutModal = ref(false)
+const showFinalizeModal = ref(false)
 const showCheckinConfirmModal = ref(false)
 const checkinSubmitting = ref(false)
 const occupancyRowCount = ref(0)
@@ -565,6 +627,12 @@ const nightsCount = computed(() => {
   const start = new Date(res.value.check_in)
   const end = new Date(res.value.check_out)
   return Math.ceil((end - start) / (1000 * 60 * 60 * 24))
+})
+
+const isCheckoutDay = computed(() => {
+  if (!res.value?.check_out) return false
+  const today = new Date().toISOString().slice(0, 10)
+  return res.value.check_out.slice(0, 10) === today
 })
 
 const totalPaid = computed(() => {

@@ -3,6 +3,13 @@
     <form class="space-y-5" @submit.prevent="submitPayment">
       <AppFormSection title="Datos del pago" :divider="true">
         <AppFormGrid :columns="2">
+          <AppSelect
+            v-model="form.type"
+            label="Tipo"
+            :options="typeOptions"
+            placeholder="Selecciona tipo"
+          />
+
           <AppInput
             v-model="form.amount"
             type="number"
@@ -51,7 +58,10 @@
           <div class="space-y-2 text-sm text-[#111827]">
             <p class="flex justify-between"><span>Total reserva:</span><span class="font-medium">{{ formatCop(totalAmount) }}</span></p>
             <p class="flex justify-between"><span>Ya pagado:</span><span class="font-medium">{{ formatCop(paidAmount) }}</span></p>
-            <p class="flex justify-between"><span>Este pago:</span><span class="font-medium">{{ formatCop(liveAmount) }}</span></p>
+            <p class="flex justify-between" :class="form.type === 'refund' ? 'text-amber-600' : ''">
+              <span>{{ form.type === 'refund' ? 'Esta devolución:' : 'Este pago:' }}</span>
+              <span class="font-medium">{{ form.type === 'refund' ? '-' : '' }}{{ formatCop(liveAmount) }}</span>
+            </p>
           </div>
           <template #footer>
             <p class="flex justify-between text-sm font-semibold" :class="pendingAfterPayment > 0 ? 'text-[#EF4444]' : 'text-[#10B981]'">
@@ -68,7 +78,7 @@
       </AppFormSection>
 
       <AppFormActions
-        submit-label="Registrar pago"
+        :submit-label="form.type === 'refund' ? 'Registrar devolución' : 'Registrar pago'"
         cancel-label="Cancelar"
         :loading="saving"
         :submit-disabled="saving || !isFormValid"
@@ -117,6 +127,7 @@ const todayIso = () => {
 }
 
 const form = reactive({
+  type: 'payment',
   amount: '',
   method: '',
   reference: '',
@@ -141,6 +152,11 @@ const submitAttempted = computed(() => state.submitAttempted)
 const state = reactive({ saving: false, submitAttempted: false })
 const saving = computed(() => state.saving)
 
+const typeOptions = [
+  { value: 'payment', label: 'Pago' },
+  { value: 'refund', label: 'Devolución' },
+]
+
 const methodOptions = [
   { value: 'efectivo', label: 'Efectivo' },
   { value: 'transferencia', label: 'Transferencia' },
@@ -150,6 +166,7 @@ const methodOptions = [
 ]
 
 const resetForm = () => {
+  form.type = 'payment'
   form.amount = ''
   form.method = ''
   form.reference = ''
@@ -184,8 +201,12 @@ const liveAmount = computed(() => {
   return value > 0 ? value : 0
 })
 
+const signedAmount = computed(() => {
+  return form.type === 'refund' ? -liveAmount.value : liveAmount.value
+})
+
 const pendingAfterPayment = computed(() => {
-  const pending = Number(props.totalAmount || 0) - Number(props.paidAmount || 0) - liveAmount.value
+  const pending = Number(props.totalAmount || 0) - Number(props.paidAmount || 0) - signedAmount.value
   return pending > 0 ? pending : 0
 })
 
@@ -264,7 +285,7 @@ const submitPayment = async () => {
       .insert({
         account_id: accountId,
         reservation_id: props.reservationId,
-        amount: Number(form.amount),
+        amount: signedAmount.value,
         method: form.method,
         reference: form.reference || null,
         payment_date: form.paymentDate,

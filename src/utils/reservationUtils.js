@@ -1,21 +1,34 @@
 export const STATUS_LABELS = {
   confirmed: 'Confirmada',
   in_stay: 'En estadía',
-  completed: 'Finalizada',
+  completed: 'Completada',
+  finalized: 'Finalizada anticipada',
   cancelled: 'Cancelada'
 }
 
 export const RESERVATION_TRANSITIONS = {
-  confirmed: ['completed', 'cancelled'],
-  in_stay: ['completed', 'cancelled'],
+  confirmed: ['cancelled'],
+  in_stay: [],
   completed: [],
+  finalized: [],
   cancelled: []
 }
 
 export const getAvailableTransitions = (status) => {
-  const transitions = RESERVATION_TRANSITIONS[status] || []
-  // Check-in physical is handled by a dedicated action, never through this modal.
-  return transitions.filter((candidate) => candidate !== 'in_stay')
+  return RESERVATION_TRANSITIONS[status] || []
+}
+
+export const FINALIZATION_REASONS = [
+  { value: 'voluntary', label: 'El huésped decidió retirarse antes de tiempo' },
+  { value: 'incident',  label: 'Se presentó un inconveniente con la unidad o el servicio' },
+  { value: 'policy',    label: 'Incumplimiento de las normas del alojamiento' },
+  { value: 'mutual',    label: 'Acuerdo mutuo entre el huésped y el alojamiento' },
+  { value: 'other',     label: 'Otra razón' },
+]
+
+export const getFinalizationReasonLabel = (value) => {
+  if (!value) return '-'
+  return FINALIZATION_REASONS.find((r) => r.value === value)?.label || value
 }
 
 export const getStatusLabel = (status) => {
