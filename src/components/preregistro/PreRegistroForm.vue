@@ -22,17 +22,20 @@
             label="Tipo de documento"
             :options="documentTypeOptions"
             placeholder="Sin definir"
+            required
           />
-          <AppInput v-model="primaryGuest.document_number" label="Número de documento" inputmode="numeric" />
+          <AppInput v-model="primaryGuest.document_number" label="Número de documento" inputmode="numeric" required />
         </AppFormGrid>
 
         <AppFormGrid :columns="2">
-          <AppInput v-model="primaryGuest.phone" label="Teléfono" />
-          <AppInput v-model="primaryGuest.email" type="email" label="Email" />
+          <AppInput v-model="primaryGuest.phone" label="Teléfono" required />
+          <AppInput v-model="primaryGuest.email" type="email" label="Email" required />
         </AppFormGrid>
 
-        <AppInput v-model="primaryGuest.nationality" label="Nacionalidad" />
-        <AppInput v-model="primaryGuest.birth_date" type="date" label="Fecha de nacimiento" required />
+        <AppFormGrid :columns="2">
+          <AppInput v-model="primaryGuest.nationality" label="Nacionalidad" required />
+          <AppInput v-model="primaryGuest.birth_date" type="date" label="Fecha de nacimiento" required />
+        </AppFormGrid>
       </AppFormSection>
 
       <AppFieldGroup :border="true" :compact="true" title="Acompañantes" subtitle="Opcional">
@@ -66,17 +69,19 @@
             <AppInput v-model="guest.document_number" label="Número de documento" inputmode="numeric" />
           </AppFormGrid>
 
-          <AppInput v-model="guest.nationality" label="Nacionalidad" />
-          <AppInput v-model="guest.birth_date" type="date" label="Fecha de nacimiento" />
+          <AppFormGrid :columns="2">
+            <AppInput v-model="guest.nationality" label="Nacionalidad" />
+            <AppInput v-model="guest.birth_date" type="date" label="Fecha de nacimiento" />
+          </AppFormGrid>
         </AppFormSection>
       </AppFieldGroup>
 
       <div class="pb-20 sm:pb-0">
         <AppFormActions
-          submit-label="Completar pre-registro"
+          submit-label="Guardar"
           cancel-label="Cancelar"
           :loading="submitting"
-          :submit-disabled="submitting || !primaryGuest.name.trim()"
+          :submit-disabled="submitting || !primaryGuest.name.trim() || !primaryGuest.document_type || !primaryGuest.document_number.trim() || !primaryGuest.phone.trim() || !primaryGuest.email.trim() || !primaryGuest.nationality.trim() || !primaryGuest.birth_date"
           @submit="submitForm"
           @cancel="emit('cancel')"
         />

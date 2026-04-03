@@ -179,11 +179,8 @@
           <h2 class="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wider">Pre-registro de huéspedes</h2>
 
           <div v-if="res.preregistro_completado" class="space-y-3 text-sm text-gray-700">
-            <div class="flex flex-wrap gap-2">
-              <p class="inline-flex rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700">Completado âœ“</p>
-              <p v-if="preregistroEval.isComplete" class="inline-flex rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700">Completo &#x2713;</p>
-              <p v-else class="inline-flex rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-700">Incompleto &#x2717;</p>
-            </div>
+            <p v-if="preregistroEval.isComplete" class="inline-flex rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700">Completo &#x2713;</p>
+            <p v-else class="inline-flex rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-700">Incompleto &#x2717;</p>
             <p v-if="!preregistroEval.isComplete && preregistroEval.companionsExpected > 0" class="text-xs text-amber-700">
               Faltan {{ preregistroEval.companionsExpected - preregistroEval.companionsRegistered }} acompa&ntilde;ante(s) por registrar
             </p>
@@ -192,17 +189,38 @@
               <span class="font-medium text-gray-900">{{ formatDateTime(res.preregistro_completado_at) }}</span>
             </p>
 
-            <div class="rounded-md border border-gray-200 bg-gray-50 p-3">
-              <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Huéspedes registrados</p>
-              <div v-if="registeredGuests.length === 0" class="text-sm text-gray-500">No hay huéspedes nominales registrados.</div>
-              <div v-else class="space-y-2">
-                <div v-for="guest in registeredGuests" :key="`rg-${guest.id}`" class="rounded border border-gray-200 bg-white px-3 py-2">
-                  <p class="text-sm font-medium text-gray-900">{{ guest.name || 'Sin nombre' }}</p>
-                  <p class="text-xs text-gray-600">{{ guest.documentLabel }}</p>
-                  <p class="text-xs text-gray-600">{{ guest.nationality || 'Nacionalidad no registrada' }}</p>
-                  <p class="text-xs font-semibold" :class="guest.is_primary ? 'text-indigo-700' : 'text-gray-500'">
-                    {{ guest.is_primary ? 'Principal' : 'Acompañante' }}
-                  </p>
+            <div v-if="!preregistroEval.isComplete && (res.status === 'confirmed' || res.status === 'in_stay')" class="space-y-2">
+              <button v-if="can('reservations', 'edit')" class="touch-target w-full rounded-md bg-gray-100 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200" @click="showPreregistroModal = true">
+                Completar pre-registro
+              </button>
+              <button v-if="can('reservations', 'edit')" class="touch-target w-full rounded-md bg-primary/10 px-3 py-2 text-sm font-medium text-primary hover:bg-primary/15" @click="copyWhatsappPreregistroMessage">
+                Copiar mensaje WhatsApp
+              </button>
+              <button v-if="can('reservations', 'edit')" class="touch-target w-full rounded-md bg-gray-100 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200" @click="copyPreregistroLink">
+                Copiar link
+              </button>
+            </div>
+
+            <div class="rounded-md border border-gray-200 bg-gray-50">
+              <button
+                type="button"
+                class="flex w-full items-center justify-between px-3 py-2 text-xs font-semibold uppercase tracking-wide text-gray-500 hover:bg-gray-100"
+                @click="showRegisteredGuests = !showRegisteredGuests"
+              >
+                <span>Huéspedes registrados ({{ registeredGuests.length }})</span>
+                <span>{{ showRegisteredGuests ? '▲' : '▼' }}</span>
+              </button>
+              <div v-if="showRegisteredGuests" class="p-3 pt-0">
+                <div v-if="registeredGuests.length === 0" class="text-sm text-gray-500">No hay huéspedes nominales registrados.</div>
+                <div v-else class="space-y-2">
+                  <div v-for="guest in registeredGuests" :key="`rg-${guest.id}`" class="rounded border border-gray-200 bg-white px-3 py-2">
+                    <p class="text-sm font-medium text-gray-900">{{ guest.name || 'Sin nombre' }}</p>
+                    <p class="text-xs text-gray-600">{{ guest.documentLabel }}</p>
+                    <p class="text-xs text-gray-600">{{ guest.nationality || 'Nacionalidad no registrada' }}</p>
+                    <p class="text-xs font-semibold" :class="guest.is_primary ? 'text-indigo-700' : 'text-gray-500'">
+                      {{ guest.is_primary ? 'Principal' : 'Acompañante' }}
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -533,6 +551,7 @@ const checkinSubmitting = ref(false)
 const occupancyRowCount = ref(0)
 const syncingOccupancy = ref(false)
 const showMessagesPanel = ref(false)
+const showRegisteredGuests = ref(false)
 const profile = ref({})
 const accountSettings = ref({})
 const predefinedMessages = ref([])
