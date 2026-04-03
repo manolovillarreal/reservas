@@ -29,7 +29,7 @@
             </div>
             <div class="flex items-center justify-between gap-3">
               <dt class="text-gray-500">País</dt>
-              <dd class="text-gray-900">{{ guest.nationality || '-' }}</dd>
+              <dd class="text-gray-900">{{ nationalityDisplay(guest.nationality) }}</dd>
             </div>
             <div class="flex items-center justify-between gap-3">
               <dt class="text-gray-500">Fecha de nacimiento</dt>
@@ -90,7 +90,7 @@
         </AppFormSection>
 
         <AppFormSection title="Información adicional" :divider="false">
-          <AppInput v-model="editForm.nationality" label="Nacionalidad" />
+          <AppCountrySelect v-model="editForm.nationality" label="Nacionalidad" />
           <AppInput v-model="editForm.birth_date" type="date" label="Fecha de nacimiento" />
           <AppTextarea v-model="editForm.notes" label="Notas" :rows="2" :autoResize="true" />
         </AppFormSection>
@@ -111,6 +111,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
+import { countries, getEmojiFlag } from 'countries-list'
 import BaseModal from '../components/ui/BaseModal.vue'
 import DataCard from '../components/ui/DataCard.vue'
 import { useGuestsStore } from '../stores/guests'
@@ -123,7 +124,8 @@ import {
   AppTextarea,
   AppFormSection,
   AppFormGrid,
-  AppFormActions
+  AppFormActions,
+  AppCountrySelect
 } from '@/components/ui/forms'
 
 const route = useRoute()
@@ -224,6 +226,13 @@ const formatCop = (value) => new Intl.NumberFormat('es-CO', {
   currency: 'COP',
   maximumFractionDigits: 0
 }).format(Number(value || 0))
+
+const nationalityDisplay = (code) => {
+  if (!code) return '-'
+  const country = countries[code]
+  if (!country) return code
+  return `${getEmojiFlag(code)} ${country.name}`
+}
 
 const formatDocument = (item) => {
   if (!item?.document_number) return '-'

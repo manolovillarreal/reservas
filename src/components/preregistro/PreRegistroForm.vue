@@ -28,12 +28,19 @@
         </AppFormGrid>
 
         <AppFormGrid :columns="2">
-          <AppInput v-model="primaryGuest.phone" label="Teléfono" required />
+          <div v-if="isPublic && initialPrimaryGuest?.phone" class="space-y-1">
+            <label class="block text-sm font-medium text-[#6B7280]">Teléfono</label>
+            <div class="block min-h-[44px] w-full rounded-md border border-[#E5E7EB] bg-[#F8F9FC] px-3 py-2.5 text-sm text-[#111827]">
+              {{ primaryGuest.phone }}
+            </div>
+            <p class="text-xs text-gray-400">Si necesitas actualizar tu número de contacto, comunícate con el alojamiento.</p>
+          </div>
+          <AppInput v-else v-model="primaryGuest.phone" label="Teléfono" required />
           <AppInput v-model="primaryGuest.email" type="email" label="Email" required />
         </AppFormGrid>
 
         <AppFormGrid :columns="2">
-          <AppInput v-model="primaryGuest.nationality" label="Nacionalidad" required />
+          <AppCountrySelect v-model="primaryGuest.nationality" label="Nacionalidad" required />
           <AppInput v-model="primaryGuest.birth_date" type="date" label="Fecha de nacimiento" required />
         </AppFormGrid>
       </AppFormSection>
@@ -70,7 +77,7 @@
           </AppFormGrid>
 
           <AppFormGrid :columns="2">
-            <AppInput v-model="guest.nationality" label="Nacionalidad" />
+            <AppCountrySelect v-model="guest.nationality" label="Nacionalidad" />
             <AppInput v-model="guest.birth_date" type="date" label="Fecha de nacimiento" />
           </AppFormGrid>
         </AppFormSection>
@@ -81,7 +88,7 @@
           submit-label="Guardar"
           cancel-label="Cancelar"
           :loading="submitting"
-          :submit-disabled="submitting || !primaryGuest.name.trim() || !primaryGuest.document_type || !primaryGuest.document_number.trim() || !primaryGuest.phone.trim() || !primaryGuest.email.trim() || !primaryGuest.nationality.trim() || !primaryGuest.birth_date"
+          :submit-disabled="submitting || !primaryGuest.name.trim() || !primaryGuest.document_type || !primaryGuest.document_number.trim() || !primaryGuest.phone.trim() || !primaryGuest.email.trim() || !primaryGuest.nationality || !primaryGuest.birth_date"
           @submit="submitForm"
           @cancel="emit('cancel')"
         />
@@ -99,7 +106,8 @@ import {
   AppFormSection,
   AppInlineAlert,
   AppFormGrid,
-  AppFormActions
+  AppFormActions,
+  AppCountrySelect
 } from '@/components/ui/forms'
 
 const props = defineProps({
