@@ -3,20 +3,18 @@
     <h2 class="text-base font-semibold text-gray-900">Consulta de disponibilidad</h2>
 
     <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
-      <AppDatePicker
-        v-model="checkIn"
-        label="Check-in"
-        :min="todayIso"
-        :error="touched.checkIn && !checkIn ? 'Requerido' : ''"
-        @update:modelValue="onDateChange"
-      />
-      <AppDatePicker
-        v-model="checkOut"
-        label="Check-out"
-        :min="checkIn || todayIso"
-        :error="touched.checkOut && checkOutError"
-        @update:modelValue="onDateChange"
-      />
+      <div class="sm:col-span-2">
+        <AppDateRangePicker
+          v-model="dateRange"
+          label-start="Check-in"
+          label-end="Check-out"
+          :min-date="todayIso"
+          :error-start="touched.checkIn && !checkIn ? 'Requerido' : ''"
+          :error-end="touched.checkOut ? checkOutError : ''"
+          @update:modelValue="onDateChange"
+          @blur="onDateBlur"
+        />
+      </div>
       <AppCounter
         v-model="personas"
         label="Personas"
@@ -95,7 +93,7 @@ import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAccountStore } from '../../stores/account'
 import { useAvailability } from '../../composables/useAvailability'
-import { AppDatePicker, AppCounter, AppInlineAlert } from '@/components/ui/forms'
+import { AppDateRangePicker, AppCounter, AppInlineAlert } from '@/components/ui/forms'
 
 const router = useRouter()
 const accountStore = useAccountStore()
@@ -105,6 +103,14 @@ const checkIn = ref('')
 const checkOut = ref('')
 const personas = ref(2)
 const touched = ref({ checkIn: false, checkOut: false })
+
+const dateRange = computed({
+  get: () => ({ start: checkIn.value || null, end: checkOut.value || null }),
+  set: (value) => {
+    checkIn.value = value?.start || ''
+    checkOut.value = value?.end || ''
+  }
+})
 
 const todayIso = new Date().toISOString().slice(0, 10)
 
@@ -126,6 +132,11 @@ const noAvailabilityMessage = computed(() => {
 const onDateChange = () => {
   // Reset results when dates change so stale data isn't shown
   if (checked.value) reset()
+}
+
+const onDateBlur = () => {
+  touched.value.checkIn = true
+  touched.value.checkOut = true
 }
 
 const verify = async () => {

@@ -28,24 +28,16 @@
       </p>
 
       <AppFormSection title="Fechas y personas" :divider="true">
-        <AppFormGrid :columns="2">
-          <AppDatePicker
-            v-model="form.check_in"
-            label="Check-in"
-            :min="todayIso"
-            :error="s1Touched.check_in && !form.check_in ? 'Requerido' : ''"
-            @blur="s1Touched.check_in = true"
-            @update:modelValue="onDatesChange"
-          />
-          <AppDatePicker
-            v-model="form.check_out"
-            label="Check-out"
-            :min="form.check_in || todayIso"
-            :error="s1Touched.check_out ? checkOutError : ''"
-            @blur="s1Touched.check_out = true"
-            @update:modelValue="onDatesChange"
-          />
-        </AppFormGrid>
+        <AppDateRangePicker
+          v-model="step1DateRange"
+          label-start="Check-in"
+          label-end="Check-out"
+          :min-date="todayIso"
+          :error-start="s1Touched.check_in && !form.check_in ? 'Requerido' : ''"
+          :error-end="s1Touched.check_out ? checkOutError : ''"
+          @update:modelValue="onDatesChange"
+          @blur="onStep1DateBlur"
+        />
 
         <AppFormGrid :columns="2">
           <AppCounter v-model="form.adults" label="Adultos" :min="1" :max="20" />
@@ -427,7 +419,7 @@ import {
   AppPhoneInput,
   AppCountrySelect,
   AppTextarea,
-  AppDatePicker,
+  AppDateRangePicker,
   AppCounter,
   AppToggle,
   AppFormGrid,
@@ -555,6 +547,14 @@ const checkOutError = computed(() => {
 })
 
 const canProceedStep1 = computed(() => !!form.value.check_in && !checkOutError.value)
+
+const step1DateRange = computed({
+  get: () => ({ start: form.value.check_in || null, end: form.value.check_out || null }),
+  set: (value) => {
+    form.value.check_in = value?.start || ''
+    form.value.check_out = value?.end || ''
+  }
+})
 
 const canProceedStep3 = computed(() =>
   !!form.value.guest_first_name?.trim() && !!form.value.guest_phone?.trim()
@@ -790,6 +790,11 @@ const prevFromPanels = () => {
 
 const onDatesChange = () => {
   if (avail.checked.value) avail.reset()
+}
+
+const onStep1DateBlur = () => {
+  s1Touched.value.check_in = true
+  s1Touched.value.check_out = true
 }
 
 // ── Guest search ───────────────────────────────────────
