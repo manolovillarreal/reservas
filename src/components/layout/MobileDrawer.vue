@@ -10,7 +10,7 @@
         >
           <header class="border-b border-[#374151] px-4 py-4">
             <div class="flex items-center gap-2">
-              <div class="h-8 w-8 rounded-[8px] bg-primary text-center leading-8 text-xs font-semibold text-white">TI</div>
+              <img :src="LogoImage" alt="TekMi Inn" class="h-8 w-8 rounded-[8px] object-contain">
               <div>
                 <p class="text-sm font-semibold text-[#F9FAFB]">TekMi Inn</p>
                 <p class="text-xs text-[#9CA3AF]">{{ accountStore.currentAccountName || 'Sin alojamiento' }}</p>
@@ -63,6 +63,7 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import LogoImage from '../../assets/logo.jpeg'
 import { supabase } from '../../services/supabase'
 import { useAccountStore } from '../../stores/account'
 import { useSourcesStore } from '../../stores/sources'

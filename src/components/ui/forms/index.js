@@ -1,5 +1,6 @@
 export { default as AppInput } from './AppInput.vue'
 export { default as AppCountrySelect } from './AppCountrySelect.vue'
+export { default as AppPhoneInput } from './AppPhoneInput.vue'
 export { default as AppSelect } from './AppSelect.vue'
 export { default as AppTextarea } from './AppTextarea.vue'
 export { default as AppDatePicker } from './AppDatePicker.vue'

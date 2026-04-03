@@ -110,6 +110,7 @@ export const useInquiriesStore = defineStore('inquiries', () => {
       reference_code: referenceCode,
       guest_name: payload.guest_name || null,
       guest_phone: payload.guest_phone || null,
+      phone_country_code: payload.phone_country_code || null,
       check_in: normalizeDate(payload.check_in),
       check_out: normalizeDate(payload.check_out),
       adults,
@@ -201,6 +202,7 @@ export const useInquiriesStore = defineStore('inquiries', () => {
     const updatePayload = {
       ...(payload.guest_name !== undefined && { guest_name: payload.guest_name || null }),
       ...(payload.guest_phone !== undefined && { guest_phone: payload.guest_phone || null }),
+      ...(payload.phone_country_code !== undefined && { phone_country_code: payload.phone_country_code || null }),
       ...(payload.check_in !== undefined && { check_in: normalizeDate(payload.check_in) }),
       ...(payload.check_out !== undefined && { check_out: normalizeDate(payload.check_out) }),
       ...(payload.adults !== undefined && { adults: Number(payload.adults || 1) }),

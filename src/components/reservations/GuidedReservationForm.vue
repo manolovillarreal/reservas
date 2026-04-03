@@ -152,11 +152,13 @@
           </div>
 
           <AppFormGrid :columns="2">
-            <AppInput
-              v-model="form.guest_phone"
+            <AppPhoneInput
+              :countryCode="form.guest_phone_country_code"
+              :phoneNumber="form.guest_phone"
               label="Teléfono"
               :error="s3Touched.guest_phone && !form.guest_phone?.trim() ? 'El teléfono es obligatorio.' : ''"
-              @blur="s3Touched.guest_phone = true"
+              @update:countryCode="form.guest_phone_country_code = $event"
+              @update:phoneNumber="e => { form.guest_phone = e; s3Touched.guest_phone = true }"
             />
             <AppInput
               v-model="form.guest_email"
@@ -374,6 +376,7 @@ import { supabase } from '../../services/supabase'
 import SourceSelector from '../sources/SourceSelector.vue'
 import {
   AppInput,
+  AppPhoneInput,
   AppTextarea,
   AppDatePicker,
   AppCounter,
@@ -450,6 +453,7 @@ const form = ref({
   guest_id: null,
   guest_name: '',
   guest_phone: '',
+  guest_phone_country_code: '+57',
   guest_email: '',
   notes: '',
   price_per_night: '',
@@ -741,6 +745,7 @@ const selectGuest = (guest) => {
   form.value.guest_id = guest.id
   form.value.guest_name = guest.name || ''
   form.value.guest_phone = guest.phone || ''
+  form.value.guest_phone_country_code = guest.phone_country_code || '+57'
   form.value.guest_email = guest.email || ''
   guestSearchOpen.value = false
 }
@@ -749,6 +754,7 @@ const clearGuestSelection = () => {
   form.value.guest_id = null
   form.value.guest_name = ''
   form.value.guest_phone = ''
+  form.value.guest_phone_country_code = '+57'
   form.value.guest_email = ''
 }
 
@@ -809,6 +815,7 @@ const save = async () => {
         : await guestsStore.getOrCreateGuestByPhone({
             name: form.value.guest_name,
             phone: form.value.guest_phone || null,
+            phone_country_code: form.value.guest_phone_country_code || '+57',
             email: form.value.guest_email || null
           })
 
@@ -821,7 +828,7 @@ const save = async () => {
           venue_id: form.value.venue_id || null,
           guest_id: guestRecord.id,
           guest_name: form.value.guest_name,
-          guest_phone: form.value.guest_phone,
+          guest_phone_country_code: form.value.guest_phone_country_code,
           unit_ids: form.value.unit_ids,
           price_per_night: form.value.price_per_night !== '' ? Number(form.value.price_per_night) : null,
           discount_percentage: Number(form.value.discount_percentage || 0),
@@ -863,6 +870,7 @@ const save = async () => {
         children: form.value.children,
         guest_name: form.value.guest_name,
         guest_phone: form.value.guest_phone,
+        phone_country_code: form.value.guest_phone_country_code,
         price_per_night: form.value.price_per_night !== '' ? Number(form.value.price_per_night) : null,
         discount_percentage: form.value.discount_percentage !== '' ? Number(form.value.discount_percentage) : 0,
         commission_percentage: form.value.commission_percentage !== '' ? Number(form.value.commission_percentage) : 0,

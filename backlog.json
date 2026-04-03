@@ -75,6 +75,7 @@
     { "id": 74, "t": "Ajustes varios — navegación atrás, full house automático, edición bloqueada post checkin", "c": "Ajuste UI", "s": "d" },
     { "id": 75, "t": "Pre-registro — fecha nacimiento, link acompañantes, mensaje WhatsApp, evaluación completo/incompleto", "c": "Feature", "s": "d" },
     { "id": 76, "t": "Pre-registro — URL limpia, Edge Function GET/POST pública, precargar datos huésped", "c": "Feature", "s": "d" },
-    { "id": 77, "t": "AppCountrySelect con bandera y búsqueda, teléfono solo lectura en pre-registro", "c": "Feature", "s": "d" }
+    { "id": 77, "t": "AppCountrySelect con bandera y búsqueda, teléfono solo lectura en pre-registro", "c": "Feature", "s": "d" },
+    { "id": 78, "t": "AppPhoneInput con indicativo, limpiar guest_name y phone de reservations", "c": "Feature", "s": "d" }
   ]
 }

@@ -237,7 +237,7 @@ async function _runCheckinDelDia(accountId) {
   const todayIso = new Date().toISOString().slice(0, 10)
   const { data: reservations } = await supabase
     .from('reservations')
-    .select('id, guest_name, check_in')
+    .select('id, guests(name), check_in')
     .eq('account_id', accountId)
     .eq('check_in', todayIso)
     .eq('status', 'confirmed')
@@ -246,7 +246,7 @@ async function _runCheckinDelDia(accountId) {
     if (await isDuplicateNotification(accountId, 'checkin_del_dia', res.id)) continue
     await createNotification(accountId, {
       type: 'checkin_del_dia',
-      title: `Check-in hoy: ${res.guest_name || 'Huésped'}`,
+      title: `Check-in hoy: ${res.guests?.name || 'Huésped'}`,
       message: 'Llegada programada para hoy',
       related_type: 'reservation',
       related_id: res.id,
@@ -264,7 +264,7 @@ async function _runCheckoutDelDia(accountId) {
   const todayIso = new Date().toISOString().slice(0, 10)
   const { data: reservations } = await supabase
     .from('reservations')
-    .select('id, guest_name, check_out')
+    .select('id, guests(name), check_out')
     .eq('account_id', accountId)
     .eq('check_out', todayIso)
     .in('status', ['confirmed', 'in_stay'])
@@ -273,7 +273,7 @@ async function _runCheckoutDelDia(accountId) {
     if (await isDuplicateNotification(accountId, 'checkout_del_dia', res.id)) continue
     await createNotification(accountId, {
       type: 'checkout_del_dia',
-      title: `Check-out hoy: ${res.guest_name || 'Huésped'}`,
+      title: `Check-out hoy: ${res.guests?.name || 'Huésped'}`,
       message: 'Salida programada para hoy',
       related_type: 'reservation',
       related_id: res.id,
@@ -291,7 +291,7 @@ async function _runCheckoutVencido(accountId) {
   const todayIso = new Date().toISOString().slice(0, 10)
   const { data: reservations } = await supabase
     .from('reservations')
-    .select('id, guest_name, check_out')
+    .select('id, guests(name), check_out')
     .eq('account_id', accountId)
     .eq('status', 'in_stay')
     .lt('check_out', todayIso)
@@ -323,7 +323,7 @@ async function _runPreregistroPending(accountId) {
 
   const { data: reservations } = await supabase
     .from('reservations')
-    .select('id, guest_name, check_in')
+    .select('id, guests(name), check_in')
     .eq('account_id', accountId)
     .eq('status', 'confirmed')
     .eq('preregistro_completado', false)
@@ -334,7 +334,7 @@ async function _runPreregistroPending(accountId) {
     if (await isDuplicateNotification(accountId, 'preregistro_pending', res.id)) continue
     await createNotification(accountId, {
       type: 'preregistro_pending',
-      title: `Pre-registro pendiente: ${res.guest_name || 'Huésped'}`,
+      title: `Pre-registro pendiente: ${res.guests?.name || 'Huésped'}`,
       message: `Check-in: ${formatDate(res.check_in)} (faltan ${days} días o menos)`,
       related_type: 'reservation',
       related_id: res.id,

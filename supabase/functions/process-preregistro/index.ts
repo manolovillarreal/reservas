@@ -8,6 +8,7 @@ type GuestInput = {
   document_type?: 'passport' | 'cedula' | 'dni' | 'foreign_id' | ''
   document_number?: string
   phone?: string
+  phone_country_code?: string
   email?: string
   birth_date?: string
 }
@@ -34,6 +35,7 @@ const sanitizeGuest = (guest: GuestInput) => {
     document_type: documentType,
     document_number: documentNumber,
     phone: normalizeValue(guest.phone),
+    phone_country_code: normalizeValue(guest.phone_country_code) || '+57',
     email: normalizeValue(guest.email),
     document: documentNumber,
     birth_date: birthDate,
@@ -45,7 +47,7 @@ const getReservationByToken = async (client: ReturnType<typeof createClient>, to
 
   const { data, error } = await client
     .from('reservations')
-    .select('id, account_id, status, check_in, guest_id, guest_name, guest_phone, preregistro_completado')
+    .select('id, account_id, status, check_in, guest_id, preregistro_completado')
     .eq('preregistro_token', tokenHash)
     .maybeSingle()
 
@@ -78,6 +80,7 @@ const resolveGuest = async (
         document_type: payload.document_type || existing.document_type,
         document_number: payload.document_number || existing.document_number,
         phone: payload.phone || existing.phone,
+        phone_country_code: payload.phone_country_code || existing.phone_country_code || '+57',
         email: payload.email || existing.email,
         document: payload.document || existing.document,
         birth_date: payload.birth_date || existing.birth_date,
@@ -203,8 +206,6 @@ serve(async (req) => {
       .from('reservations')
       .update({
         guest_id: primaryGuest.id,
-        guest_name: primaryGuest.name,
-        guest_phone: primaryGuest.phone || reservation.guest_phone || null,
         preregistro_completado: true,
         preregistro_completado_at: new Date().toISOString(),
       })

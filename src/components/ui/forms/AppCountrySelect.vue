@@ -67,8 +67,8 @@
 
 <script setup>
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
-import { countries, getEmojiFlag } from 'countries-list'
 import AppFieldHint from './AppFieldHint.vue'
+import { PRIORITY_COUNTRY_CODES, allCountries } from '../../../utils/countryUtils'
 
 const props = defineProps({
   modelValue: { type: String, default: '' },
@@ -88,50 +88,7 @@ const searchQuery = ref('')
 const isOpen = ref(false)
 const isFocused = ref(false)
 
-// Priority countries shown first
-const PRIORITY_CODES =  [
-  'CO', // Colombia
-  'AR', // Argentina
-  'BO', // Bolivia
-  'BR', // Brasil
-  'CA', // Canadá
-  'CL', // Chile
-  'CR', // Costa Rica
-  'CU', // Cuba
-  'DO', // República Dominicana
-  'EC', // Ecuador
-  'ES', // España
-  'GT', // Guatemala
-  'HN', // Honduras
-  'IT', // Italia
-  'MX', // México
-  'NI', // Nicaragua
-  'PA', // Panamá
-  'PE', // Perú
-  'PY', // Paraguay
-  'SV', // El Salvador
-  'US', // Estados Unidos
-  'UY', // Uruguay
-  'VE', // Venezuela
-]
-
-const allCountries = (() => {
-  const list = Object.entries(countries).map(([code, data]) => ({
-    code,
-    name: data.name,
-    emoji: getEmojiFlag(code),
-  }))
-
-  const priority = PRIORITY_CODES
-    .map((code) => list.find((c) => c.code === code))
-    .filter(Boolean)
-
-  const rest = list
-    .filter((c) => !PRIORITY_CODES.includes(c.code))
-    .sort((a, b) => a.name.localeCompare(b.name))
-
-  return [...priority, ...rest]
-})()
+// Priority countries shown first (imported from countryUtils for centralized management)
 
 const selectedCountry = computed(() =>
   props.modelValue ? allCountries.find((c) => c.code === props.modelValue) || null : null
@@ -147,7 +104,7 @@ const selectedFlag = computed(() =>
 
 const filteredCountries = computed(() => {
   const q = searchQuery.value.trim().toLowerCase()
-  if (!q) return allCountries.slice(0, PRIORITY_CODES.length)
+  if (!q) return allCountries.slice(0, PRIORITY_COUNTRY_CODES.length)
   return allCountries
     .filter((c) => c.name.toLowerCase().includes(q))
     .slice(0, 8)

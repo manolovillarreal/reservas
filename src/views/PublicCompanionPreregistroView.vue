@@ -87,12 +87,13 @@
 
             <div class="grid grid-cols-2 gap-4">
               <div>
-                <label class="block text-sm font-medium text-gray-700">Teléfono</label>
-                <input
-                  v-model="guest.phone"
-                  type="tel"
-                  class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                >
+                <AppPhoneInput
+                  :countryCode="guest.phone_country_code"
+                  :phoneNumber="guest.phone"
+                  label="Teléfono"
+                  @update:countryCode="guest.phone_country_code = $event"
+                  @update:phoneNumber="guest.phone = $event"
+                />
               </div>
               <div>
                 <label class="block text-sm font-medium text-gray-700">Email</label>
@@ -142,6 +143,7 @@ import { onMounted, reactive, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { supabase } from '../services/supabase'
 import AppCountrySelect from '../components/ui/forms/AppCountrySelect.vue'
+import AppPhoneInput from '../components/ui/forms/AppPhoneInput.vue'
 
 const FUNCTIONS_URL = (import.meta.env.VITE_SUPABASE_URL || '').replace(/\/$/, '') + '/functions/v1'
 const ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || ''
@@ -172,6 +174,7 @@ const buildGuest = () => ({
   document_type: '',
   document_number: '',
   phone: '',
+  phone_country_code: '+57',
   email: '',
   birth_date: '',
 })

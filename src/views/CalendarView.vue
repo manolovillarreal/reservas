@@ -188,7 +188,7 @@
             @mouseleave="closeDesktopTooltip"
             @click="onOccupancyClick($event, segment, segment.contextDate)"
           >
-            {{ getOccupancyDisplayLabel(segment, 'clasica') }}<span v-if="segment.occupancy_type === 'reservation' && segment.reservations?.guest_name" class="opacity-80"> · {{ segment.reservations.guest_name }}</span><span v-else-if="segment.occupancy_type === 'external' && getExternalSource(segment)" class="opacity-80"> · {{ getExternalSource(segment) }}</span>
+            {{ getOccupancyDisplayLabel(segment, 'clasica') }}<span v-if="segment.occupancy_type === 'reservation' && segment.reservations?.guests?.name" class="opacity-80"> · {{ segment.reservations.guests.name }}</span><span v-else-if="segment.occupancy_type === 'external' && getExternalSource(segment)" class="opacity-80"> · {{ getExternalSource(segment) }}</span>
           </button>
         </div>
       </div>
@@ -880,7 +880,7 @@ const periodoEntradas = computed(() => {
         map.set(key, {
           key,
           date: checkIn,
-          guestName: occ.reservations?.guest_name || '-',
+          guestName: occ.reservations?.guests?.name || '-',
           pax: Number(occ.reservations?.adults || 0) + Number(occ.reservations?.children || 0),
           status: occ.reservations?.status || '',
           unitNames: [],
@@ -908,7 +908,7 @@ const periodoSalidas = computed(() => {
         map.set(key, {
           key,
           date: checkOut,
-          guestName: occ.reservations?.guest_name || '-',
+          guestName: occ.reservations?.guests?.name || '-',
           pax: Number(occ.reservations?.adults || 0) + Number(occ.reservations?.children || 0),
           status: occ.reservations?.status || '',
           unitNames: [],
@@ -990,7 +990,7 @@ async function fetchOccupancies() {
     const accountId = accountStore.getRequiredAccountId()
     const { data } = await supabase
       .from('occupancies')
-        .select('id, unit_id, start_date, end_date, occupancy_type, reservation_id, inquiry_id, notes, units(name, venue_id, venues(name)), reservations(id, guest_name, adults, children, source, source_detail_info:source_details!reservations_source_detail_id_fkey(label_es), total_amount, paid_amount, check_in, check_out, status)')
+        .select('id, unit_id, start_date, end_date, occupancy_type, reservation_id, inquiry_id, notes, units(name, venue_id, venues(name)), reservations(id, guests(name), adults, children, source, source_detail_info:source_details!reservations_source_detail_id_fkey(label_es), total_amount, paid_amount, check_in, check_out, status)')
       .eq('account_id', accountId)
       .lt('start_date', toExclusive)
       .gte('end_date', periodFrom.value)
@@ -1128,7 +1128,7 @@ function occupancyBorderClass(occ, date) {
 
 function getOccupancyDisplayLabel(occ, mode) {
   if (mode === 'por_unidad' && occ.occupancy_type === 'reservation') {
-    return occ.reservations?.guest_name || 'Reserva'
+    return occ.reservations?.guests?.name || 'Reserva'
   }
 
   return occ.units?.name || 'Unidad'
@@ -1283,7 +1283,7 @@ const tooltipDetails = computed(() => {
     typeLabel: getOccupancyTypeLabel(occ, tooltip.value.contextDate),
     dateRange: `${occ.start_date} -> ${occ.end_date}`,
     nights,
-    holderName: occ.occupancy_type === 'reservation' ? (occ.reservations?.guest_name || '') : '',
+    holderName: occ.occupancy_type === 'reservation' ? (occ.reservations?.guests?.name || '') : '',
     paxLabel: occ.occupancy_type === 'reservation' ? String(pax) : '',
     sourceLabel: occ.occupancy_type === 'reservation'
       ? (occ.reservations?.source_detail_info?.label_es || occ.reservations?.source || '')

@@ -31,11 +31,19 @@
           <div v-if="isPublic && initialPrimaryGuest?.phone" class="space-y-1">
             <label class="block text-sm font-medium text-[#6B7280]">Teléfono</label>
             <div class="block min-h-[44px] w-full rounded-md border border-[#E5E7EB] bg-[#F8F9FC] px-3 py-2.5 text-sm text-[#111827]">
-              {{ primaryGuest.phone }}
+              {{ [initialPrimaryGuest.phone_country_code, initialPrimaryGuest.phone].filter(Boolean).join(' ') }}
             </div>
-            <p class="text-xs text-gray-400">Si necesitas actualizar tu número de contacto, comunícate con el alojamiento.</p>
+            <p class="text-xs text-gray-400">Si necesitas actualizar tu número de contacto, comúnicate con el alojamiento.</p>
           </div>
-          <AppInput v-else v-model="primaryGuest.phone" label="Teléfono" required />
+          <AppPhoneInput
+            v-else
+            :countryCode="primaryGuest.phone_country_code"
+            :phoneNumber="primaryGuest.phone"
+            label="Teléfono"
+            required
+            @update:countryCode="primaryGuest.phone_country_code = $event"
+            @update:phoneNumber="primaryGuest.phone = $event"
+          />
           <AppInput v-model="primaryGuest.email" type="email" label="Email" required />
         </AppFormGrid>
 
@@ -103,6 +111,7 @@ import { computed, reactive, watch } from 'vue'
 import {
   AppInput,
   AppSelect,
+  AppPhoneInput,
   AppFieldGroup,
   AppFormSection,
   AppInlineAlert,
@@ -135,6 +144,7 @@ const buildGuest = () => ({
   document_type: '',
   document_number: '',
   phone: '',
+  phone_country_code: '+57',
   email: '',
   birth_date: '',
 })

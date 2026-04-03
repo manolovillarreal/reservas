@@ -77,7 +77,7 @@ export const useGuestsStore = defineStore('guests', () => {
       if (normalizedPhone) {
         const { data: existingGuests, error: existingError } = await supabase
           .from('guests')
-          .select('id, name, phone, email')
+          .select('id, name, phone, phone_country_code, email')
           .eq('account_id', accountId)
           .not('phone', 'is', null)
 

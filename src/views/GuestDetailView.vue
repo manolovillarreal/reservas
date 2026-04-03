@@ -21,7 +21,7 @@
           <dl class="mt-4 space-y-2 text-sm">
             <div class="flex items-center justify-between gap-3">
               <dt class="text-gray-500">Teléfono</dt>
-              <dd class="text-gray-900">{{ guest.phone || '-' }}</dd>
+              <dd class="text-gray-900">{{ [guest.phone_country_code, guest.phone].filter(Boolean).join(' ') || '-' }}</dd>
             </div>
             <div class="flex items-center justify-between gap-3">
               <dt class="text-gray-500">Email</dt>
@@ -84,7 +84,13 @@
 
         <AppFormSection title="Contacto" :divider="true">
           <AppFormGrid :columns="2">
-            <AppInput v-model="editForm.phone" type="tel" label="Teléfono" />
+            <AppPhoneInput
+              :countryCode="editForm.phone_country_code"
+              :phoneNumber="editForm.phone"
+              label="Teléfono"
+              @update:countryCode="editForm.phone_country_code = $event"
+              @update:phoneNumber="editForm.phone = $event"
+            />
             <AppInput v-model="editForm.email" type="email" label="Email" />
           </AppFormGrid>
         </AppFormSection>
@@ -120,6 +126,7 @@ import { usePermissions } from '../composables/usePermissions'
 import { useToast } from '../composables/useToast'
 import {
   AppInput,
+  AppPhoneInput,
   AppSelect,
   AppTextarea,
   AppFormSection,
@@ -142,6 +149,7 @@ const editForm = ref({
   name: '',
   email: '',
   phone: '',
+  phone_country_code: '+57',
   nationality: '',
   birth_date: '',
   document_type: '',
@@ -183,6 +191,7 @@ const openEditModal = () => {
     name: guest.value.name || '',
     email: guest.value.email || '',
     phone: guest.value.phone || '',
+    phone_country_code: guest.value.phone_country_code || '+57',
     nationality: guest.value.nationality || '',
     birth_date: guest.value.birth_date || '',
     document_type: guest.value.document_type || '',

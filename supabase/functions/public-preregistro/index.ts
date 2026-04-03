@@ -8,6 +8,7 @@ type GuestInput = {
   document_type?: 'passport' | 'cedula' | 'dni' | 'foreign_id' | ''
   document_number?: string
   phone?: string
+  phone_country_code?: string
   email?: string
   birth_date?: string
 }
@@ -34,6 +35,7 @@ const sanitizeGuest = (guest: GuestInput) => {
     document_type: documentType,
     document_number: documentNumber,
     phone: normalizeValue(guest.phone),
+    phone_country_code: normalizeValue(guest.phone_country_code) || '+57',
     email: normalizeValue(guest.email),
     document: documentNumber,
     birth_date: birthDate,
@@ -45,7 +47,7 @@ const getReservationByToken = async (client: ReturnType<typeof createClient>, to
 
   const { data, error } = await client
     .from('reservations')
-    .select('id, account_id, status, check_in, check_out, adults, children, guest_id, guest_name, guest_phone, preregistro_completado, preregistro_token_expiry')
+    .select('id, account_id, status, check_in, check_out, adults, children, guest_id, preregistro_completado, preregistro_token_expiry')
     .eq('preregistro_token', tokenHash)
     .maybeSingle()
 
@@ -94,13 +96,7 @@ const resolveGuest = async (
         document_type: payload.document_type || existing.document_type,
         document_number: payload.document_number || existing.document_number,
         phone: payload.phone || existing.phone,
-        email: payload.email || existing.email,
-        document: payload.document || existing.document,
-        birth_date: payload.birth_date || existing.birth_date,
-      }
-
-      const { data: updated, error: updateError } = await client
-        .from('guests')
+            phone_country_code: payload.phone_country_code || existing.phone_country_code || '+57',
         .update(updatePayload)
         .eq('account_id', accountId)
         .eq('id', existing.id)
@@ -273,6 +269,7 @@ serve(async (req) => {
           updatePayload.document = guestPayload.document_number
         }
         if (guestPayload.phone) updatePayload.phone = guestPayload.phone
+        if (guestPayload.phone_country_code) updatePayload.phone_country_code = guestPayload.phone_country_code
         if (guestPayload.email) updatePayload.email = guestPayload.email
         if (guestPayload.birth_date) updatePayload.birth_date = guestPayload.birth_date
 
@@ -350,18 +347,10 @@ serve(async (req) => {
       const isComplete = primaryComplete && companionsRemaining === 0
 
       // Update reservation
-      const { data: updatedGuest } = await adminClient
-        .from('guests')
-        .select('name, phone')
-        .eq('id', primaryGuestId)
-        .single()
-
       const { error: reservationUpdateError } = await adminClient
         .from('reservations')
         .update({
           guest_id: primaryGuestId,
-          guest_name: updatedGuest?.name || null,
-          guest_phone: updatedGuest?.phone || reservation.guest_phone || null,
           preregistro_completado: true,
           preregistro_completado_at: new Date().toISOString(),
         })

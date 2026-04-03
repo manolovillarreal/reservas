@@ -1,15 +1,11 @@
 <template>
   <div class="h-screen overflow-hidden bg-[#FAFAFA] font-sans text-gray-900">
-    <header v-if="isMobile" class="fixed inset-x-0 top-0 z-30 flex h-[52px] items-center justify-between border-b border-[#E5E7EB] bg-white px-3">
-      <button type="button" class="touch-target rounded-md text-[#111827]" @click="openDrawer">
+    <header v-if="isMobile" class="fixed inset-x-0 top-0 z-30 flex h-[52px] items-center justify-between border-b border-[#374151] bg-[#111827] px-3">
+      <button type="button" class="touch-target rounded-md text-[#9CA3AF]" @click="openDrawer">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-5 w-5" aria-hidden="true">
           <path d="M4 7h16M4 12h16M4 17h16" />
         </svg>
       </button>
-
-      <div class="flex items-center justify-center">
-        <img :src="LogoImage" alt="TekMi Inn" class="h-8 w-8 object-contain">
-      </div>
 
       <button
         type="button"

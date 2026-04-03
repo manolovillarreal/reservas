@@ -36,11 +36,14 @@ export const getStatusLabel = (status) => {
 }
 
 export const getReservationGuestName = (reservation) => {
-  return reservation?.guests?.name || reservation?.guest_name || 'Sin nombre'
+  return reservation?.guests?.name || 'Sin nombre'
 }
 
 export const getReservationGuestPhone = (reservation) => {
-  return reservation?.guests?.phone || reservation?.guest_phone || 'Sin teléfono'
+  const guest = reservation?.guests
+  if (!guest?.phone) return 'Sin teléfono'
+  const prefix = guest.phone_country_code ? `${guest.phone_country_code} ` : ''
+  return `${prefix}${guest.phone}`
 }
 
 export const getCommissionAmount = (reservation) => {

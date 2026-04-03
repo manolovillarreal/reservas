@@ -20,6 +20,7 @@ const buildGuestPayload = (guest) => {
   return {
     name: normalizeValue(guest.name),
     phone: normalizeValue(guest.phone),
+    phone_country_code: normalizeValue(guest.phone_country_code) || '+57',
     email: normalizeValue(guest.email),
     nationality: normalizeValue(guest.nationality),
     document_type: documentType,
@@ -52,8 +53,7 @@ const upsertGuest = async (guestPayload, accountId) => {
   if (existingGuest) {
     const updatePayload = {
       name: guestPayload.name || existingGuest.name,
-      phone: guestPayload.phone || existingGuest.phone,
-      email: guestPayload.email || existingGuest.email,
+      phone: guestPayload.phone || existingGuest.phone,      phone_country_code: guestPayload.phone_country_code || existingGuest.phone_country_code || '+57',      email: guestPayload.email || existingGuest.email,
       nationality: guestPayload.nationality || existingGuest.nationality,
       document_type: guestPayload.document_type || existingGuest.document_type,
       document_number: guestPayload.document_number || existingGuest.document_number,
@@ -101,7 +101,7 @@ export const completeReservationPreregistro = async ({ reservationId, guests }) 
 
   const { data: reservation, error: reservationError } = await supabase
     .from('reservations')
-    .select('id, status, guest_id, guest_name, guest_phone')
+    .select('id, status, guest_id, check_in')
     .eq('account_id', accountId)
     .eq('id', reservationId)
     .single()
@@ -150,8 +150,6 @@ export const completeReservationPreregistro = async ({ reservationId, guests }) 
     preregistro_completado: true,
     preregistro_completado_at: new Date().toISOString(),
     guest_id: primaryGuest.id,
-    guest_name: primaryGuest.name,
-    guest_phone: primaryGuest.phone || reservation.guest_phone || null,
   }
 
   const { error: updateError } = await supabase

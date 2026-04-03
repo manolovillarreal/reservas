@@ -100,7 +100,7 @@ export const useReservationsStore = defineStore('reservations', () => {
         .eq('account_id', accountId)
 
       if (search) {
-        query = query.or(`guest_name.ilike.%${search}%,guest_phone.ilike.%${search}%,reference_code.ilike.%${search}%,reservation_number.ilike.%${search}%`)
+        query = query.or(`reference_code.ilike.%${search}%,reservation_number.ilike.%${search}%`)
       }
 
       if (status) {
@@ -371,6 +371,7 @@ export const useReservationsStore = defineStore('reservations', () => {
             account_id: accountId,
             name: guestName || guestPhone || guestEmail,
             phone: guestPhone,
+            phone_country_code: String(reservationData.guest_phone_country_code || '+57'),
             email: guestEmail,
           }
 
@@ -396,8 +397,6 @@ export const useReservationsStore = defineStore('reservations', () => {
         reservation_number: reservationNumber,
         venue_id: reservationData.venue_id,
         guest_id: resolvedGuestId,
-        guest_name: guestName,
-        guest_phone: guestPhone,
         adults,
         children,
         check_in: normalizedCheckIn,
@@ -460,7 +459,7 @@ export const useReservationsStore = defineStore('reservations', () => {
 
       await fetchReservations(lastFetchParams.value)
 
-      try { await notifyNuevaReserva(accountId, data) } catch (e) { /* silencioso */ }
+      try { await notifyNuevaReserva(accountId, { ...data, guest_name: guestName }) } catch (e) { /* silencioso */ }
 
       return {
         ...data,
