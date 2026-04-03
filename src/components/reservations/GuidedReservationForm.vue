@@ -115,21 +115,23 @@
     <!-- ── STEP 3: Huésped ──────────────────────── -->
     <template v-if="currentStep === 3">
       <AppFormSection title="Datos del huésped" :divider="true">
-        <!-- Guest selected chip -->
-        <div v-if="form.guest_id" class="flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-sm">
-          <span class="font-medium text-primary">{{ `${form.guest_first_name} ${form.guest_last_name}`.trim() }}</span>
-          <span v-if="form.guest_phone" class="text-gray-400">· {{ form.guest_phone }}</span>
-          <button type="button" class="ml-auto text-xs text-gray-400 underline hover:text-gray-700" @click="clearGuestSelection">Cambiar</button>
+        <!-- Huésped existente indicador -->
+        <div v-if="form.guest_id" class="flex items-center gap-2 rounded-md bg-primary/5 border border-primary/20 px-3 py-1.5 text-xs text-primary">
+          <span>Huésped existente</span>
+          <div class="ml-auto flex items-center gap-3">
+            <button type="button" class="underline hover:text-primary/70" @click="openEditGuestModal">Editar</button>
+            <button type="button" class="underline hover:text-primary/70" @click="clearGuestSelection">Limpiar</button>
+          </div>
         </div>
 
-        <!-- Nombre con búsqueda integrada (solo cuando no hay huésped seleccionado) -->
-        <template v-else>
-          <AppFormGrid :columns="2">
+        <!-- Nombre con búsqueda integrada -->
+        <AppFormGrid :columns="2">
             <div class="relative">
               <AppInput
                 v-model="form.guest_first_name"
                 label="Nombres"
                 required
+                :disabled="!!form.guest_id"
                 hint="Escribe para buscar huéspedes existentes"
                 :error="s3Touched.guest_first_name && !form.guest_first_name?.trim() ? 'El nombre es obligatorio.' : ''"
                 @focus="guestSearchOpen = true"
@@ -154,6 +156,7 @@
             <AppInput
               v-model="form.guest_last_name"
               label="Apellidos"
+              :disabled="!!form.guest_id"
               hint="Opcional"
             />
           </AppFormGrid>
@@ -163,6 +166,7 @@
               :countryCode="form.guest_phone_country_code"
               :phoneNumber="form.guest_phone"
               label="Teléfono"
+              :disabled="!!form.guest_id"
               :error="s3Touched.guest_phone && !form.guest_phone?.trim() ? 'El teléfono es obligatorio.' : ''"
               @update:countryCode="form.guest_phone_country_code = $event"
               @update:phoneNumber="e => { form.guest_phone = e; s3Touched.guest_phone = true }"
@@ -171,10 +175,17 @@
               v-model="form.guest_email"
               label="Email"
               type="email"
+              :disabled="!!form.guest_id"
               hint="Opcional"
             />
           </AppFormGrid>
-        </template>
+
+          <AppCountrySelect
+            v-model="form.guest_nationality"
+            label="Nacionalidad"
+            :disabled="!!form.guest_id"
+            hint="Opcional"
+          />
 
         <AppTextarea
           v-model="form.notes"
@@ -374,6 +385,35 @@
     </template>
 
   </div>
+
+  <!-- Modal: Editar huésped existente -->
+  <BaseModal :isOpen="showEditGuestModal" @close="showEditGuestModal = false" title="Editar huésped" size="md">
+    <form @submit.prevent="saveEditGuest" class="space-y-4">
+      <AppFormGrid :columns="2">
+        <AppInput v-model="editGuestForm.first_name" label="Nombres" required />
+        <AppInput v-model="editGuestForm.last_name" label="Apellidos" />
+      </AppFormGrid>
+      <AppFormGrid :columns="2">
+        <AppPhoneInput
+          :countryCode="editGuestForm.phone_country_code"
+          :phoneNumber="editGuestForm.phone"
+          label="Teléfono"
+          @update:countryCode="editGuestForm.phone_country_code = $event"
+          @update:phoneNumber="editGuestForm.phone = $event"
+        />
+        <AppInput v-model="editGuestForm.email" label="Email" type="email" hint="Opcional" />
+      </AppFormGrid>
+      <AppCountrySelect v-model="editGuestForm.nationality" label="Nacionalidad" hint="Opcional" />
+      <AppFormActions
+        submit-label="Guardar cambios"
+        cancel-label="Cancelar"
+        :loading="editGuestSubmitting"
+        :submit-disabled="editGuestSubmitting"
+        @submit="saveEditGuest"
+        @cancel="showEditGuestModal = false"
+      />
+    </form>
+  </BaseModal>
 </template>
 
 <script setup>
@@ -381,9 +421,11 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { supabase } from '../../services/supabase'
 import SourceSelector from '../sources/SourceSelector.vue'
+import BaseModal from '../ui/BaseModal.vue'
 import {
   AppInput,
   AppPhoneInput,
+  AppCountrySelect,
   AppTextarea,
   AppDatePicker,
   AppCounter,
@@ -392,6 +434,7 @@ import {
   AppFormSection,
   AppInlineAlert,
   AppSelect,
+  AppFormActions,
   PricingCalculatorPanel
 } from '@/components/ui/forms'
 import { useAvailability } from '../../composables/useAvailability'
@@ -463,6 +506,7 @@ const form = ref({
   guest_phone: '',
   guest_phone_country_code: '+57',
   guest_email: '',
+  guest_nationality: '',
   notes: '',
   price_per_night: '',
   discount_percentage: '',
@@ -756,6 +800,7 @@ const selectGuest = (guest) => {
   form.value.guest_phone = guest.phone || ''
   form.value.guest_phone_country_code = guest.phone_country_code || '+57'
   form.value.guest_email = guest.email || ''
+  form.value.guest_nationality = guest.nationality || ''
   guestSearchOpen.value = false
 }
 
@@ -766,6 +811,52 @@ const clearGuestSelection = () => {
   form.value.guest_phone = ''
   form.value.guest_phone_country_code = '+57'
   form.value.guest_email = ''
+  form.value.guest_nationality = ''
+}
+
+// ── Edit guest modal ───────────────────────────────────
+const showEditGuestModal = ref(false)
+const editGuestSubmitting = ref(false)
+const editGuestForm = ref({
+  first_name: '',
+  last_name: '',
+  phone: '',
+  phone_country_code: '+57',
+  email: '',
+  nationality: ''
+})
+
+const openEditGuestModal = () => {
+  editGuestForm.value = {
+    first_name: form.value.guest_first_name,
+    last_name: form.value.guest_last_name,
+    phone: form.value.guest_phone,
+    phone_country_code: form.value.guest_phone_country_code,
+    email: form.value.guest_email,
+    nationality: form.value.guest_nationality
+  }
+  showEditGuestModal.value = true
+}
+
+const saveEditGuest = async () => {
+  if (!form.value.guest_id) return
+  editGuestSubmitting.value = true
+  try {
+    await guestsStore.updateGuest(form.value.guest_id, editGuestForm.value)
+    // Sync back into the reservation form
+    form.value.guest_first_name = editGuestForm.value.first_name
+    form.value.guest_last_name = editGuestForm.value.last_name
+    form.value.guest_phone = editGuestForm.value.phone
+    form.value.guest_phone_country_code = editGuestForm.value.phone_country_code
+    form.value.guest_email = editGuestForm.value.email
+    form.value.guest_nationality = editGuestForm.value.nationality
+    showEditGuestModal.value = false
+    toast.success('Huésped actualizado correctamente.')
+  } catch (err) {
+    toast.error(err.message || 'No se pudo actualizar el huésped.')
+  } finally {
+    editGuestSubmitting.value = false
+  }
 }
 
 // ── Source helpers ─────────────────────────────────────

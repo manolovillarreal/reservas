@@ -12,18 +12,14 @@
         :max="max || null"
         :placeholder="placeholder"
         :disabled="disabled"
-        class="block min-h-[44px] w-full rounded-md border bg-[#FFFFFF] px-3 pr-10 py-2 text-sm text-[#111827] transition outline-none"
+        class="block min-h-[44px] w-full rounded-md border bg-[#FFFFFF] px-3 pr-5 py-2 text-sm text-[#111827] transition outline-none"
         :class="inputClass"
         @input="onInput"
         @focus="isFocused = true"
         @blur="isFocused = false"
       >
 
-      <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-[#6B7280]">
-        <svg viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4" aria-hidden="true">
-          <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v9a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm10 7H4v6h12V9z" clip-rule="evenodd" />
-        </svg>
-      </div>
+     
     </div>
 
     <AppFieldHint :message="error || hint || ''" :type="error ? 'error' : 'hint'" />

@@ -38,7 +38,7 @@
         v-for="guest in filteredGuests"
         v-else
         :key="guest.id"
-        :title="guest.name"
+        :title="`${guest.first_name || ''} ${guest.last_name || ''}`.trim()"
         :subtitle="formatDocument(guest)"
         :badge="{ label: reservationsBadge(guest.id), type: 'neutral' }"
         :meta="guestMeta(guest)"
@@ -72,7 +72,7 @@
             </tr>
 
             <tr v-for="guest in filteredGuests" :key="guest.id" class="hover:bg-gray-50 transition-colors">
-              <td class="px-6 py-4 font-medium text-gray-900">{{ guest.name }}</td>
+              <td class="px-6 py-4 font-medium text-gray-900">{{ `${guest.first_name || ''} ${guest.last_name || ''}`.trim() }}</td>
               <td class="px-6 py-4 text-gray-600">{{ guest.email || '-' }}</td>
               <td class="px-6 py-4 text-gray-600">{{ guest.phone || '-' }}</td>
               <td class="px-6 py-4 text-gray-600">{{ formatDocument(guest) }}</td>
@@ -92,7 +92,7 @@
       <DataCard
         v-for="guest in filteredGuests"
         :key="guest.id"
-        :title="guest.name"
+        :title="`${guest.first_name || ''} ${guest.last_name || ''}`.trim()"
         :subtitle="guestCardSubtitle(guest)"
         :badge="{ label: `${getReservationCount(guest.id)} reserva(s)`, type: 'neutral' }"
         :meta="buildGuestCardMeta(guest)"
@@ -120,13 +120,19 @@
     <BaseModal :isOpen="showModal" @close="closeModal" :title="editingGuest ? 'Editar huésped' : 'Nuevo huésped'" size="lg" :fullScreenOnMobile="true">
       <form @submit.prevent="submitForm" class="space-y-5">
         <AppFormSection title="Identidad" :divider="true">
-          <AppInput
-            v-model="form.name"
-            label="Nombre"
-            required
-            :error="fieldError('name')"
-            @blur="touchField('name')"
-          />
+          <AppFormGrid :columns="2">
+            <AppInput
+              v-model="form.first_name"
+              label="Nombres"
+              required
+              :error="fieldError('first_name')"
+              @blur="touchField('first_name')"
+            />
+            <AppInput
+              v-model="form.last_name"
+              label="Apellidos"
+            />
+          </AppFormGrid>
           <AppFormGrid :columns="2">
             <AppSelect
               v-model="form.document_type"
@@ -149,7 +155,7 @@
         </AppFormSection>
 
         <AppFormSection title="Información adicional" :divider="false">
-          <AppInput v-model="form.nationality" label="Nacionalidad" />
+          <AppCountrySelect v-model="form.nationality" label="Nacionalidad" />
           <AppTextarea
             v-model="form.notes"
             label="Notas"
@@ -199,6 +205,7 @@ import {
   AppInput,
   AppSelect,
   AppTextarea,
+  AppCountrySelect,
   AppFormSection,
   AppFormGrid,
   AppFormActions
@@ -225,7 +232,8 @@ const deleteLoading = ref(false)
 const deleteMessage = ref('')
 
 const form = ref({
-  name: '',
+  first_name: '',
+  last_name: '',
   email: '',
   phone: '',
   nationality: '',
@@ -253,7 +261,7 @@ const touchField = (field) => {
 const fieldError = (field) => {
   if (!touched.value[field] && !submitAttempted.value) return ''
 
-  if (field === 'name' && !form.value.name?.trim()) {
+  if (field === 'first_name' && !form.value.first_name?.trim()) {
     return 'El nombre es obligatorio.'
   }
 
@@ -263,7 +271,7 @@ const fieldError = (field) => {
 const filteredGuests = computed(() => {
   if (!searchQuery.value) return store.guests
   const q = searchQuery.value.toLowerCase()
-  return store.guests.filter(g => g.name.toLowerCase().includes(q))
+  return store.guests.filter(g => `${g.first_name || ''} ${g.last_name || ''}`.trim().toLowerCase().includes(q))
 })
 
 const getReservationCount = (guestId) => {
@@ -309,7 +317,7 @@ const goToGuestProfile = (guest) => {
 
 const openCreateModal = () => {
   editingGuest.value = null
-  form.value = { name: '', email: '', phone: '', nationality: '', document_type: '', document_number: '', notes: '' }
+  form.value = { first_name: '', last_name: '', email: '', phone: '', nationality: '', document_type: '', document_number: '', notes: '' }
   touched.value = {}
   submitAttempted.value = false
   showModal.value = true
@@ -330,7 +338,7 @@ const closeModal = () => {
 
 const submitForm = async () => {
   submitAttempted.value = true
-  if (fieldError('name')) return
+  if (fieldError('first_name')) return
 
   submitting.value = true
   try {
@@ -351,7 +359,7 @@ const submitForm = async () => {
 
 const removeGuest = async (guest) => {
   guestToDelete.value = guest
-  deleteMessage.value = `¿Estás seguro de que deseas eliminar al huésped "${guest.name}"?`
+  deleteMessage.value = `¿Estás seguro de que deseas eliminar al huésped "${`${guest.first_name || ''} ${guest.last_name || ''}`.trim()}"?`
   deleteErrorMessage.value = ''
   showDeleteModal.value = true
 }
