@@ -23,6 +23,41 @@
             hint="Opcional"
           />
         </AppFormGrid>
+        <AppFormGrid :columns="2">
+          <AppPhoneInput
+            :countryCode="form.guest_phone_country_code"
+            :phoneNumber="form.guest_phone"
+            label="Teléfono"
+            hint="Opcional"
+            @update:countryCode="form.guest_phone_country_code = $event"
+            @update:phoneNumber="form.guest_phone = $event"
+          />
+          <AppInput
+            v-model="form.guest_email"
+            label="Email"
+            type="email"
+            hint="Opcional"
+          />
+        </AppFormGrid>
+        <AppCountrySelect
+          v-model="form.guest_nationality"
+          label="Nacionalidad"
+          hint="Opcional"
+        />
+        <AppFormGrid :columns="2">
+          <AppSelect
+            v-model="form.guest_document_type"
+            label="Tipo de documento"
+            :options="documentTypeOptions"
+            placeholder="Sin definir"
+            hint="Opcional"
+          />
+          <AppInput
+            v-model="form.guest_document_number"
+            label="Número de documento"
+            hint="Opcional"
+          />
+        </AppFormGrid>
       </AppFormSection>
 
       <AppFormSection title="Fechas y unidad" :divider="true" :collapsible="true" :defaultOpen="true">
@@ -250,6 +285,8 @@ import {
   AppInlineAlert,
   AppFieldHint,
   AppFormGrid,
+  AppPhoneInput,
+  AppCountrySelect,
   PricingCalculatorPanel
 } from '@/components/ui/forms'
 import { buildPricingSuggestion } from '../../utils/pricingUtils'
@@ -290,6 +327,13 @@ const accountPricing = ref({
 })
 
 const form = ref(buildEmptyForm())
+const documentTypeOptions = [
+  { value: 'passport', label: 'Pasaporte' },
+  { value: 'cedula', label: 'Cédula' },
+  { value: 'dni', label: 'DNI' },
+  { value: 'foreign_id', label: 'Documento extranjero' }
+]
+
 const touched = reactive({ guest_first_name: false, check_in: false, check_out: false, unit_ids: false })
 const submitAttempted = ref(false)
 
@@ -315,6 +359,11 @@ function buildEmptyForm() {
     guest_first_name: '',
     guest_last_name: '',
     guest_phone: '',
+    guest_phone_country_code: '+57',
+    guest_email: '',
+    guest_nationality: '',
+    guest_document_type: '',
+    guest_document_number: '',
     check_in: '',
     check_out: '',
     adults: 1,
@@ -483,6 +532,11 @@ const hydrateForm = () => {
     guest_first_name: inquiry.guest_first_name || '',
     guest_last_name: inquiry.guest_last_name || '',
     guest_phone: inquiry.guest_phone || '',
+    guest_phone_country_code: inquiry.phone_country_code || '+57',
+    guest_email: '',
+    guest_nationality: '',
+    guest_document_type: '',
+    guest_document_number: '',
     check_in: inquiry.check_in || '',
     check_out: inquiry.check_out || '',
     adults: inquiry.adults ?? 1,
@@ -562,7 +616,11 @@ const submitConversion = async () => {
       first_name: form.value.guest_first_name?.trim() || null,
       last_name: form.value.guest_last_name?.trim() || null,
       phone: form.value.guest_phone?.trim() || null,
-      email: null,
+      phone_country_code: form.value.guest_phone_country_code || '+57',
+      email: form.value.guest_email?.trim() || null,
+      nationality: form.value.guest_nationality || null,
+      document_type: form.value.guest_document_type || null,
+      document_number: form.value.guest_document_number?.trim() || null,
     })
 
     const venueId = resolveVenueId()

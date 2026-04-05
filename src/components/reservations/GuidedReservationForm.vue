@@ -179,6 +179,23 @@
             hint="Opcional"
           />
 
+          <AppFormGrid :columns="2">
+            <AppSelect
+              v-model="form.guest_document_type"
+              label="Tipo de documento"
+              :options="documentTypeOptions"
+              placeholder="Sin definir"
+              :disabled="!!form.guest_id"
+              hint="Opcional"
+            />
+            <AppInput
+              v-model="form.guest_document_number"
+              label="Número de documento"
+              :disabled="!!form.guest_id"
+              hint="Opcional"
+            />
+          </AppFormGrid>
+
         <AppTextarea
           v-model="form.notes"
           label="Notas internas"
@@ -466,6 +483,13 @@ const PAYMENT_METHOD_OPTIONS = [
 
 const todayIso = new Date().toISOString().slice(0, 10)
 
+const documentTypeOptions = [
+  { value: 'passport', label: 'Pasaporte' },
+  { value: 'cedula', label: 'Cédula' },
+  { value: 'dni', label: 'DNI' },
+  { value: 'foreign_id', label: 'Documento extranjero' }
+]
+
 // ── Navigation state ───────────────────────────────────
 const currentStep = ref(1)
 const maxReachedStep = ref(1)
@@ -499,6 +523,8 @@ const form = ref({
   guest_phone_country_code: '+57',
   guest_email: '',
   guest_nationality: '',
+  guest_document_type: '',
+  guest_document_number: '',
   notes: '',
   price_per_night: '',
   discount_percentage: '',
@@ -805,6 +831,8 @@ const selectGuest = (guest) => {
   form.value.guest_phone_country_code = guest.phone_country_code || '+57'
   form.value.guest_email = guest.email || ''
   form.value.guest_nationality = guest.nationality || ''
+  form.value.guest_document_type = guest.document_type || ''
+  form.value.guest_document_number = guest.document_number || ''
   guestSearchOpen.value = false
 }
 
@@ -816,6 +844,8 @@ const clearGuestSelection = () => {
   form.value.guest_phone_country_code = '+57'
   form.value.guest_email = ''
   form.value.guest_nationality = ''
+  form.value.guest_document_type = ''
+  form.value.guest_document_number = ''
 }
 
 // ── Edit guest modal ───────────────────────────────────
@@ -918,6 +948,8 @@ const save = async () => {
         : await guestsStore.getOrCreateGuestByPhone({
               first_name: form.value.guest_first_name,
               last_name: form.value.guest_last_name,
+              document_type: form.value.guest_document_type || null,
+              document_number: form.value.guest_document_number?.trim() || null,
           })
 
       const result = await reservationsStore.createReservationWithPayment(
