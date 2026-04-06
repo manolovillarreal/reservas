@@ -1,70 +1,65 @@
 <template>
-  <div class="space-y-4">
-    <div>
-      <label class="block text-sm font-medium text-gray-700">Tipo de origen</label>
-      <select v-model="selectedTypeId" class="mt-1 block w-full rounded-md border-gray-300 text-sm">
-        <option value="">Seleccionar tipo</option>
-        <option v-for="type in sourceTypes" :key="type.id" :value="type.id">{{ type.label_es }}</option>
-      </select>
-    </div>
+  <div class="space-y-3">
+    <!-- Loading -->
+    <div v-if="loading" class="text-sm text-gray-500">Cargando canales...</div>
 
-    <div v-if="selectedTypeId" class="relative">
-      <label class="block text-sm font-medium text-gray-700">Canal</label>
-      <input
-        v-model="searchText"
-        type="text"
-        class="mt-1 block w-full rounded-md border-gray-300 text-sm"
-        placeholder="Selecciona o escribe un canal"
-        autocomplete="off"
-        @focus="isOpen = true"
-        @blur="closeDropdown"
-      >
-
-      <div
-        v-if="isOpen"
-        class="absolute z-20 mt-1 max-h-64 w-full overflow-y-auto rounded-md border border-gray-200 bg-white py-1 shadow-lg"
-      >
+    <template v-else>
+      <!-- Type tabs -->
+      <div class="flex flex-wrap gap-2">
         <button
-          v-for="detail in filteredDetails"
+          v-for="group in groups"
+          :key="group.type?.name"
+          type="button"
+          class="rounded-full border px-3 py-1 text-sm font-medium transition"
+          :class="selectedTypeName === group.type?.name
+            ? 'border-primary bg-primary text-white'
+            : 'border-gray-300 bg-white text-gray-700 hover:border-primary hover:text-primary'"
+          @click="selectType(group)"
+        >
+          {{ group.type?.label_es }}
+        </button>
+      </div>
+
+      <!-- Channel grid -->
+      <div v-if="selectedGroup" class="grid grid-cols-2 gap-2 sm:grid-cols-3">
+        <button
+          v-for="detail in activeDetails"
           :key="detail.id"
           type="button"
-          class="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-gray-50"
-          @mousedown.prevent="selectDetail(detail)"
+          class="rounded-lg border px-3 py-2.5 text-left text-sm transition"
+          :class="props.modelValue?.sourceDetailId === detail.id
+            ? 'border-primary bg-primary/5 font-medium text-primary'
+            : 'border-gray-200 bg-white text-gray-700 hover:border-primary/60 hover:bg-primary/5'"
+          @click="pickDetail(detail)"
         >
-          <span class="font-medium text-gray-800">{{ detail.label_es }}</span>
-          <span class="text-xs text-gray-500">
-            {{ Number(detail.suggested_commission_percentage || 0) }}% com. · {{ Number(detail.suggested_discount_percentage || 0) }}% desc.
-          </span>
+          {{ detail.label_es }}
         </button>
-
-        <button
-          v-if="canCreateOption"
-          type="button"
-          class="w-full px-3 py-2 text-left text-sm font-medium text-primary hover:bg-gray-50"
-          @mousedown.prevent="createAndSelectDetail"
-        >
-          Crear "{{ searchText.trim() }}"
-        </button>
-
-        <p v-if="filteredDetails.length === 0 && !canCreateOption" class="px-3 py-2 text-sm text-gray-500">
-          No hay canales activos para este tipo.
-        </p>
       </div>
-    </div>
+
+      <!-- "¿Cuál?" input for is_other channels -->
+      <div v-if="showOtherInput">
+        <label class="mb-1 block text-xs font-medium text-gray-700">¿Cuál?</label>
+        <input
+          v-model="otherName"
+          type="text"
+          class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30"
+          placeholder="Escribe el canal específico"
+          @input="emitWithOtherName"
+        >
+      </div>
+    </template>
   </div>
 </template>
 
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
 import { useAccountStore } from '../../stores/account'
-import { useSourcesStore } from '../../stores/sources'
-import { normalizeSourceName } from '../../services/sourceService'
-import { useToast } from '../../composables/useToast'
+import { getSystemSourceDetails } from '../../services/sourceService'
 
 const props = defineProps({
   modelValue: {
     type: Object,
-    default: () => ({ sourceTypeId: '', sourceDetailId: '' }),
+    default: () => ({ sourceTypeId: '', sourceDetailId: '', sourceName: '' }),
   },
   showSuggestions: {
     type: Boolean,
@@ -75,132 +70,123 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue', 'suggestions'])
 
 const accountStore = useAccountStore()
-const sourcesStore = useSourcesStore()
-const toast = useToast()
+const loading = ref(true)
+const groups = ref([])
+const selectedTypeName = ref('')
+const otherName = ref('')
 
-const isOpen = ref(false)
-const searchText = ref('')
-const isCreating = ref(false)
+const selectedGroup = computed(() => groups.value.find((g) => g.type?.name === selectedTypeName.value) || null)
 
-const sourceTypes = computed(() => sourcesStore.sourceTypes)
-
-const selectedTypeId = computed({
-  get: () => props.modelValue?.sourceTypeId || '',
-  set: (value) => {
-    searchText.value = ''
-    emit('update:modelValue', {
-      sourceTypeId: value || '',
-      sourceDetailId: '',
-    })
-  },
+const activeDetails = computed(() => {
+  if (!selectedGroup.value) return []
+  return selectedGroup.value.details.filter((d) => d.is_active)
 })
 
 const selectedDetail = computed(() => {
-    const detailId = props.modelValue?.sourceDetailId || ''
-    if (!detailId) return null
-    return sourcesStore.sourceDetailsById[detailId] || null
+  const id = props.modelValue?.sourceDetailId
+  if (!id) return null
+  for (const g of groups.value) {
+    const found = g.details.find((d) => d.id === id)
+    if (found) return found
+  }
+  return null
 })
 
-const detailsForType = computed(() => {
-  if (!selectedTypeId.value) return []
-  return sourcesStore.getDetailsByTypeId(selectedTypeId.value)
+const showOtherInput = computed(() => {
+  return selectedDetail.value?.is_other === true && !!props.modelValue?.sourceDetailId
 })
 
-const filteredDetails = computed(() => {
-  const query = searchText.value.trim().toLowerCase()
-  if (!query) return detailsForType.value
-
-  return detailsForType.value.filter((detail) => {
-    return detail.label_es.toLowerCase().includes(query) || detail.name.toLowerCase().includes(query)
-  })
-})
-
-const normalizedQuery = computed(() => normalizeSourceName(searchText.value))
-
-const canCreateOption = computed(() => {
-  const query = searchText.value.trim()
-  if (!selectedTypeId.value || !query || isCreating.value) return false
-
-  return !detailsForType.value.some((detail) => {
-    return detail.name === normalizedQuery.value || detail.label_es.toLowerCase() === query.toLowerCase()
-  })
-})
-
-const applySuggestions = (detail) => {
-  if (!props.showSuggestions || !detail) return
-
-  emit('suggestions', {
-    commissionPercentage: Number(detail.suggested_commission_percentage || 0),
-    discountPercentage: Number(detail.suggested_discount_percentage || 0),
-    sourceDetailLabel: detail.label_es,
-    sourceDetailName: detail.name,
-  })
+const load = async () => {
+  loading.value = true
+  try {
+    const accountId = accountStore.currentAccountId
+    if (accountId) {
+      groups.value = await getSystemSourceDetails(accountId)
+    }
+  } catch {
+    // silencioso — el selector sigue funcional sin datos
+  } finally {
+    loading.value = false
+  }
 }
 
-const syncInputWithSelection = () => {
-  if (selectedDetail.value) {
-    searchText.value = selectedDetail.value.label_es
+const syncTypeFromDetail = () => {
+  const detailId = props.modelValue?.sourceDetailId
+  if (!detailId) {
+    if (props.modelValue?.sourceTypeId) {
+      const group = groups.value.find((g) => g.type?.id === props.modelValue.sourceTypeId)
+      if (group) selectedTypeName.value = group.type?.name || ''
+    }
     return
   }
-
-  if (!props.modelValue?.sourceDetailId) {
-    searchText.value = ''
+  for (const g of groups.value) {
+    if (g.details.some((d) => d.id === detailId)) {
+      selectedTypeName.value = g.type?.name || ''
+      break
+    }
   }
 }
 
-const selectDetail = (detail) => {
+const selectType = (group) => {
+  selectedTypeName.value = group.type?.name || ''
+  otherName.value = ''
   emit('update:modelValue', {
-    sourceTypeId: selectedTypeId.value,
-    sourceDetailId: detail.id,
+    sourceTypeId: group.type?.id || '',
+    sourceDetailId: '',
+    sourceName: '',
   })
-  searchText.value = detail.label_es
-  isOpen.value = false
-  applySuggestions(detail)
 }
 
-const createAndSelectDetail = async () => {
-  isCreating.value = true
-  try {
-    const accountId = accountStore.getRequiredAccountId()
-    const detail = await sourcesStore.createDetail(accountId, {
-      source_type_id: selectedTypeId.value,
-      label_es: searchText.value.trim(),
-      name: normalizedQuery.value,
-    })
+const pickDetail = (detail) => {
+  otherName.value = detail.is_other ? (props.modelValue?.sourceName || '') : ''
+  emit('update:modelValue', {
+    sourceTypeId: selectedGroup.value?.type?.id || '',
+    sourceDetailId: detail.id,
+    sourceName: detail.is_other ? otherName.value : '',
+  })
 
-    selectDetail(detail)
-    toast.success('Canal creado correctamente.')
-  } catch (error) {
-    toast.error(error.message || 'No se pudo crear el canal.')
-  } finally {
-    isCreating.value = false
+  if (props.showSuggestions) {
+    emit('suggestions', {
+      commissionPercentage: Number(detail.commission_pct ?? detail.suggested_commission_percentage ?? 0),
+      discountPercentage: Number(detail.suggested_discount_percentage ?? 0),
+      sourceDetailLabel: detail.label_es,
+      sourceDetailName: detail.name,
+    })
   }
 }
 
-const closeDropdown = () => {
-  window.setTimeout(() => {
-    isOpen.value = false
-    syncInputWithSelection()
-  }, 120)
+const emitWithOtherName = () => {
+  emit('update:modelValue', {
+    sourceTypeId: selectedGroup.value?.type?.id || '',
+    sourceDetailId: props.modelValue?.sourceDetailId || '',
+    sourceName: otherName.value,
+  })
 }
 
 watch(
-  () => props.modelValue,
-  () => {
-    syncInputWithSelection()
+  () => props.modelValue?.sourceName,
+  (val) => {
+    if (selectedDetail.value?.is_other && val !== otherName.value) {
+      otherName.value = val || ''
+    }
   },
-  { deep: true, immediate: true }
+  { immediate: true }
 )
 
-watch(selectedTypeId, () => {
-  syncInputWithSelection()
+watch(groups, () => {
+  syncTypeFromDetail()
 })
 
-onMounted(async () => {
-  const accountId = accountStore.currentAccountId
-  if (accountId) {
-    await sourcesStore.preload(accountId)
+watch(
+  () => props.modelValue?.sourceDetailId,
+  () => {
+    syncTypeFromDetail()
   }
-  syncInputWithSelection()
+)
+
+onMounted(async () => {
+  await load()
+  syncTypeFromDetail()
+  otherName.value = props.modelValue?.sourceName || ''
 })
 </script>

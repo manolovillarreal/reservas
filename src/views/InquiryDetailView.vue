@@ -216,7 +216,7 @@
         <AppFormSection title="Origen" :divider="true" :collapsible="true" :defaultOpen="false">
           <AppFieldGroup title="Canal de origen" :border="false" :compact="true">
             <SourceSelector
-              :modelValue="{ sourceTypeId: editForm.source_type_id, sourceDetailId: editForm.source_detail_id }"
+              :modelValue="{ sourceTypeId: editForm.source_type_id, sourceDetailId: editForm.source_detail_id, sourceName: editForm.source_name }"
               @update:modelValue="updateEditSourceSelection"
               @suggestions="applyEditSourceSuggestions"
             />
@@ -681,6 +681,7 @@ const openEditModal = () => {
     discount_percentage: inquiry.value?.discount_percentage ?? '',
     source_type_id: inquiry.value?.source_detail_info?.source_type_id || '',
     source_detail_id: inquiry.value?.source_detail_id || '',
+    source_name: inquiry.value?.source_name || '',
     notes: inquiry.value?.notes || ''
   }
   editError.value = ''
@@ -697,6 +698,7 @@ const closeEditModal = () => {
 const updateEditSourceSelection = (value) => {
   editForm.value.source_type_id = value?.sourceTypeId || ''
   editForm.value.source_detail_id = value?.sourceDetailId || ''
+  editForm.value.source_name = value?.sourceName || ''
 }
 
 const applyEditSourceSuggestions = (payload) => {

@@ -1,5 +1,8 @@
 export const getSourceLabel = (record) => {
-  return record?.source_detail_info?.label_es || record?.source_detail?.label_es || record?.source || '-'
+  if (record?.source_name) {
+    return `${record?.source_detail_info?.label_es || record?.source_detail?.label_es || 'Otro'} — ${record.source_name}`
+  }
+  return record?.source_detail_info?.label_es || record?.source_detail?.label_es || '-'
 }
 
 export const getSourceLegacyValue = (detail) => {

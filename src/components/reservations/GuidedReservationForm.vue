@@ -215,7 +215,7 @@
     <template v-if="currentStep === 4">
       <AppFormSection title="Canal de origen" :divider="true">
         <SourceSelector
-          :modelValue="{ sourceTypeId: form.source_type_id, sourceDetailId: form.source_detail_id }"
+          :modelValue="{ sourceTypeId: form.source_type_id, sourceDetailId: form.source_detail_id, sourceName: form.source_name }"
           @update:modelValue="onSourceChange"
           @suggestions="onSourceSuggestions"
         />
@@ -533,6 +533,7 @@ const form = ref({
   quote_expires_at: '',
   source_type_id: '',
   source_detail_id: '',
+  source_name: '',
   unit_ids: []
 })
 
@@ -897,6 +898,7 @@ const saveEditGuest = async () => {
 const onSourceChange = (value) => {
   form.value.source_type_id = value?.sourceTypeId || ''
   form.value.source_detail_id = value?.sourceDetailId || ''
+  form.value.source_name = value?.sourceName || ''
 }
 
 const onSourceSuggestions = (payload) => {
@@ -969,6 +971,7 @@ const save = async () => {
           commission_percentage: Number(form.value.commission_percentage || 0),
           commission_name: form.value.commission_name || null,
           source_detail_id: form.value.source_detail_id || null,
+          source_name: form.value.source_name || null,
           status: 'confirmed',
           notes: form.value.notes || null
         },
@@ -1010,6 +1013,7 @@ const save = async () => {
         commission_name: form.value.commission_name || null,
         quote_expires_at: form.value.quote_expires_at || null,
         source_detail_id: form.value.source_detail_id || null,
+        source_name: form.value.source_name || null,
         notes: form.value.notes || null
       })
 

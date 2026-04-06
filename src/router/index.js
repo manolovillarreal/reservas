@@ -169,6 +169,12 @@ const router = createRouter({
       meta: { requiresAuth: true }
     },
     {
+      path: '/configuracion/canales',
+      name: 'configuracion-canales',
+      component: () => import('../views/SourceSettingsView.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
       path: '/configuracion/canales-origenes',
       name: 'configuracion-canales-origenes',
       component: () => import('../views/SourcesSettingsView.vue'),

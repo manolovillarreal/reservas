@@ -77,6 +77,8 @@
     { "id": 76, "t": "Pre-registro — URL limpia, Edge Function GET/POST pública, precargar datos huésped", "c": "Feature", "s": "d" },
     { "id": 77, "t": "AppCountrySelect con bandera y búsqueda, teléfono solo lectura en pre-registro", "c": "Feature", "s": "d" },
     { "id": 78, "t": "AppPhoneInput con indicativo, limpiar guest_name y phone de reservations", "c": "Feature", "s": "d" },
-    { "id": 79, "t": "Nombres y apellidos separados en huéspedes e inquiries, variables en mensajes", "c": "Feature", "s": "d" }
+    { "id": 79, "t": "Nombres y apellidos separados en huéspedes e inquiries, variables en mensajes", "c": "Feature", "s": "d" },
+    { "id": 80, "t": "Normalizar source_details — sistema vs custom, configuración por cuenta", "c": "Feature", "s": "d" },
+    { "id": 81, "t": "Canales custom por categoría — permitir crear en cualquier tipo", "c": "Feature", "s": "e" }
   ]
 }

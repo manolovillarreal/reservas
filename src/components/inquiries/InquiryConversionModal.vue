@@ -184,7 +184,7 @@
       <AppFormSection title="Origen" :divider="true" :collapsible="true" :defaultOpen="false">
         <AppFieldGroup title="Canal de origen" :border="false" :compact="true">
           <SourceSelector
-            :modelValue="{ sourceTypeId: form.source_type_id, sourceDetailId: form.source_detail_id }"
+            :modelValue="{ sourceTypeId: form.source_type_id, sourceDetailId: form.source_detail_id, sourceName: form.source_name }"
             @update:modelValue="updateSourceSelection"
             @suggestions="applySourceSuggestions"
           />
@@ -375,6 +375,7 @@ function buildEmptyForm() {
     discount_percentage: '',
     source_type_id: '',
     source_detail_id: '',
+    source_name: '',
     notes: ''
   }
 }
@@ -548,6 +549,7 @@ const hydrateForm = () => {
     discount_percentage: inquiry.discount_percentage ?? '',
     source_type_id: inquiry.source_detail_info?.source_type_id || '',
     source_detail_id: inquiry.source_detail_id || '',
+    source_name: inquiry.source_name || '',
     notes: ''
   }
   touched.guest_first_name = false
@@ -565,6 +567,7 @@ const hydrateForm = () => {
 const updateSourceSelection = (value) => {
   form.value.source_type_id = value?.sourceTypeId || ''
   form.value.source_detail_id = value?.sourceDetailId || ''
+  form.value.source_name = value?.sourceName || ''
 }
 
 const applySourceSuggestions = (payload) => {
@@ -645,6 +648,7 @@ const submitConversion = async () => {
         commission_percentage: form.value.commission_percentage === '' ? null : Number(form.value.commission_percentage || 0),
         discount_percentage: form.value.discount_percentage === '' ? 0 : Number(form.value.discount_percentage || 0),
         source_detail_id: form.value.source_detail_id || null,
+        source_name: form.value.source_name || null,
         notes: form.value.notes || null,
         status: 'confirmed',
         inquiry_id: props.inquiry.id,

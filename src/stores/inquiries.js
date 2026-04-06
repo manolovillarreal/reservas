@@ -122,6 +122,7 @@ export const useInquiriesStore = defineStore('inquiries', () => {
       discount_percentage: payload.discount_percentage === '' || payload.discount_percentage == null ? 0 : Number(payload.discount_percentage),
       quote_expires_at: payload.quote_expires_at ? new Date(payload.quote_expires_at).toISOString() : null,
       source_detail_id: payload.source_detail_id || null,
+      source_name: payload.source_name || null,
       status,
       notes: payload.notes || null,
       quote_token: generateQuoteToken()
@@ -220,6 +221,7 @@ export const useInquiriesStore = defineStore('inquiries', () => {
         quote_expires_at: payload.quote_expires_at ? new Date(payload.quote_expires_at).toISOString() : null
       }),
       ...(payload.source_detail_id !== undefined && { source_detail_id: payload.source_detail_id || null }),
+      ...(payload.source_name !== undefined && { source_name: payload.source_name || null }),
       ...(payload.reference_code !== undefined && { reference_code: payload.reference_code || null }),
       ...(payload.notes !== undefined && { notes: payload.notes || null }),
       ...(statusOverride !== undefined && { status: statusOverride }),

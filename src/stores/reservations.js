@@ -408,6 +408,7 @@ export const useReservationsStore = defineStore('reservations', () => {
         discount_percentage: Number(reservationData.discount_percentage || 0),
         status: reservationData.status || 'confirmed',
         source_detail_id: reservationData.source_detail_id || null,
+        source_name: reservationData.source_name || null,
         reference_code: referenceCode,
         notes: reservationData.notes || null
       }

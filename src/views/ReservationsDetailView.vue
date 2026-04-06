@@ -85,7 +85,7 @@
             </div>
             <div>
               <p class="text-gray-500 mb-1">Origen</p>
-              <p class="font-medium text-gray-900">{{ res.source_detail_info?.label_es || '-' }}</p>
+              <p class="font-medium text-gray-900">{{ res.source_name ? `${res.source_detail_info?.label_es || 'Otro'} — ${res.source_name}` : (res.source_detail_info?.label_es || '-') }}</p>
             </div>
             <div>
               <p class="text-gray-500 mb-1">Registro</p>

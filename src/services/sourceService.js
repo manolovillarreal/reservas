@@ -1,6 +1,6 @@
 import { supabase } from './supabase'
 
-const normalizeSourceName = (value) => {
+export const normalizeSourceName = (value) => {
   const normalized = String(value || '')
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
@@ -172,6 +172,111 @@ export const deleteSourceDetail = async (accountId, sourceDetailId) => {
     .eq('id', sourceDetailId)
 
   if (error) throw error
+}
+
+// ─── System / global source functions ────────────────────────────────────────
+
+// Fixed display order for the 4 global types
+const TYPE_ORDER = ['direct', 'ota', 'social', 'referral']
+
+export const getGlobalSourceTypes = async () => {
+  const { data, error } = await supabase
+    .from('source_types')
+    .select('id, name, label_es, is_active')
+    .is('account_id', null)
+    .order('label_es', { ascending: true })
+
+  if (error) throw error
+  return (data || []).sort((a, b) => TYPE_ORDER.indexOf(a.name) - TYPE_ORDER.indexOf(b.name))
+}
+
+export const getSystemSourceDetails = async (accountId) => {
+  const [{ data: systemDetails, error: systemError }, { data: customDetails, error: customError }, { data: settings, error: settingsError }] =
+    await Promise.all([
+      supabase
+        .from('source_details')
+        .select('*, source_type:source_types!source_details_source_type_id_fkey(id, name, label_es)')
+        .is('account_id', null)
+        .order('sort_order', { ascending: true }),
+      supabase
+        .from('source_details')
+        .select('*, source_type:source_types!source_details_source_type_id_fkey(id, name, label_es)')
+        .eq('account_id', accountId)
+        .eq('is_system', false)
+        .order('label_es', { ascending: true }),
+      supabase
+        .from('account_source_settings')
+        .select('source_detail_id, is_active, commission_pct')
+        .eq('account_id', accountId),
+    ])
+
+  if (systemError) throw systemError
+  if (customError) throw customError
+  if (settingsError) throw settingsError
+
+  const settingsMap = {}
+  for (const s of settings || []) {
+    settingsMap[s.source_detail_id] = s
+  }
+
+  const allDetails = [...(systemDetails || []), ...(customDetails || [])].map((d) => {
+    const override = settingsMap[d.id]
+    return {
+      ...d,
+      is_active: override ? override.is_active : true,
+      commission_pct: override ? Number(override.commission_pct) : Number(d.suggested_commission_percentage || 0),
+    }
+  })
+
+  // Group by source_type, preserving TYPE_ORDER
+  const typeMap = {}
+  for (const d of allDetails) {
+    const typeName = d.source_type?.name || 'unknown'
+    if (!typeMap[typeName]) {
+      typeMap[typeName] = { type: d.source_type, details: [] }
+    }
+    typeMap[typeName].details.push(d)
+  }
+
+  return TYPE_ORDER.filter((n) => typeMap[n]).map((n) => typeMap[n])
+}
+
+export const saveSourceSettings = async (accountId, sourceDetailId, { is_active, commission_pct }) => {
+  const { error } = await supabase
+    .from('account_source_settings')
+    .upsert(
+      { account_id: accountId, source_detail_id: sourceDetailId, is_active, commission_pct: Number(commission_pct ?? 0) },
+      { onConflict: 'account_id,source_detail_id' }
+    )
+
+  if (error) throw error
+}
+
+export const createCustomSource = async (accountId, sourceTypeId, label_es, commissionPct = 0) => {
+  const label = String(label_es || '').trim()
+  if (!label) throw new Error('El nombre del canal es obligatorio.')
+
+  const { data: created, error: insertError } = await supabase
+    .from('source_details')
+    .insert({
+      account_id: accountId,
+      source_type_id: sourceTypeId,
+      name: normalizeSourceName(label),
+      label_es: label,
+      is_system: false,
+      is_other: false,
+      suggested_commission_percentage: Number(commissionPct || 0),
+      suggested_discount_percentage: 0,
+      is_active: true,
+    })
+    .select('*, source_type:source_types!source_details_source_type_id_fkey(id, name, label_es)')
+    .single()
+
+  if (insertError) throw insertError
+
+  await saveSourceSettings(accountId, created.id, { is_active: true, commission_pct: Number(commissionPct || 0) })
+
+  return { ...created, is_active: true, commission_pct: Number(commissionPct || 0) }
 }
 
 export { normalizeSourceName }

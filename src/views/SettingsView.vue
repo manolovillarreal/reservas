@@ -13,8 +13,12 @@
         <span>Usuarios</span>
         <span class="text-gray-400">›</span>
       </RouterLink>
+      <RouterLink to="/configuracion/canales" class="flex items-center justify-between border-b border-gray-100 px-4 py-3 text-sm text-gray-800">
+        <span>Canales de origen</span>
+        <span class="text-gray-400">›</span>
+      </RouterLink>
       <RouterLink to="/configuracion/canales-origenes" class="flex items-center justify-between border-b border-gray-100 px-4 py-3 text-sm text-gray-800">
-        <span>Canales y origen</span>
+        <span>Canales y origen (legacy)</span>
         <span class="text-gray-400">›</span>
       </RouterLink>
       <RouterLink to="/configuracion/documentos" class="flex items-center justify-between border-b border-gray-100 px-4 py-3 text-sm text-gray-800">
@@ -50,7 +54,19 @@
     <div v-if="can('settings', 'edit') && !isMobile" class="card">
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 class="text-lg font-semibold text-gray-900">Canales y origenes</h2>
+          <h2 class="text-lg font-semibold text-gray-900">Canales de origen</h2>
+          <p class="text-sm text-gray-500">Configura canales del sistema, actívalos y define comisiones por canal.</p>
+        </div>
+        <RouterLink to="/configuracion/canales" class="btn-primary text-sm">
+          Abrir canales de origen
+        </RouterLink>
+      </div>
+    </div>
+
+    <div v-if="can('settings', 'edit') && !isMobile" class="card">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 class="text-lg font-semibold text-gray-900">Canales y origenes (legacy)</h2>
           <p class="text-sm text-gray-500">Gestiona los tipos y canales en una vista dedicada.</p>
         </div>
         <RouterLink to="/configuracion/canales-origenes" class="btn-primary text-sm">
