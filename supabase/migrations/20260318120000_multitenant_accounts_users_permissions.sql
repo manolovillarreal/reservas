@@ -245,10 +245,14 @@ BEGIN
     AND p.account_id IS NULL;
 
   UPDATE occupancies o
-  SET account_id = COALESCE(o.account_id, r.account_id, i.account_id, u.account_id, v_account_id)
+  SET account_id = COALESCE(
+    o.account_id,
+    (SELECT account_id FROM reservations WHERE id = o.reservation_id),
+    (SELECT account_id FROM inquiries WHERE id = o.inquiry_id),
+    u.account_id,
+    v_account_id
+  )
   FROM units u
-  LEFT JOIN reservations r ON r.id = o.reservation_id
-  LEFT JOIN inquiries i ON i.id = o.inquiry_id
   WHERE o.unit_id = u.id
     AND o.account_id IS NULL;
 END $$;

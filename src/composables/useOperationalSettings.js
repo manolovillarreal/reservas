@@ -7,7 +7,8 @@ const _loaded = ref(false)
 const _loading = ref(false)
 const _settings = ref({
   allow_checkin_without_preregistro: true,
-  allow_checkout_without_preregistro: false,
+  allow_checkout_without_preregistro: true,
+  allow_past_dates_in_pickers: true,
 })
 
 export function useOperationalSettings() {
@@ -20,13 +21,14 @@ export function useOperationalSettings() {
       const accountId = accountStore.getRequiredAccountId()
       const { data } = await supabase
         .from('settings')
-        .select('allow_checkin_without_preregistro, allow_checkout_without_preregistro')
+        .select('allow_checkin_without_preregistro, allow_checkout_without_preregistro, allow_past_dates_in_pickers')
         .eq('account_id', accountId)
         .maybeSingle()
 
       if (data) {
         _settings.value.allow_checkin_without_preregistro = data.allow_checkin_without_preregistro ?? true
-        _settings.value.allow_checkout_without_preregistro = data.allow_checkout_without_preregistro ?? false
+        _settings.value.allow_checkout_without_preregistro = data.allow_checkout_without_preregistro ?? true
+        _settings.value.allow_past_dates_in_pickers = data.allow_past_dates_in_pickers ?? true
       }
       _loaded.value = true
     } catch (e) {

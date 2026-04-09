@@ -150,6 +150,7 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useBreakpoint } from '../../../composables/useBreakpoint'
+import { useOperationalSettings } from '../../../composables/useOperationalSettings'
 import AppFieldHint from './AppFieldHint.vue'
 
 const props = defineProps({
@@ -167,6 +168,7 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue', 'blur'])
 
 const { isMobile } = useBreakpoint()
+const { operationalSettings, loadOperationalSettings } = useOperationalSettings()
 const containerRef = ref(null)
 const calendarOpen = ref(false)
 const hoverDate = ref(null)
@@ -176,6 +178,13 @@ const todayIso = new Date().toISOString().slice(0, 10)
 const now = new Date()
 const baseYear = ref(now.getFullYear())
 const baseMonth = ref(now.getMonth())
+
+const effectiveMinDate = computed(() => {
+  const allowPast = operationalSettings.value.allow_past_dates_in_pickers
+  if (allowPast) return ''
+  if (!props.minDate) return todayIso
+  return props.minDate > todayIso ? props.minDate : todayIso
+})
 
 const DAY_HEADERS = ['Do', 'Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sa']
 const MONTH_NAMES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre']
@@ -247,7 +256,7 @@ function autoFormatDateInput(raw) {
 function buildCells(year, month) {
   const firstDow = new Date(year, month, 1).getDay()
   const lastDay = new Date(year, month + 1, 0).getDate()
-  const minD = props.minDate || todayIso
+  const minD = effectiveMinDate.value
   const cells = []
 
   for (let i = 0; i < firstDow; i++) {
@@ -258,7 +267,7 @@ function buildCells(year, month) {
     const mm = String(month + 1).padStart(2, '0')
     const dd = String(d).padStart(2, '0')
     const iso = `${year}-${mm}-${dd}`
-    cells.push({ day: d, iso, disabled: iso < minD })
+    cells.push({ day: d, iso, disabled: minD ? iso < minD : false })
   }
 
   return cells
@@ -293,7 +302,7 @@ function shiftMonths(delta) {
 }
 
 function syncCalendarToSelection() {
-  const anchor = internalStart.value || props.minDate || todayIso
+  const anchor = internalStart.value || effectiveMinDate.value || todayIso
   const d = new Date(`${anchor}T00:00:00`)
   baseYear.value = d.getFullYear()
   baseMonth.value = d.getMonth()
@@ -364,7 +373,7 @@ function onStartInput(event) {
 
 function onStartBlur() {
   const iso = displayToIso(startText.value)
-  const minD = props.minDate || todayIso
+  const minD = effectiveMinDate.value
 
   if (startText.value && !iso) {
     startText.value = ''
@@ -379,7 +388,7 @@ function onStartBlur() {
     return
   }
 
-  if (iso < minD) {
+  if (minD && iso < minD) {
     startText.value = ''
     internalStart.value = null
     internalErrorStart.value = 'Fecha no disponible'
@@ -481,6 +490,7 @@ watch(
 )
 
 onMounted(() => {
+  loadOperationalSettings()
   document.addEventListener('mousedown', onOutsideClick)
 })
 

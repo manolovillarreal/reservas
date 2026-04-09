@@ -8,7 +8,7 @@
       <input
         :value="inputValue"
         type="date"
-        :min="min || null"
+        :min="effectiveMin"
         :max="max || null"
         :placeholder="placeholder"
         :disabled="disabled"
@@ -27,8 +27,9 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import AppFieldHint from './AppFieldHint.vue'
+import { useOperationalSettings } from '../../../composables/useOperationalSettings'
 
 const props = defineProps({
   modelValue: { type: String, default: null },
@@ -43,7 +44,17 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue'])
 
+const { operationalSettings, loadOperationalSettings } = useOperationalSettings()
+const todayIso = new Date().toISOString().slice(0, 10)
+
 const isFocused = ref(false)
+
+const effectiveMin = computed(() => {
+  const allowPast = operationalSettings.value.allow_past_dates_in_pickers
+  if (allowPast) return null
+  if (!props.min) return todayIso
+  return props.min > todayIso ? props.min : todayIso
+})
 
 const inputValue = computed(() => props.modelValue || '')
 
@@ -63,5 +74,7 @@ const onInput = (event) => {
   const value = event.target.value
   emit('update:modelValue', value === '' ? null : value)
 }
+
+onMounted(loadOperationalSettings)
 </script>
 

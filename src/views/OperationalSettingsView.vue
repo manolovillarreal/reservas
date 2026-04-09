@@ -59,6 +59,33 @@
             </button>
           </div>
         </div>
+      </div>
+
+      <!-- Fechas -->
+      <div class="card">
+        <h2 class="mb-1 text-sm font-semibold uppercase tracking-wide text-gray-500">Fechas</h2>
+        <p class="mb-4 text-xs text-gray-400">Controla cómo se comportan los selectores de fecha en los formularios.</p>
+
+        <div class="divide-y divide-gray-100 rounded-md border border-gray-200">
+          <div class="flex items-center justify-between px-4 py-3">
+            <div>
+              <p class="text-sm font-medium text-gray-800">Permitir seleccionar fechas anteriores</p>
+              <p class="text-xs text-gray-500">Si está desactivado, no se podrán elegir fechas pasadas en los selectores de fecha.</p>
+            </div>
+            <button
+              type="button"
+              :disabled="saving"
+              class="relative ml-4 inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors disabled:opacity-50"
+              :class="form.allow_past_dates_in_pickers ? 'bg-indigo-600' : 'bg-gray-200'"
+              @click="toggle('allow_past_dates_in_pickers')"
+            >
+              <span
+                class="pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow ring-0 transition-transform"
+                :class="form.allow_past_dates_in_pickers ? 'translate-x-4' : 'translate-x-0'"
+              />
+            </button>
+          </div>
+        </div>
 
         <p v-if="saveError" class="mt-3 text-xs text-red-600">{{ saveError }}</p>
         <p v-if="saveOk" class="mt-3 text-xs text-emerald-600">Guardado correctamente.</p>
@@ -82,7 +109,8 @@ const saveOk = ref(false)
 
 const form = ref({
   allow_checkin_without_preregistro: true,
-  allow_checkout_without_preregistro: false,
+  allow_checkout_without_preregistro: true,
+  allow_past_dates_in_pickers: true,
 })
 
 const load = async () => {
@@ -90,13 +118,14 @@ const load = async () => {
     const accountId = accountStore.getRequiredAccountId()
     const { data } = await supabase
       .from('settings')
-      .select('allow_checkin_without_preregistro, allow_checkout_without_preregistro')
+      .select('allow_checkin_without_preregistro, allow_checkout_without_preregistro, allow_past_dates_in_pickers')
       .eq('account_id', accountId)
       .maybeSingle()
 
     if (data) {
       form.value.allow_checkin_without_preregistro = data.allow_checkin_without_preregistro ?? true
-      form.value.allow_checkout_without_preregistro = data.allow_checkout_without_preregistro ?? false
+      form.value.allow_checkout_without_preregistro = data.allow_checkout_without_preregistro ?? true
+      form.value.allow_past_dates_in_pickers = data.allow_past_dates_in_pickers ?? true
     }
   } catch (e) {
     console.warn('[OperationalSettings] load failed:', e?.message)
@@ -114,6 +143,7 @@ const save = async () => {
       .update({
         allow_checkin_without_preregistro: form.value.allow_checkin_without_preregistro,
         allow_checkout_without_preregistro: form.value.allow_checkout_without_preregistro,
+        allow_past_dates_in_pickers: form.value.allow_past_dates_in_pickers,
       })
       .eq('account_id', accountId)
 

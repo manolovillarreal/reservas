@@ -278,5 +278,3 @@ export const createCustomSource = async (accountId, sourceTypeId, label_es, comm
 
   return { ...created, is_active: true, commission_pct: Number(commissionPct || 0) }
 }
-
-export { normalizeSourceName }
