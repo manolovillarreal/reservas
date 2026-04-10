@@ -4,7 +4,7 @@
        <h1 class="text-3xl font-semibold tracking-tight text-gray-900">Consultas</h1>
        <div class="flex items-center gap-3">
          <ViewModeToggle v-model="viewMode" class="hidden sm:flex" />
-         <button v-if="can('inquiries', 'create')" class="btn-primary" @click="openCreateModal">+ Nueva consulta</button>
+         <router-link v-if="can('inquiries', 'create')" to="/reservar" class="btn-primary">+ Nueva consulta</router-link>
        </div>
      </div>
 
@@ -142,14 +142,6 @@
       />
     </div>
 
-    <BaseModal :isOpen="showCreateModal" title="Nueva consulta / reserva" size="lg" @close="closeCreateModal">
-      <GuidedReservationForm
-        :inModal="true"
-        @saved="handleGuidedSaved"
-        @cancel="closeCreateModal"
-      />
-    </BaseModal>
-
     <InquiryConversionModal
       v-if="selectedInquiryForConversion"
       :isOpen="showConversionModal"
@@ -193,8 +185,6 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import BaseModal from '../components/ui/BaseModal.vue'
-import GuidedReservationForm from '../components/reservations/GuidedReservationForm.vue'
 import DataCard from '../components/ui/DataCard.vue'
 import BottomSheet from '../components/ui/BottomSheet.vue'
 import InquiryConversionModal from '../components/inquiries/InquiryConversionModal.vue'
@@ -221,7 +211,6 @@ const toast = useToast()
 
 const filters = ref({ search: '', status: '', dateFrom: '', dateTo: '' })
 
-const showCreateModal = ref(false)
 const showFiltersSheet = ref(false)
 const showConversionModal = ref(false)
 const selectedInquiryForConversion = ref(null)
@@ -354,16 +343,5 @@ const getNumericNights = (checkIn, checkOut) => {
 
 const formatCurrency = (value) => Number(value || 0).toLocaleString('es-CO')
 
-const openCreateModal = () => {
-  showCreateModal.value = true
-}
 
-const closeCreateModal = () => {
-  showCreateModal.value = false
-}
-
-const handleGuidedSaved = async () => {
-  showCreateModal.value = false
-  await store.fetchInquiries()
-}
 </script>
