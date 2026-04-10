@@ -294,7 +294,7 @@
         <button type="button" class="mt-1 text-xs text-primary underline" @click="goToStep(1)">Editar</button>
       </div>
 
-      <p class="text-xs text-gray-400">Sin pago registrado → se guarda como consulta. Con pago → se crea como reserva confirmada (requiere unidad y precio).</p>
+      <p class="text-xs text-gray-400">Sin pago: guarda como consulta, o usa "Guardar como reserva" si definiste unidad y precio. Con pago: crea reserva confirmada.</p>
 
       <!-- Panel: Selección de unidad -->
       <div class="rounded-lg border border-gray-200">
@@ -425,6 +425,7 @@
       </div>
 
       <AppInlineAlert v-if="reservationValidationError" type="error" :message="reservationValidationError" />
+      <AppInlineAlert v-if="saveAsReservationError" type="error" :message="saveAsReservationError" />
       <AppInlineAlert v-if="submitError" type="error" :message="submitError" />
 
       <!-- Hold toggle (solo para consultas sin pago) -->
@@ -442,6 +443,9 @@
 
       <div class="flex items-center gap-3">
         <button type="button" class="btn-secondary" @click="prevFromPanels">Atrás</button>
+        <button v-if="!hasPayment" type="button" class="btn-secondary" :disabled="saving" @click="saveAsReservation">
+          {{ saving ? 'Guardando…' : 'Guardar como reserva' }}
+        </button>
         <button type="button" class="btn-primary" :disabled="saving" @click="save">
           {{ saving ? 'Guardando…' : hasPayment ? 'Crear reserva' : 'Guardar consulta' }}
         </button>
@@ -493,6 +497,7 @@ import {
   AppCountrySelect,
   AppTextarea,
   AppDateRangePicker,
+  AppDatePicker,
   AppCounter,
   AppToggle,
   AppFormGrid,
@@ -555,6 +560,7 @@ const maxReachedStep = ref(1)
 // ── UI state ───────────────────────────────────────────
 const saving = ref(false)
 const submitError = ref('')
+const saveAsReservationError = ref('')
 const guestSearchOpen = ref(false)
 const holdInquiry = ref(false)
 const holdDays = ref(1)
@@ -1012,6 +1018,64 @@ const toggleFullHouseSelection = (enabled) => {
   }
 
   form.value.unit_ids = [...current]
+}
+
+// ── Save As Reservation (no payment) ──────────────────
+const saveAsReservation = async () => {
+  saveAsReservationError.value = ''
+  submitError.value = ''
+
+  if (!form.value.unit_ids.length || !form.value.price_per_night) {
+    saveAsReservationError.value = 'Para guardar como reserva sin pago debes seleccionar una unidad y un precio por noche.'
+    return
+  }
+
+  saving.value = true
+  try {
+    const guestRecord = form.value.guest_id
+      ? { id: form.value.guest_id }
+      : await guestsStore.getOrCreateGuestByPhone({
+            first_name: form.value.guest_first_name,
+            last_name: form.value.guest_last_name,
+            document_type: form.value.guest_document_type || null,
+            document_number: form.value.guest_document_number?.trim() || null,
+            gender: form.value.guest_gender || null,
+        })
+
+    const result = await reservationsStore.createReservationWithPayment(
+      {
+        check_in: form.value.check_in,
+        check_out: form.value.check_out,
+        adults: form.value.adults,
+        minors: form.value.minors,
+        children: form.value.children,
+        infants: form.value.infants,
+        venue_id: form.value.venue_id || null,
+        guest_id: guestRecord.id,
+        guest_first_name: form.value.guest_first_name,
+        guest_last_name: form.value.guest_last_name,
+        guest_phone_country_code: form.value.guest_phone_country_code,
+        unit_ids: form.value.unit_ids,
+        price_per_night: Number(form.value.price_per_night),
+        discount_percentage: Number(form.value.discount_percentage || 0),
+        commission_percentage: Number(form.value.commission_percentage || 0),
+        commission_name: form.value.commission_name || null,
+        source_detail_id: form.value.source_detail_id || null,
+        source_name: form.value.source_name || null,
+        status: 'confirmed',
+        notes: form.value.notes || null
+      },
+      { amount: 0, method: 'transferencia', reference: '', payment_date: todayIso }
+    )
+
+    emit('saved', result)
+    if (!props.inModal) router.push(`/reservas/${result.id}`)
+    toast.success('Reserva creada correctamente.')
+  } catch (err) {
+    saveAsReservationError.value = err.message || 'Ocurrió un error al guardar.'
+  } finally {
+    saving.value = false
+  }
 }
 
 // ── Save ───────────────────────────────────────────────

@@ -187,6 +187,30 @@
           </div>
         </div>
 
+        <!-- Personas adicionales (post-checkin) -->
+        <div v-if="res.status === 'in_stay'" class="card">
+          <div class="flex items-center justify-between mb-3">
+            <h2 class="text-lg font-semibold text-gray-900">Personas adicionales</h2>
+            <button
+              v-if="can('reservations', 'edit')"
+              class="touch-target inline-flex items-center text-sm font-medium text-primary hover:text-primary-dark"
+              @click="showAddPersonModal = true"
+            >+ Agregar persona</button>
+          </div>
+          <div v-if="postCheckinGuests.length === 0" class="text-center py-4 text-gray-500 text-sm italic bg-gray-50 rounded-lg border border-dashed border-gray-200">
+            No hay personas adicionales registradas durante la estadía.
+          </div>
+          <div v-else class="space-y-2">
+            <div v-for="p in postCheckinGuests" :key="p.id" class="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm">
+              <p class="font-medium text-gray-900">{{ p.fullName }}</p>
+              <p class="text-xs text-gray-500">{{ p.documentLabel }} · {{ p.categoryLabel }}</p>
+              <p v-if="p.arrival_date || p.departure_date" class="text-xs text-gray-500">
+                {{ p.arrival_date ? formatDate(p.arrival_date) : '—' }} → {{ p.departure_date ? formatDate(p.departure_date) : '—' }}
+              </p>
+            </div>
+          </div>
+        </div>
+
       </div>
 
       <!-- Side Column (1/3) -->
@@ -375,12 +399,29 @@
           </button>
         </div>
 
-        <!-- Danger Zone: solo para confirmed -->
-        <div v-if="res.status === 'confirmed'" class="card border-red-100 bg-red-50/30">
+        <!-- Danger Zone -->
+        <div class="card border-red-100 bg-red-50/30">
           <h2 class="text-sm font-semibold text-red-800 mb-2">Zona de Peligro</h2>
-          <p class="text-xs text-red-600 mb-4">Al cancelar una reserva, se liberarán las fechas en el calendario inmediatamente.</p>
-          <button @click="openCancelModal" class="touch-target w-full rounded-md border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-700 transition-colors hover:bg-red-50">
-            Cancelar Reserva
+
+          <!-- Cancelar: solo para confirmed -->
+          <div v-if="res.status === 'confirmed'">
+            <p class="text-xs text-red-600 mb-4">Al cancelar una reserva, se liberarán las fechas en el calendario inmediatamente.</p>
+            <button @click="openCancelModal" class="touch-target w-full rounded-md border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-700 transition-colors hover:bg-red-50">
+              Cancelar Reserva
+            </button>
+          </div>
+
+          <hr v-if="res.status === 'confirmed'" class="my-3 border-red-100">
+
+          <!-- Eliminar: disponible en cualquier estado sin pagos -->
+          <p class="text-xs text-red-600 mb-3">Eliminar borra permanentemente el registro del sistema. Solo úsalo si la reserva fue creada por error.</p>
+          <button
+            @click="showDeleteReservationModal = true"
+            :disabled="payments.length > 0"
+            :title="payments.length > 0 ? 'No se puede eliminar una reserva con pagos registrados' : ''"
+            class="touch-target w-full rounded-md border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-700 transition-colors hover:bg-red-50 disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            Eliminar Reserva
           </button>
         </div>
 
@@ -400,6 +441,36 @@
       <p v-if="preregistroErrorMessage" class="mt-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
         {{ preregistroErrorMessage }}
       </p>
+    </BaseModal>
+
+    <BaseModal :isOpen="showAddPersonModal" title="Agregar persona" :fullScreenOnMobile="true" @close="showAddPersonModal = false">
+      <div class="space-y-4">
+        <AppInput v-model="addPersonForm.full_name" label="Nombre completo" :required="true" />
+        <AppFormGrid :columns="2">
+          <AppSelect
+            v-model="addPersonForm.document_type"
+            label="Tipo de documento"
+            :options="[{ value: 'cedula', label: 'Cédula' }, { value: 'passport', label: 'Pasaporte' }, { value: 'dni', label: 'DNI' }, { value: 'foreign_id', label: 'Documento extranjero' }]"
+          />
+          <AppInput v-model="addPersonForm.document_number" label="Número de documento" />
+        </AppFormGrid>
+        <AppFormGrid :columns="2">
+          <AppDatePicker v-model="addPersonForm.arrival_date" label="Fecha de ingreso" hint="Opcional" />
+          <AppDatePicker v-model="addPersonForm.departure_date" label="Fecha de salida" hint="Opcional" />
+        </AppFormGrid>
+        <AppSelect
+          v-model="addPersonForm.category"
+          label="Categoría"
+          :options="ageCategoryOptions"
+        />
+        <p v-if="addPersonError" class="text-sm text-red-600 rounded-md border border-red-200 bg-red-50 px-3 py-2">{{ addPersonError }}</p>
+        <div class="safe-area-bottom flex justify-end gap-2 border-t pt-4">
+          <button type="button" class="btn-secondary" :disabled="addPersonSaving" @click="showAddPersonModal = false">Cancelar</button>
+          <button type="button" class="btn-primary" :disabled="addPersonSaving" @click="submitAddPerson">
+            {{ addPersonSaving ? 'Guardando...' : 'Agregar persona' }}
+          </button>
+        </div>
+      </div>
     </BaseModal>
 
     <BaseModal :isOpen="showEditUnitsModal" title="Editar unidades" :fullScreenOnMobile="true" @close="closeEditUnitsModal">
@@ -498,6 +569,17 @@
       @saved="fetchReservation"
     />
 
+    <ConfirmActionModal
+      :isOpen="showDeleteReservationModal"
+      title="Eliminar reserva"
+      message="Esta acción elimina el registro del sistema. Solo úsala si la reserva fue creada por error. No se puede deshacer."
+      confirmLabel="Eliminar"
+      :loading="deletingReservation"
+      :error="deleteReservationError"
+      @close="showDeleteReservationModal = false"
+      @confirm="confirmDeleteReservation"
+    />
+
     <StatusChangeModal
       v-if="res"
       :isOpen="showStatusModal"
@@ -551,6 +633,9 @@ import { notifyCheckinRealizado } from '../services/notificationService'
 import { getMessageSettings, getPredefinedMessages } from '../services/messageSettingsService'
 import { resolveTemplate } from '../utils/messageUtils'
 import { DEFAULT_PREREGISTRO_TEMPLATE, formatDateLongEs } from '../utils/voucherUtils'
+import { syncReservationOccupancy } from '../services/reservationService'
+import { useAgeCategorySettings } from '../composables/useAgeCategorySettings'
+import { AppInput, AppSelect, AppDatePicker, AppFormGrid } from '../components/ui/forms'
 
 const route = useRoute()
 const router = useRouter()
@@ -559,6 +644,7 @@ const accountStore = useAccountStore()
 const { can, role } = usePermissions()
 const { isMobile } = useBreakpoint()
 const toast = useToast()
+const { activeCategories, ageCategoryLabels, loadAgeCategorySettings } = useAgeCategorySettings()
 const loading = ref(true)
 const res = ref(null)
 const payments = ref([])
@@ -588,6 +674,13 @@ const syncingOccupancy = ref(false)
 const showMessagesPanel = ref(false)
 const showRegisteredGuests = ref(false)
 const regeneratingLink = ref(false)
+const showDeleteReservationModal = ref(false)
+const deletingReservation = ref(false)
+const deleteReservationError = ref('')
+const showAddPersonModal = ref(false)
+const addPersonSaving = ref(false)
+const addPersonError = ref('')
+const addPersonForm = ref({ full_name: '', document_type: 'cedula', document_number: '', arrival_date: '', departure_date: '', category: 'adult' })
 const profile = ref({})
 const accountSettings = ref({})
 const predefinedMessages = ref([])
@@ -604,7 +697,7 @@ const isEditLocked = computed(() =>
 )
 
 onMounted(async () => {
-  await fetchReservation()
+  await Promise.all([fetchReservation(), loadAgeCategorySettings()])
 })
 
 const fetchReservation = async () => {
@@ -620,7 +713,7 @@ const fetchReservation = async () => {
     ] = await Promise.all([
       supabase
         .from('reservations')
-        .select('*, source_detail_info:source_details!reservations_source_detail_id_fkey(id, source_type_id, name, label_es, suggested_commission_percentage, suggested_discount_percentage, is_active), guests!reservations_guest_id_fkey(*), venues(name), reservation_units(unit_id, units(*)), reservation_guests(is_primary, guest_id, guests!reservation_guests_guest_id_fkey(*))')
+        .select('*, source_detail_info:source_details!reservations_source_detail_id_fkey(id, source_type_id, name, label_es, suggested_commission_percentage, suggested_discount_percentage, is_active), guests!reservations_guest_id_fkey(*), venues(name), reservation_units(unit_id, units(*)), reservation_guests(is_primary, guest_id, arrival_date, departure_date, category, added_post_checkin, guests!reservation_guests_guest_id_fkey(*))')
         .eq('account_id', accountId)
         .eq('id', route.params.id)
         .single(),
@@ -836,6 +929,27 @@ const canViewFinancial = computed(() => {
 
 const canViewPayments = computed(() => can('payments', 'view'))
 
+const ageCategoryOptions = computed(() => {
+  const opts = [{ value: 'adult', label: ageCategoryLabels.value.adult || 'Adulto' }]
+  if (activeCategories.value.includes('minors')) opts.push({ value: 'minors', label: ageCategoryLabels.value.minors || 'Menor' })
+  if (activeCategories.value.includes('children')) opts.push({ value: 'children', label: ageCategoryLabels.value.children || 'Niño' })
+  if (activeCategories.value.includes('infants')) opts.push({ value: 'infants', label: ageCategoryLabels.value.infants || 'Bebé' })
+  return opts
+})
+
+const postCheckinGuests = computed(() => {
+  return (res.value?.reservation_guests || [])
+    .filter(row => row.added_post_checkin === true)
+    .map(row => ({
+      id: row.guest_id,
+      fullName: row.guests?.name || row.guests?.first_name || '-',
+      documentLabel: [row.guests?.document_type, row.guests?.document_number].filter(Boolean).join(' ') || 'Sin documento',
+      categoryLabel: ageCategoryLabels.value?.[row.category] || row.category || 'Adulto',
+      arrival_date: row.arrival_date,
+      departure_date: row.departure_date,
+    }))
+})
+
 const deletePaymentMessage = computed(() => {
   if (!selectedPayment.value) return ''
   return `¿Eliminar este pago de $${formatCurrency(selectedPayment.value.amount)} registrado el ${formatDate(selectedPayment.value.payment_date)}?`
@@ -887,6 +1001,80 @@ const openStatusModal = () => {
 const openCancelModal = () => {
   statusModalInitialStatus.value = 'cancelled'
   showStatusModal.value = true
+}
+
+const confirmDeleteReservation = async () => {
+  if (!res.value) return
+  deletingReservation.value = true
+  deleteReservationError.value = ''
+  try {
+    const accountId = accountStore.getRequiredAccountId()
+    const { error } = await supabase
+      .from('reservations')
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('id', res.value.id)
+      .eq('account_id', accountId)
+    if (error) throw error
+
+    // Limpiar occupancy (best-effort, igual que al cancelar)
+    try { await syncReservationOccupancy(res.value.id) } catch (e) { /* silencioso */ }
+
+    router.push('/reservas')
+  } catch (err) {
+    deleteReservationError.value = err.message || 'Error al eliminar la reserva.'
+  } finally {
+    deletingReservation.value = false
+  }
+}
+
+const submitAddPerson = async () => {
+  if (!res.value) return
+  addPersonError.value = ''
+  if (!addPersonForm.value.full_name?.trim()) {
+    addPersonError.value = 'El nombre es requerido.'
+    return
+  }
+  addPersonSaving.value = true
+  try {
+    const accountId = accountStore.getRequiredAccountId()
+
+    // Crear o buscar el guest
+    const { data: guestData, error: guestError } = await supabase
+      .from('guests')
+      .insert({
+        account_id: accountId,
+        name: addPersonForm.value.full_name.trim(),
+        document_type: addPersonForm.value.document_type || null,
+        document_number: addPersonForm.value.document_number?.trim() || null,
+      })
+      .select('id')
+      .single()
+    if (guestError) throw guestError
+
+    // Registrar en reservation_guests como post-checkin
+    const { error: rgError } = await supabase
+      .from('reservation_guests')
+      .insert({
+        reservation_id: res.value.id,
+        guest_id: guestData.id,
+        account_id: accountId,
+        is_primary: false,
+        added_post_checkin: true,
+        arrival_date: addPersonForm.value.arrival_date || null,
+        departure_date: addPersonForm.value.departure_date || null,
+        category: addPersonForm.value.category || 'adult',
+      })
+    if (rgError) throw rgError
+
+    await fetchReservation()
+    showAddPersonModal.value = false
+    addPersonForm.value = { full_name: '', document_type: 'cedula', document_number: '', arrival_date: '', departure_date: '', category: 'adult' }
+    toast.success('Persona agregada correctamente.')
+  } catch (err) {
+    addPersonError.value = err.message || 'Error al agregar la persona.'
+  } finally {
+    addPersonSaving.value = false
+  }
 }
 const openVoucher = () => {
   if (!res.value?.id) return

@@ -84,6 +84,9 @@
     { "id": 83, "t": "Género en perfil de huésped y pre-registro", "c": "Feature", "s": "d" },
     { "id": 84, "t": "Editar consulta — vista pantalla completa con precarga de datos", "c": "Feature", "s": "d" },
     { "id": 85, "t": "Convertir consulta en reserva — vista pantalla completa con precarga", "c": "Feature", "s": "d" },
-    { "id": 86, "t": "Editar reserva — vista pantalla completa, botón superior", "c": "Feature", "s": "d" }
+    { "id": 86, "t": "Editar reserva — vista pantalla completa, botón superior", "c": "Feature", "s": "d" },
+    { "id": 87, "t": "Formulario reserva — fecha en pago, guardar como reserva sin pago", "c": "Feature", "s": "d" },
+    { "id": 88, "t": "Agregar personas post checkin con fechas de estadía", "c": "Feature", "s": "d" },
+    { "id": 89, "t": "Diferenciar cancelar vs eliminar reserva, soft delete", "c": "Feature", "s": "d" }
   ]
 }

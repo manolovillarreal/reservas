@@ -97,6 +97,7 @@ export const useReservationsStore = defineStore('reservations', () => {
           payments(amount)
         `, { count: 'exact' })
         .eq('account_id', accountId)
+        .is('deleted_at', null)
 
       if (search) {
         query = query.or(`reference_code.ilike.%${search}%,reservation_number.ilike.%${search}%`)
