@@ -489,6 +489,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { supabase } from '../../services/supabase'
+import { DOCUMENT_TYPES_ADULT as documentTypeOptions } from '../../utils/documentTypes'
 import SourceSelector from '../sources/SourceSelector.vue'
 import BaseModal from '../ui/BaseModal.vue'
 import {
@@ -545,13 +546,6 @@ const PAYMENT_METHOD_OPTIONS = [
 ]
 
 const todayIso = new Date().toISOString().slice(0, 10)
-
-const documentTypeOptions = [
-  { value: 'passport', label: 'Pasaporte' },
-  { value: 'cedula', label: 'Cédula' },
-  { value: 'dni', label: 'DNI' },
-  { value: 'foreign_id', label: 'Documento extranjero' }
-]
 
 // ── Navigation state ───────────────────────────────────
 const currentStep = ref(1)

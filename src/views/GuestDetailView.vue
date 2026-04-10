@@ -148,6 +148,7 @@ import {
   AppFormActions,
   AppCountrySelect
 } from '@/components/ui/forms'
+import { DOCUMENT_TYPES_ALL as documentTypeOptions } from '../utils/documentTypes'
 
 const route = useRoute()
 const router = useRouter()
@@ -172,13 +173,6 @@ const editForm = ref({
   gender: '',
   notes: ''
 })
-
-const documentTypeOptions = [
-  { value: 'passport', label: 'Pasaporte' },
-  { value: 'cedula', label: 'Cédula' },
-  { value: 'dni', label: 'DNI' },
-  { value: 'foreign_id', label: 'Documento extranjero' }
-]
 
 const guest = computed(() => guestsStore.guests.find((item) => item.id === route.params.id) || null)
 

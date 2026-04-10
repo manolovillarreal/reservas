@@ -168,6 +168,7 @@ import { useRoute } from 'vue-router'
 import { supabase } from '../services/supabase'
 import AppCountrySelect from '../components/ui/forms/AppCountrySelect.vue'
 import AppPhoneInput from '../components/ui/forms/AppPhoneInput.vue'
+import { DOCUMENT_TYPES_ALL as documentTypeOptions } from '../utils/documentTypes'
 
 const FUNCTIONS_URL = (import.meta.env.VITE_SUPABASE_URL || '').replace(/\/$/, '') + '/functions/v1'
 const ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || ''
@@ -185,13 +186,6 @@ const primaryGuestName = ref('')
 const contactPhone = ref('')
 const accommodationLogo = ref('')
 const companionsRemaining = ref(0)
-
-const documentTypeOptions = [
-  { value: 'passport', label: 'Pasaporte' },
-  { value: 'cedula', label: 'Cédula' },
-  { value: 'dni', label: 'DNI' },
-  { value: 'foreign_id', label: 'Documento extranjero' },
-]
 
 const buildGuest = () => ({
   first_name: '',

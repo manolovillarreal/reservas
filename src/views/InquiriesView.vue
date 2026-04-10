@@ -4,7 +4,7 @@
        <h1 class="text-3xl font-semibold tracking-tight text-gray-900">Consultas</h1>
        <div class="flex items-center gap-3">
          <ViewModeToggle v-model="viewMode" class="hidden sm:flex" />
-         <router-link v-if="can('inquiries', 'create')" to="/reservar" class="btn-primary">+ Nuevo Registro</router-link>
+         <router-link v-if="can('inquiries', 'create') && !isMobile" to="/reservar" class="btn-primary">+ Nuevo Registro</router-link>
        </div>
      </div>
 
@@ -179,6 +179,14 @@
         </div>
       </div>
     </BottomSheet>
+
+    <router-link
+      v-if="can('inquiries', 'create') && isMobile"
+      to="/reservar"
+      class="fixed bottom-[calc(72px+env(safe-area-inset-bottom))] right-4 z-30 inline-flex h-12 items-center justify-center rounded-full bg-primary px-5 text-sm font-semibold text-white hover:bg-primary-dark"
+    >
+      + Consulta
+    </router-link>
   </div>
 </template>
 

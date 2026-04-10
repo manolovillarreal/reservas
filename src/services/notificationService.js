@@ -368,7 +368,7 @@ async function _runInquiryExpiringSoon(accountId) {
     .from('inquiries')
     .select('id, guest_first_name, guest_last_name, quote_expires_at')
     .eq('account_id', accountId)
-    .in('status', ['nueva', 'contactada', 'cotizada'])
+    .in('status', ['nueva', 'en_seguimiento', 'cotizada'])
     .gte('quote_expires_at', now.toISOString())
     .lte('quote_expires_at', targetDate.toISOString())
 
@@ -399,7 +399,7 @@ async function _runInquiryNoActivity(accountId) {
     .from('inquiries')
     .select('id, guest_first_name, guest_last_name, updated_at')
     .eq('account_id', accountId)
-    .in('status', ['nueva', 'contactada', 'cotizada'])
+    .in('status', ['nueva', 'en_seguimiento', 'cotizada'])
     .lte('updated_at', cutoffDate.toISOString())
 
   for (const inq of inquiries || []) {

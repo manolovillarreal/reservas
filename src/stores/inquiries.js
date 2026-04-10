@@ -149,19 +149,19 @@ export const useInquiriesStore = defineStore('inquiries', () => {
       )
     }
 
-    // Track status flow for audit. If auto-quoted, register the intermediate 'contactada'.
+    // Track status flow for audit. If auto-quoted, register the intermediate 'en_seguimiento'.
     if (shouldAutoQuote) {
       await insertStatusLog({
         accountId,
         inquiryId: data.id,
         fromStatus: 'nueva',
-        toStatus: 'contactada',
+        toStatus: 'en_seguimiento',
         note: 'Paso automático al generar cotización.'
       })
       await insertStatusLog({
         accountId,
         inquiryId: data.id,
-        fromStatus: 'contactada',
+        fromStatus: 'en_seguimiento',
         toStatus: 'cotizada',
         note: 'Cotización creada automáticamente por vencimiento definido.'
       })
@@ -261,13 +261,13 @@ export const useInquiriesStore = defineStore('inquiries', () => {
           accountId,
           inquiryId: id,
           fromStatus: 'nueva',
-          toStatus: 'contactada',
+          toStatus: 'en_seguimiento',
           note: 'Paso automático previo a cotizada.'
         })
         await insertStatusLog({
           accountId,
           inquiryId: id,
-          fromStatus: 'contactada',
+          fromStatus: 'en_seguimiento',
           toStatus: 'cotizada',
           note: payload.quote_expires_at ? 'Cotización generada con fecha de vencimiento.' : 'Cambio de estado.'
         })

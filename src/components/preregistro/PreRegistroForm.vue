@@ -21,7 +21,7 @@
           <AppSelect
             v-model="primaryGuest.document_type"
             label="Tipo de documento"
-            :options="documentTypeOptions"
+            :options="DOCUMENT_TYPES_ADULT"
             placeholder="Sin definir"
             required
           />
@@ -88,7 +88,7 @@
             <AppSelect
               v-model="guest.document_type"
               label="Tipo de documento"
-              :options="documentTypeOptions"
+              :options="DOCUMENT_TYPES_ALL"
               placeholder="Sin definir"
               required
             />
@@ -137,6 +137,7 @@ import {
   AppFormActions,
   AppCountrySelect
 } from '@/components/ui/forms'
+import { DOCUMENT_TYPES_ADULT, DOCUMENT_TYPES_ALL } from '../../utils/documentTypes'
 
 const props = defineProps({
   reservation: { type: Object, default: () => ({}) },
@@ -148,13 +149,6 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['submitted', 'cancel'])
-
-const documentTypeOptions = [
-  { value: 'passport', label: 'Pasaporte' },
-  { value: 'cedula', label: 'Cédula' },
-  { value: 'dni', label: 'DNI' },
-  { value: 'foreign_id', label: 'Documento extranjero' },
-]
 
 const buildGuest = () => ({
   first_name: '',
