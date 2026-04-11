@@ -32,7 +32,7 @@
         <slot></slot>
       </div>
       
-      <div v-if="$slots.footer" class="safe-area-bottom flex justify-end gap-3 border-t border-gray-200 bg-gray-50 px-4 py-3 sm:px-6 sm:py-4">
+      <div v-if="$slots.footer" class="safe-area-bottom flex justify-center gap-3 border-t border-gray-200 bg-gray-50 px-4 pb-6 pt-3 sm:px-6 sm:pb-5 sm:pt-4">
         <slot name="footer"></slot>
       </div>
     </div>

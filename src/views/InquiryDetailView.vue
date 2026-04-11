@@ -603,6 +603,7 @@ const confirmDelete = async () => {
 
   try {
     await store.deleteInquiry(inquiry.value.id)
+    showDeleteModal.value = false
     router.push('/consultas')
   } catch (err) {
     deleteError.value = err.message

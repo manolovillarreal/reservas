@@ -58,6 +58,7 @@ export const useInquiriesStore = defineStore('inquiries', () => {
         .from('inquiries')
         .select(INQUIRY_SELECT)
         .eq('account_id', accountId)
+        .is('deleted_at', null)
         .order('created_at', { ascending: false })
 
       if (supaError) throw supaError
@@ -298,7 +299,7 @@ export const useInquiriesStore = defineStore('inquiries', () => {
     const accountId = accountStore.getRequiredAccountId()
     const { error: supaError } = await supabase
       .from('inquiries')
-      .delete()
+      .update({ deleted_at: new Date().toISOString() })
       .eq('account_id', accountId)
       .eq('id', id)
 
