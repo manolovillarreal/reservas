@@ -90,6 +90,9 @@
     { "id": 89, "t": "Diferenciar cancelar vs eliminar reserva, soft delete", "c": "Feature", "s": "d" },
     { "id": 90, "t": "Estados de consulta normalizados — en_seguimiento reemplaza contactada", "c": "Ajuste UI", "s": "d" },
     { "id": 91, "t": "Tipos de documento colombianos normalizados con códigos", "c": "Feature", "s": "d" },
-    { "id": 92, "t": "Botón flotante + en vista de consultas mobile", "c": "Ajuste UI", "s": "d" }
+    { "id": 92, "t": "Botón flotante + en vista de consultas mobile", "c": "Ajuste UI", "s": "d" },
+    { "id": 93, "t": "Precarga completa al seleccionar huésped existente en formulario", "c": "Fix", "s": "d" },
+    { "id": 94, "t": "Actualizar perfil huésped al guardar formulario", "c": "Fix", "s": "d" },
+    { "id": 95, "t": "Mejorar cabecera vista detalle cotización", "c": "Ajuste UI", "s": "d" }
   ]
 }

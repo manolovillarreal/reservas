@@ -192,7 +192,6 @@
             <AppInput
               v-model="form.guest_last_name"
               label="Apellidos"
-              :disabled="!!form.guest_id"
               hint="Opcional"
             />
           </AppFormGrid>
@@ -202,7 +201,6 @@
               :countryCode="form.guest_phone_country_code"
               :phoneNumber="form.guest_phone"
               label="Teléfono"
-              :disabled="!!form.guest_id"
               :error="s3Touched.guest_phone && !form.guest_phone?.trim() ? 'El teléfono es obligatorio.' : ''"
               @update:countryCode="form.guest_phone_country_code = $event"
               @update:phoneNumber="e => { form.guest_phone = e; s3Touched.guest_phone = true }"
@@ -211,7 +209,6 @@
               v-model="form.guest_email"
               label="Email"
               type="email"
-              :disabled="!!form.guest_id"
               hint="Opcional"
             />
           </AppFormGrid>
@@ -219,7 +216,6 @@
           <AppCountrySelect
             v-model="form.guest_nationality"
             label="Nacionalidad"
-            :disabled="!!form.guest_id"
             hint="Opcional"
           />
 
@@ -229,13 +225,11 @@
               label="Tipo de documento"
               :options="documentTypeOptions"
               placeholder="Sin definir"
-              :disabled="!!form.guest_id"
               hint="Opcional"
             />
             <AppInput
               v-model="form.guest_document_number"
               label="Número de documento"
-              :disabled="!!form.guest_id"
               hint="Opcional"
             />
           </AppFormGrid>
@@ -245,9 +239,10 @@
             label="Género"
             :options="[{ value: 'male', label: 'Masculino' }, { value: 'female', label: 'Femenino' }, { value: 'unspecified', label: 'Prefiero no indicar' }]"
             placeholder="Sin definir"
-            :disabled="!!form.guest_id"
             hint="Opcional"
           />
+
+          <AppDatePicker v-model="form.guest_birth_date" label="Fecha de nacimiento" hint="Opcional" />
 
         <AppTextarea
           v-model="form.notes"
@@ -587,6 +582,7 @@ const form = ref({
   guest_document_type: '',
   guest_document_number: '',
   guest_gender: '',
+  guest_birth_date: '',
   notes: '',
   price_per_night: '',
   discount_percentage: '',
@@ -919,6 +915,8 @@ const selectGuest = (guest) => {
   form.value.guest_nationality = guest.nationality || ''
   form.value.guest_document_type = guest.document_type || ''
   form.value.guest_document_number = guest.document_number || ''
+  form.value.guest_gender = guest.gender || ''
+  form.value.guest_birth_date = guest.birth_date || ''
   guestSearchOpen.value = false
 }
 
@@ -932,6 +930,8 @@ const clearGuestSelection = () => {
   form.value.guest_nationality = ''
   form.value.guest_document_type = ''
   form.value.guest_document_number = ''
+  form.value.guest_gender = ''
+  form.value.guest_birth_date = ''
 }
 
 // ── Edit guest modal ───────────────────────────────────
@@ -1033,15 +1033,30 @@ const saveAsReservation = async () => {
 
   saving.value = true
   try {
-    const guestRecord = form.value.guest_id
-      ? { id: form.value.guest_id }
-      : await guestsStore.getOrCreateGuestByPhone({
+    let guestRecord
+    if (form.value.guest_id) {
+      await guestsStore.updateGuest(form.value.guest_id, {
+        first_name: form.value.guest_first_name,
+        last_name: form.value.guest_last_name,
+        phone: form.value.guest_phone,
+        phone_country_code: form.value.guest_phone_country_code,
+        email: form.value.guest_email || null,
+        document_type: form.value.guest_document_type || null,
+        document_number: form.value.guest_document_number?.trim() || null,
+        nationality: form.value.guest_nationality || null,
+        gender: form.value.guest_gender || null,
+        birth_date: form.value.guest_birth_date || null,
+      })
+      guestRecord = { id: form.value.guest_id }
+    } else {
+      guestRecord = await guestsStore.getOrCreateGuestByPhone({
             first_name: form.value.guest_first_name,
             last_name: form.value.guest_last_name,
             document_type: form.value.guest_document_type || null,
             document_number: form.value.guest_document_number?.trim() || null,
             gender: form.value.guest_gender || null,
-        })
+      })
+    }
 
     const result = await reservationsStore.createReservationWithPayment(
       {
@@ -1087,16 +1102,31 @@ const save = async () => {
   saving.value = true
   try {
     if (hasPayment.value) {
-      // Crear perfil de huésped solo si no viene de uno existente
-      const guestRecord = form.value.guest_id
-        ? { id: form.value.guest_id }
-        : await guestsStore.getOrCreateGuestByPhone({
+      // Actualizar perfil de huésped si ya existe, o crear uno nuevo
+      let guestRecord
+      if (form.value.guest_id) {
+        await guestsStore.updateGuest(form.value.guest_id, {
+          first_name: form.value.guest_first_name,
+          last_name: form.value.guest_last_name,
+          phone: form.value.guest_phone,
+          phone_country_code: form.value.guest_phone_country_code,
+          email: form.value.guest_email || null,
+          document_type: form.value.guest_document_type || null,
+          document_number: form.value.guest_document_number?.trim() || null,
+          nationality: form.value.guest_nationality || null,
+          gender: form.value.guest_gender || null,
+          birth_date: form.value.guest_birth_date || null,
+        })
+        guestRecord = { id: form.value.guest_id }
+      } else {
+        guestRecord = await guestsStore.getOrCreateGuestByPhone({
               first_name: form.value.guest_first_name,
               last_name: form.value.guest_last_name,
               document_type: form.value.guest_document_type || null,
               document_number: form.value.guest_document_number?.trim() || null,
               gender: form.value.guest_gender || null,
           })
+      }
 
       const result = await reservationsStore.createReservationWithPayment(
         {
@@ -1143,7 +1173,21 @@ const save = async () => {
         toast.success('Reserva creada correctamente.')
       }
     } else {
-      // Sin pago → consulta (no se crea perfil guest)
+      // Sin pago → consulta
+      if (form.value.guest_id) {
+        await guestsStore.updateGuest(form.value.guest_id, {
+          first_name: form.value.guest_first_name,
+          last_name: form.value.guest_last_name,
+          phone: form.value.guest_phone,
+          phone_country_code: form.value.guest_phone_country_code,
+          email: form.value.guest_email || null,
+          document_type: form.value.guest_document_type || null,
+          document_number: form.value.guest_document_number?.trim() || null,
+          nationality: form.value.guest_nationality || null,
+          gender: form.value.guest_gender || null,
+          birth_date: form.value.guest_birth_date || null,
+        })
+      }
       const result = await inquiriesStore.createInquiry({
         check_in: form.value.check_in,
         check_out: form.value.check_out,

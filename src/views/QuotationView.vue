@@ -25,13 +25,48 @@
         type="quotation"
       >
         <section class="doc-content-section border-b pb-4">
-          <h1 class="doc-content-title text-2xl font-semibold">Cotizacion</h1>
-          <p class="mt-2 text-base font-semibold text-gray-900">Codigo de referencia: {{ formattedReferenceDisplay }}</p>
-          <div class="mt-3 grid grid-cols-1 gap-1 text-sm text-gray-700 md:grid-cols-3 md:gap-3">
-            <p><span class="font-semibold">Numero:</span> {{ quotationNumber }}</p>
-            <p><span class="font-semibold">Fecha:</span> {{ formatDateShort(now) }}</p>
-            <p v-if="inquiry?.quote_expires_at"><span class="font-semibold">Valida hasta:</span> {{ formatDateShort(inquiry.quote_expires_at) }}</p>
+          <div class="flex flex-wrap items-start justify-between gap-2">
+            <div>
+              <h1 class="doc-content-title text-2xl font-bold text-gray-900">
+                {{ inquiry?.guest_first_name }} {{ inquiry?.guest_last_name }}
+              </h1>
+              <p class="mt-0.5 text-sm text-gray-500">Ref. {{ formattedReferenceDisplay }} · Nro. {{ quotationNumber }}</p>
+            </div>
+            <div class="flex flex-col items-end gap-1">
+              <span
+                class="rounded-full px-2.5 py-0.5 text-xs font-semibold"
+                :class="isQuoteExpired ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700'"
+              >
+                {{ isQuoteExpired ? 'Vencida' : 'Vigente' }}
+              </span>
+              <p class="text-xs text-gray-400">{{ formatDateShort(now) }}</p>
+            </div>
           </div>
+          <div class="mt-3 grid grid-cols-2 gap-2 text-sm md:grid-cols-4">
+            <div>
+              <p class="text-xs font-medium uppercase tracking-wide text-gray-400">Check-in</p>
+              <p class="font-semibold text-gray-900">{{ formatDateShort(inquiry?.check_in) }}</p>
+            </div>
+            <div>
+              <p class="text-xs font-medium uppercase tracking-wide text-gray-400">Check-out</p>
+              <p class="font-semibold text-gray-900">{{ formatDateShort(inquiry?.check_out) }}</p>
+            </div>
+            <div>
+              <p class="text-xs font-medium uppercase tracking-wide text-gray-400">Noches</p>
+              <p class="font-semibold text-gray-900">{{ nights }}</p>
+            </div>
+            <div>
+              <p class="text-xs font-medium uppercase tracking-wide text-gray-400">Personas</p>
+              <p class="font-semibold text-gray-900">{{ totalPersons }}</p>
+            </div>
+          </div>
+          <p
+            v-if="inquiry?.quote_expires_at"
+            class="mt-2 text-xs"
+            :class="isQuoteExpired ? 'text-orange-600' : 'text-gray-400'"
+          >
+            {{ isQuoteExpired ? 'Venció el' : 'Válida hasta' }} {{ formatDateShort(inquiry.quote_expires_at) }}
+          </p>
         </section>
 
         <section class="doc-content-section border-b py-4">
@@ -211,6 +246,16 @@ const discountAmount = computed(() => subtotal.value * discountPercentage.value 
 const totalCustomer = computed(() => Math.max(subtotal.value - discountAmount.value, 0))
 
 const showFinancialSection = computed(() => showStaySection.value && pricePerNight.value > 0)
+
+const isQuoteExpired = computed(() => {
+  if (!inquiry.value?.quote_expires_at) return false
+  return new Date(inquiry.value.quote_expires_at) < new Date()
+})
+const totalPersons = computed(() =>
+  Number(inquiry.value?.adults || 0) +
+  Number(inquiry.value?.children || 0) +
+  Number(inquiry.value?.minors || 0)
+)
 
 const formatDateShort = (value) => {
   if (!value) return '-'
