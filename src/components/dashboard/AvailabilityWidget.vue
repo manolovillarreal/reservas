@@ -246,7 +246,6 @@ const verify = async () => {
 
   const accountId = accountStore.getRequiredAccountId()
   await checkAvailability({ accountId, checkIn: checkIn.value, checkOut: checkOut.value, personas: personas.value })
-  selectedUnitIds.value = available.value.map((unit) => unit.id)
 }
 
 const handleReset = () => {
@@ -280,8 +279,8 @@ const copyPositiveAvailabilityMessage = async () => {
   toast.success('Mensaje copiado al portapapeles')
 }
 
-watch(available, (units) => {
-  selectedUnitIds.value = units.map((unit) => unit.id)
+watch(available, () => {
+  selectedUnitIds.value = []
 })
 
 onMounted(async () => {

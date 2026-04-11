@@ -97,16 +97,11 @@
             class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-800 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30"
             placeholder="Escribe aquí las condiciones del alojamiento..."
           ></textarea>
-          <div class="mt-3 flex justify-end">
-            <button type="button" class="btn-primary text-sm" :disabled="savingConditions" @click="saveVoucherConditions">
-              {{ savingConditions ? 'Guardando...' : 'Guardar condiciones' }}
-            </button>
-          </div>
         </AppFormSection>
 
         <div :class="isMobile ? 'sticky bottom-0 z-20 -mx-4 border-t border-[#E5E7EB] bg-white px-4 py-3 shadow-[0_-6px_18px_rgba(15,23,42,0.06)]' : ''">
           <AppFormActions
-            submit-label="Guardar personalización"
+            submit-label="Guardar"
             cancel-label="Restablecer"
             :loading="savingProfile || loadingProfile"
             :submit-disabled="savingProfile || loadingProfile"
@@ -152,7 +147,6 @@ const toast = useToast()
 
 const loadingProfile = ref(false)
 const savingProfile = ref(false)
-const savingConditions = ref(false)
 const logoInputRef = ref(null)
 const selectedLogoFile = ref(null)
 const selectedLogoPreviewUrl = ref('')
@@ -258,30 +252,6 @@ const loadVoucherConditions = async () => {
     voucherConditions.value = String(data?.voucher_conditions || '')
   } catch (err) {
     toast.error(err.message || 'No se pudieron cargar las condiciones del alojamiento.')
-  }
-}
-
-const saveVoucherConditions = async () => {
-  if (!can('settings', 'edit')) return
-
-  savingConditions.value = true
-  try {
-    const accountId = accountStore.getRequiredAccountId()
-    const payload = {
-      account_id: accountId,
-      voucher_conditions: String(voucherConditions.value || '').trim(),
-    }
-
-    const { error } = await supabase
-      .from('settings')
-      .upsert(payload, { onConflict: 'account_id' })
-
-    if (error) throw error
-    toast.success('Condiciones guardadas correctamente.')
-  } catch (err) {
-    toast.error(err.message || 'No se pudieron guardar las condiciones.')
-  } finally {
-    savingConditions.value = false
   }
 }
 
@@ -395,6 +365,17 @@ const saveProfile = async () => {
       .upsert(payload, { onConflict: 'account_id' })
 
     if (error) throw error
+
+    const settingsPayload = {
+      account_id: accountId,
+      voucher_conditions: String(voucherConditions.value || '').trim(),
+    }
+
+    const { error: settingsError } = await supabase
+      .from('settings')
+      .upsert(settingsPayload, { onConflict: 'account_id' })
+
+    if (settingsError) throw settingsError
 
     profileForm.value.logo_url = logoUrl || ''
     profileForm.value.nit_digit = nitDigit
