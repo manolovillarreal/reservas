@@ -104,6 +104,7 @@
     { "id": 103, "t": "Editar reserva y consulta — todos los campos del huésped", "c": "Feature", "s": "d" },
     { "id": 104, "t": "Checkbox guardar como reserva sin anticipo en formulario guiado", "c": "Ajuste UI", "s": "d" },
     { "id": 105, "t": "Trim en inputs de texto y teléfono al guardar", "c": "Fix", "s": "d" },
-    { "id": 106, "t": "Acompañantes — teléfono opcional, género obligatorio", "c": "Fix", "s": "d" }
+    { "id": 106, "t": "Acompañantes — teléfono opcional, género obligatorio", "c": "Fix", "s": "d" },
+    { "id": 107, "t": "Motor Mustache — bloque else, limpieza líneas en blanco", "c": "Feature", "s": "d" }
   ]
 }

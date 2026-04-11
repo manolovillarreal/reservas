@@ -57,13 +57,27 @@ export const resolveTemplate = (template, variables) => {
     return ctx[key]
   }
 
+  const cleanupBlankLines = (value) => String(value || '')
+    .replace(/\r\n/g, '\n')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n[ \t]+\n/g, '\n\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+
   const renderSection = (input, ctx) => {
     const source = String(input || '')
-    const blockPattern = /{{#\s*([^}]+?)\s*}}([\s\S]*?){{\/\s*\1\s*}}/g
+    const blockPattern = /{{([#^])\s*([^}]+?)\s*}}([\s\S]*?){{\/\s*\2\s*}}/g
 
-    const withBlocks = source.replace(blockPattern, (_match, rawKey, inner) => {
+    const withBlocks = source.replace(blockPattern, (_match, sectionType, rawKey, inner) => {
       const key = String(rawKey || '').trim()
       const value = resolveValue(ctx, key)
+
+      if (sectionType === '^') {
+        if (isEmptyValue(value)) {
+          return renderSection(inner, ctx)
+        }
+        return ''
+      }
 
       if (Array.isArray(value)) {
         if (value.length === 0) return ''
@@ -100,7 +114,7 @@ export const resolveTemplate = (template, variables) => {
   }
 
   return {
-    text: renderSection(template, variables || {}),
+    text: cleanupBlankLines(renderSection(template, variables || {})),
     missing: [...missing],
   }
 }
@@ -437,6 +451,9 @@ export function generateAiPrompt() {
     bloquesLines.push(`  → ${b.descripcion}`)
   }
 
+  bloquesLines.push('  {{^variable}}...{{/variable}}')
+  bloquesLines.push('  → Else del sistema: aparece solo si la variable no existe o está vacía')
+
   return [
     'Necesito construir un mensaje de WhatsApp para mi alojamiento usando un sistema de plantillas con variables y bloques.',
     '',
@@ -449,9 +466,11 @@ export function generateAiPrompt() {
     'REGLAS IMPORTANTES:',
     '  - Usar exactamente la sintaxis {{variable}} con dobles llaves',
     '  - Los bloques abren con {{#nombre}} y cierran con {{/nombre}}',
+    '  - El bloque else usa {{^nombre}} y se renderiza cuando esa variable no existe o está vacía',
     '  - Puedes usar emojis libremente',
     '  - El texto fuera de bloques siempre aparece',
     '  - Puedes combinar variables dentro de bloques',
+    '  - Después de resolver bloques y variables, el sistema limpia líneas en blanco residuales y deja máximo una línea vacía entre párrafos',
     '',
     'Antes de construir el mensaje, hazme las preguntas necesarias para entender qué tipo de mensaje necesito, para qué situación es, qué información quiero mostrar y qué tono prefiero. Una vez tengas todo claro, construye el mensaje usando únicamente las variables y bloques del sistema descritos arriba.',
   ].join('\n')

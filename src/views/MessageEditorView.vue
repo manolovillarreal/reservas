@@ -55,7 +55,13 @@
               class="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700 transition hover:bg-amber-100"
               @click="insertText(block.snippet)"
             >{{ block.label }}</button>
+            <button
+              type="button"
+              class="rounded-full border border-purple-200 bg-purple-50 px-3 py-1 text-xs font-medium text-purple-700 transition hover:bg-purple-100"
+              @click="insertText(elseBlockSnippet.snippet)"
+            >{{ elseBlockSnippet.label }}</button>
           </div>
+          <p class="text-xs text-gray-500">Reemplaza 'variable' con el nombre de la variable que quieres evaluar.</p>
         </div>
 
         <div class="space-y-3 border-t border-gray-200 pt-4">
@@ -229,7 +235,13 @@
                   class="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700 transition hover:bg-amber-100"
                   @click="insertText(block.snippet, true)"
                 >{{ block.label }}</button>
+                <button
+                  type="button"
+                  class="rounded-full border border-purple-200 bg-purple-50 px-3 py-1 text-xs font-medium text-purple-700 transition hover:bg-purple-100"
+                  @click="insertText(elseBlockSnippet.snippet, true)"
+                >{{ elseBlockSnippet.label }}</button>
               </div>
+              <p class="text-xs text-gray-500">Reemplaza 'variable' con el nombre de la variable que quieres evaluar.</p>
             </div>
 
             <div class="space-y-3 border-t border-gray-200 pt-4">
@@ -335,6 +347,10 @@ const variableGroups = Object.entries(VARIABLE_CATALOG.simples).map(([key, vars]
 }))
 
 const blockSnippets = VARIABLE_CATALOG.bloques.map((b) => ({ label: b.label, snippet: b.template }))
+const elseBlockSnippet = {
+  label: 'Else / Si no existe',
+  snippet: '{{^variable}}\nContenido alternativo\n{{/variable}}',
+}
 
 const emojiGroups = [
   {
