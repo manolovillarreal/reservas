@@ -380,7 +380,6 @@ function buildEmptyForm() {
     infants: 0,
     unit_ids: [],
     price_per_night: '',
-    commission_name: '',
     commission_percentage: '',
     discount_percentage: '',
     source_type_id: '',
@@ -563,7 +562,6 @@ const hydrateForm = () => {
     infants: inquiry.infants ?? 0,
     unit_ids: [...(inquiry.unit_ids || [])],
     price_per_night: inquiry.price_per_night ?? '',
-    commission_name: inquiry.commission_name || '',
     commission_percentage: inquiry.commission_percentage ?? '',
     discount_percentage: inquiry.discount_percentage ?? '',
     source_type_id: inquiry.source_detail_info?.source_type_id || '',
@@ -590,7 +588,6 @@ const updateSourceSelection = (value) => {
 }
 
 const applySourceSuggestions = (payload) => {
-  if (!String(form.value.commission_name || '').trim()) form.value.commission_name = payload.sourceDetailLabel || ''
   if (form.value.commission_percentage === '' || form.value.commission_percentage == null) form.value.commission_percentage = Number(payload.commissionPercentage || 0)
   if (form.value.discount_percentage === '' || form.value.discount_percentage == null) form.value.discount_percentage = Number(payload.discountPercentage || 0)
 }
@@ -665,7 +662,6 @@ const submitConversion = async () => {
         price_per_night: Number(form.value.price_per_night || 0),
         total_amount: Number(customerTotal.value || 0),
         paid_amount: 0,
-        commission_name: form.value.commission_name || null,
         commission_percentage: form.value.commission_percentage === '' ? null : Number(form.value.commission_percentage || 0),
         discount_percentage: form.value.discount_percentage === '' ? 0 : Number(form.value.discount_percentage || 0),
         source_detail_id: form.value.source_detail_id || null,

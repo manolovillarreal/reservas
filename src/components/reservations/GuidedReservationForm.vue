@@ -286,7 +286,7 @@
         <p><strong class="text-gray-900">{{ `${form.guest_first_name} ${form.guest_last_name}`.trim() }}</strong><span v-if="form.guest_phone" class="ml-2 text-gray-500">{{ form.guest_phone }}</span></p>
         <p>{{ form.check_in }} → {{ form.check_out }}<span v-if="nights > 0" class="ml-2 text-gray-400">({{ nights }} noches)</span> · {{ totalPersonas }} personas</p>
         <p v-if="venueName" class="text-gray-500">{{ venueName }}</p>
-        <p v-if="form.commission_name || form.source_detail_id" class="text-gray-500">Canal: {{ form.commission_name || form.source_detail_id }}</p>
+        <p v-if="form.source_detail_id" class="text-gray-500">Canal: {{ form.source_name ? `${sourceLabelDisplay} — ${form.source_name}` : sourceLabelDisplay || '(canal seleccionado)' }}</p>
         <button type="button" class="mt-1 text-xs text-primary underline" @click="goToStep(1)">Editar</button>
       </div>
 
@@ -557,6 +557,7 @@ const holdDays = ref(1)
 const panels = ref({ unit: true, price: false, payment: false })
 const useFullHousePricing = ref(false)
 const usePeakPricing = ref(false)
+const sourceLabelDisplay = ref('')
 
 // ── Touched trackers ───────────────────────────────────
 const s1Touched = ref({ check_in: false, check_out: false })
@@ -587,7 +588,6 @@ const form = ref({
   price_per_night: '',
   discount_percentage: '',
   commission_percentage: '',
-  commission_name: '',
   quote_expires_at: '',
   source_type_id: '',
   source_detail_id: '',
@@ -984,12 +984,11 @@ const onSourceChange = (value) => {
   form.value.source_type_id = value?.sourceTypeId || ''
   form.value.source_detail_id = value?.sourceDetailId || ''
   form.value.source_name = value?.sourceName || ''
+  if (!value?.sourceDetailId) sourceLabelDisplay.value = ''
 }
 
 const onSourceSuggestions = (payload) => {
-  if (!String(form.value.commission_name || '').trim()) {
-    form.value.commission_name = payload.sourceDetailLabel || ''
-  }
+  sourceLabelDisplay.value = payload.sourceDetailLabel || ''
   if (form.value.commission_percentage === '' || form.value.commission_percentage === null) {
     form.value.commission_percentage = Number(payload.commissionPercentage || 0)
   }
@@ -1080,7 +1079,6 @@ const saveAsReservation = async () => {
         price_per_night: Number(form.value.price_per_night),
         discount_percentage: Number(form.value.discount_percentage || 0),
         commission_percentage: Number(form.value.commission_percentage || 0),
-        commission_name: form.value.commission_name || null,
         source_detail_id: form.value.source_detail_id || null,
         source_name: form.value.source_name || null,
         status: 'confirmed',
@@ -1155,7 +1153,6 @@ const save = async () => {
           price_per_night: form.value.price_per_night !== '' ? Number(form.value.price_per_night) : null,
           discount_percentage: Number(form.value.discount_percentage || 0),
           commission_percentage: Number(form.value.commission_percentage || 0),
-          commission_name: form.value.commission_name || null,
           source_detail_id: form.value.source_detail_id || null,
           source_name: form.value.source_name || null,
           status: 'confirmed',
@@ -1218,7 +1215,6 @@ const save = async () => {
         price_per_night: form.value.price_per_night !== '' ? Number(form.value.price_per_night) : null,
         discount_percentage: form.value.discount_percentage !== '' ? Number(form.value.discount_percentage) : 0,
         commission_percentage: form.value.commission_percentage !== '' ? Number(form.value.commission_percentage) : 0,
-        commission_name: form.value.commission_name || null,
         quote_expires_at: form.value.quote_expires_at || null,
         source_detail_id: form.value.source_detail_id || null,
         source_name: form.value.source_name || null,

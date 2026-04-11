@@ -2,14 +2,12 @@
   <article
     class="rounded-xl border border-[#E5E7EB] bg-white p-4 shadow-sm"
     :class="onClick ? 'cursor-pointer transition hover:border-[#D1D5DB] hover:shadow' : ''"
-    @click="handleCardClick"
   >
     <header class="flex items-start justify-between gap-3">
       <div>
         <h3 class="text-sm font-semibold text-[#111827]">{{ title }}</h3>
         <p v-if="subtitle" class="mt-1 text-xs text-[#6B7280]">{{ subtitle }}</p>
-      </div>
-
+      </div>      
       <span v-if="badge && badge.label" class="rounded-full px-2 py-0.5 text-xs font-medium" :class="badgeClass">
         {{ badge.label }}
       </span>

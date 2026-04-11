@@ -185,7 +185,7 @@
       to="/reservar"
       class="fixed bottom-[calc(72px+env(safe-area-inset-bottom))] right-4 z-30 inline-flex h-12 items-center justify-center rounded-full bg-primary px-5 text-sm font-semibold text-white hover:bg-primary-dark"
     >
-      + Consulta
+      + Registro
     </router-link>
   </div>
 </template>

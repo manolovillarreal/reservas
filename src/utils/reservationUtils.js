@@ -60,7 +60,7 @@ export const getNetAmount = (reservation) => {
 
 export const getCommissionSummary = (reservation) => {
   const percentage = Number(reservation?.commission_percentage || 0)
-  const name = reservation?.commission_name || 'Sin comisión'
+  const name = reservation?.source_display_label || reservation?.source_detail_info?.label_es || 'Sin comisión'
   const amount = getCommissionAmount(reservation)
   const netAmount = getNetAmount(reservation)
 

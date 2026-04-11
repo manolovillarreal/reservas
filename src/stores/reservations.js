@@ -408,7 +408,6 @@ export const useReservationsStore = defineStore('reservations', () => {
         price_per_night: pricePerNight || null,
         total_amount: totalAmount,
         paid_amount: Number(reservationData.paid_amount || 0),
-        commission_name: reservationData.commission_name || null,
         commission_percentage: reservationData.commission_percentage || null,
         discount_percentage: Number(reservationData.discount_percentage || 0),
         status: reservationData.status || 'confirmed',

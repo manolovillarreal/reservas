@@ -127,7 +127,6 @@ export const useInquiriesStore = defineStore('inquiries', () => {
       infants,
       guests_count: adults + minors + children + infants,
       price_per_night: payload.price_per_night === '' || payload.price_per_night == null ? null : Number(payload.price_per_night),
-      commission_name: payload.commission_name || null,
       commission_percentage: payload.commission_percentage === '' || payload.commission_percentage == null ? 0 : Number(payload.commission_percentage),
       discount_percentage: payload.discount_percentage === '' || payload.discount_percentage == null ? 0 : Number(payload.discount_percentage),
       quote_expires_at: payload.quote_expires_at ? new Date(payload.quote_expires_at).toISOString() : null,
@@ -222,7 +221,6 @@ export const useInquiriesStore = defineStore('inquiries', () => {
       ...(payload.price_per_night !== undefined && {
         price_per_night: payload.price_per_night === '' || payload.price_per_night == null ? null : Number(payload.price_per_night)
       }),
-      ...(payload.commission_name !== undefined && { commission_name: payload.commission_name || null }),
       ...(payload.commission_percentage !== undefined && {
         commission_percentage: payload.commission_percentage === '' || payload.commission_percentage == null ? 0 : Number(payload.commission_percentage)
       }),

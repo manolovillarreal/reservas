@@ -110,7 +110,6 @@
             @suggestions="applySourceSuggestions"
           />
         </AppFieldGroup>
-        <AppInput v-model="form.commission_name" label="Comisión" placeholder="Booking, agencia..." hint="Opcional" />
       </AppFormSection>
 
       <AppFormSection title="Notas" :divider="false" :collapsible="true" :defaultOpen="false">
@@ -185,7 +184,6 @@ const form = ref({
   unit_ids: [],
   price_per_night: '',
   quote_expires_at: '',
-  commission_name: '',
   commission_percentage: '',
   discount_percentage: '',
   source_type_id: '',
@@ -222,7 +220,6 @@ const updateSourceSelection = (value) => {
 }
 
 const applySourceSuggestions = (payload) => {
-  if (!String(form.value.commission_name || '').trim()) form.value.commission_name = payload.sourceDetailLabel || ''
   if (form.value.commission_percentage === '' || form.value.commission_percentage == null) form.value.commission_percentage = Number(payload.commissionPercentage || 0)
   if (form.value.discount_percentage === '' || form.value.discount_percentage == null) form.value.discount_percentage = Number(payload.discountPercentage || 0)
 }
@@ -243,7 +240,6 @@ const hydrateForm = (inq) => {
     unit_ids: [...(inq.inquiry_units?.map(u => u.unit_id) || [])],
     price_per_night: inq.price_per_night ?? '',
     quote_expires_at: inq.quote_expires_at ? inq.quote_expires_at.slice(0, 10) : '',
-    commission_name: inq.commission_name || '',
     commission_percentage: inq.commission_percentage ?? '',
     discount_percentage: inq.discount_percentage ?? '',
     source_type_id: inq.source_detail_info?.source_type_id || '',
