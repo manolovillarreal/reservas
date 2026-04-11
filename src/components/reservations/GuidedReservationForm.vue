@@ -170,7 +170,7 @@
                 hint="Escribe para buscar huéspedes existentes"
                 :error="s3Touched.guest_first_name && !form.guest_first_name?.trim() ? 'El nombre es obligatorio.' : ''"
                 @focus="guestSearchOpen = true"
-                @blur="() => { s3Touched.guest_first_name = true; setTimeout(() => { guestSearchOpen = false }, 150) }"
+                @blur="() => { s3Touched.guest_first_name = true; setTimeout(() => { guestSearchOpen = false }, 200) }"
               />
               <div
                 v-if="guestSearchOpen && guestSearchResults.length > 0"
@@ -181,6 +181,7 @@
                   :key="g.id"
                   type="button"
                   class="flex w-full flex-col px-3 py-2 text-left text-sm hover:bg-gray-50 first:rounded-t-lg last:rounded-b-lg"
+                  @mousedown.prevent
                   @click="selectGuest(g)"
                 >
                   <span class="font-medium text-gray-900">{{ `${g.first_name || ''} ${g.last_name || ''}`.trim() }}</span>
@@ -902,6 +903,12 @@ const onStep1DateBlur = () => {
 }
 
 // ── Guest search ───────────────────────────────────────
+watch(() => form.value.guest_first_name, (val) => {
+  if ((val?.length ?? 0) >= 1 && !form.value.guest_id) {
+    guestSearchOpen.value = true
+  }
+})
+
 const selectGuest = (guest) => {
   form.value.guest_id = guest.id
   form.value.guest_first_name = guest.first_name || ''
