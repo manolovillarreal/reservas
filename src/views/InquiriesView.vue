@@ -104,11 +104,15 @@
                     <button class="block w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50" @click.stop="router.push('/consultas/' + inquiry.id); openInquiryMenuId = ''">
                       Ver detalle
                     </button>
-                    <button class="block w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50" @click.stop="router.push('/consultas/' + inquiry.id + '/editar'); openInquiryMenuId = ''">
+                    <button
+                      v-if="!['convertida', 'vencida', 'perdida'].includes(inquiry.status)"
+                      class="block w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
+                      @click.stop="router.push('/consultas/' + inquiry.id + '/editar'); openInquiryMenuId = ''"
+                    >
                       Editar
                     </button>
                     <button
-                      v-if="canConvertInquiry(inquiry.status)"
+                      v-if="!['convertida', 'vencida', 'perdida'].includes(inquiry.status)"
                       class="block w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
                       @click.stop="openConversionModal(inquiry); openInquiryMenuId = ''"
                     >
@@ -355,6 +359,7 @@ const buildInquiryCardMeta = (inquiry) => {
 }
 
 const buildInquiryCardActions = (inquiry) => {
+  const BLOCKED_STATUSES = ['convertida', 'vencida', 'perdida']
   const actions = []
 
   if (inquiry.guest_phone) {
@@ -365,7 +370,10 @@ const buildInquiryCardActions = (inquiry) => {
   }
 
   actions.push({ label: 'Ver detalle', type: 'ghost', handler: () => router.push(`/consultas/${inquiry.id}`) })
-  actions.push({ label: 'Editar', type: 'ghost', handler: () => router.push(`/consultas/${inquiry.id}/editar`) })
+  
+  if (!BLOCKED_STATUSES.includes(inquiry.status)) {
+    actions.push({ label: 'Editar', type: 'ghost', handler: () => router.push(`/consultas/${inquiry.id}/editar`) })
+  }
 
   if (canConvertInquiry(inquiry.status)) {
     actions.push({

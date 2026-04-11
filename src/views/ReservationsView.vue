@@ -107,12 +107,12 @@
           type: reservation.status === 'confirmed' ? 'info' : reservation.status === 'in_stay' ? 'warning' : reservation.status === 'completed' ? 'success' : 'danger'
         }"
         :meta="[
-          { label: 'Check-in', value: new Date(reservation.check_in_date).toLocaleDateString('es-CO') },
-          { label: 'Check-out', value: new Date(reservation.check_out_date).toLocaleDateString('es-CO') },
-          { label: 'Noches', value: reservation.nights_count || 0 },
-          { label: 'Personas', value: `${reservation.adults_count || 0} adultos${reservation.children_count ? ' + ' + reservation.children_count + ' niños' : ''}` },
-          { label: 'Unidad', value: reservation.unit_name || 'Sin asignar' },
-          { label: 'Origen', value: reservation.source_detail || 'Directo' }
+          { label: 'Check-in', value: new Date(reservation.check_in).toLocaleDateString('es-CO') },
+          { label: 'Check-out', value: new Date(reservation.check_out).toLocaleDateString('es-CO') },
+          { label: 'Noches', value: reservation.nights || 0 },
+          { label: 'Personas', value: `${reservation.adults || 0} adultos${reservation.children ? ' + ' + reservation.children + ' niños' : ''}` },
+          { label: 'Unidad', value: reservation.unit_names_display || 'Sin asignar' },
+          { label: 'Origen', value: reservation.source_display_label || 'Directo' }
         ]"
         :actions="[
           ...(reservation.guest_wa_url ? [{ label: '📱 WhatsApp', type: 'whatsapp', handler: () => window.open(reservation.guest_wa_url, '_blank') }] : []),
