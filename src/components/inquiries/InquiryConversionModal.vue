@@ -58,6 +58,16 @@
             hint="Opcional"
           />
         </AppFormGrid>
+        <AppFormGrid :columns="2">
+          <AppSelect
+            v-model="form.guest_gender"
+            label="Género"
+            :options="[{ value: 'male', label: 'Masculino' }, { value: 'female', label: 'Femenino' }, { value: 'unspecified', label: 'Prefiero no indicar' }]"
+            placeholder="Sin definir"
+            hint="Opcional"
+          />
+          <AppDatePicker v-model="form.guest_birth_date" label="Fecha de nacimiento" hint="Opcional" />
+        </AppFormGrid>
       </AppFormSection>
 
       <AppFormSection title="Fechas y unidad" :divider="true" :collapsible="true" :defaultOpen="true">
@@ -296,6 +306,7 @@ import {
   PricingCalculatorPanel
 } from '@/components/ui/forms'
 import { buildPricingSuggestion } from '../../utils/pricingUtils'
+import { DOCUMENT_TYPES_ADULT as documentTypeOptions } from '../../utils/documentTypes'
 import { useAgeCategorySettings } from '../../composables/useAgeCategorySettings'
 
 const props = defineProps({
@@ -335,13 +346,6 @@ const accountPricing = ref({
 })
 
 const form = ref(buildEmptyForm())
-const documentTypeOptions = [
-  { value: 'passport', label: 'Pasaporte' },
-  { value: 'cedula', label: 'Cédula' },
-  { value: 'dni', label: 'DNI' },
-  { value: 'foreign_id', label: 'Documento extranjero' }
-]
-
 const touched = reactive({ guest_first_name: false, check_in: false, check_out: false, unit_ids: false })
 const submitAttempted = ref(false)
 
@@ -372,6 +376,8 @@ function buildEmptyForm() {
     guest_nationality: '',
     guest_document_type: '',
     guest_document_number: '',
+    guest_gender: '',
+    guest_birth_date: '',
     check_in: '',
     check_out: '',
     adults: 1,
@@ -550,10 +556,12 @@ const hydrateForm = () => {
     guest_last_name: inquiry.guest_last_name || '',
     guest_phone: inquiry.guest_phone || '',
     guest_phone_country_code: inquiry.phone_country_code || '+57',
-    guest_email: '',
-    guest_nationality: '',
-    guest_document_type: '',
-    guest_document_number: '',
+    guest_email: inquiry.guest_email || '',
+    guest_nationality: inquiry.guest_nationality || '',
+    guest_document_type: inquiry.guest_document_type || '',
+    guest_document_number: inquiry.guest_document_number || '',
+    guest_gender: inquiry.guest_gender || '',
+    guest_birth_date: inquiry.guest_birth_date || '',
     check_in: inquiry.check_in || '',
     check_out: inquiry.check_out || '',
     adults: inquiry.adults ?? 1,
@@ -638,6 +646,8 @@ const submitConversion = async () => {
       phone_country_code: form.value.guest_phone_country_code || '+57',
       email: form.value.guest_email?.trim() || null,
       nationality: form.value.guest_nationality || null,
+      gender: form.value.guest_gender || null,
+      birth_date: form.value.guest_birth_date || null,
       document_type: form.value.guest_document_type || null,
       document_number: form.value.guest_document_number?.trim() || null,
     })

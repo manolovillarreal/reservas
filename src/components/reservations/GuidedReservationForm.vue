@@ -217,6 +217,7 @@
             v-model="form.guest_nationality"
             label="Nacionalidad"
             hint="Opcional"
+
           />
 
           <AppFormGrid :columns="2">
@@ -1202,6 +1203,7 @@ const save = async () => {
         minors: form.value.minors,
         children: form.value.children,
         infants: form.value.infants,
+        unit_ids: form.value.unit_ids.length > 0 ? [...form.value.unit_ids] : [],
         guest_first_name: form.value.guest_first_name,
         guest_last_name: form.value.guest_last_name,
         guest_phone: form.value.guest_phone,

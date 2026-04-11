@@ -59,6 +59,16 @@
           />
           <AppInput v-model="form.guest_document_number" label="Número de documento" hint="Opcional" />
         </AppFormGrid>
+        <AppFormGrid :columns="2">
+          <AppSelect
+            v-model="form.guest_gender"
+            label="Género"
+            :options="[{ value: 'male', label: 'Masculino' }, { value: 'female', label: 'Femenino' }, { value: 'unspecified', label: 'Prefiero no indicar' }]"
+            placeholder="Sin definir"
+            hint="Opcional"
+          />
+          <AppDatePicker v-model="form.guest_birth_date" label="Fecha de nacimiento" hint="Opcional" />
+        </AppFormGrid>
       </AppFormSection>
 
       <AppFormSection title="Fechas y unidad" :divider="true" :collapsible="true" :defaultOpen="true">
@@ -234,6 +244,7 @@ import { useToast } from '../composables/useToast'
 import { useAgeCategorySettings } from '../composables/useAgeCategorySettings'
 import { generateUniqueReferenceCode } from '../utils/referenceUtils'
 import { buildPricingSuggestion } from '../utils/pricingUtils'
+import { DOCUMENT_TYPES_ADULT as documentTypeOptions } from '../utils/documentTypes'
 import SourceSelector from '../components/sources/SourceSelector.vue'
 import {
   AppInput,
@@ -283,13 +294,6 @@ const accountPricing = ref({
 const todayIso = new Date().toISOString().slice(0, 10)
 const payment = ref({ amount: '', method: 'transferencia', reference: '', payment_date: todayIso })
 
-const documentTypeOptions = [
-  { value: 'passport', label: 'Pasaporte' },
-  { value: 'cedula', label: 'Cédula' },
-  { value: 'dni', label: 'DNI' },
-  { value: 'foreign_id', label: 'Documento extranjero' }
-]
-
 const PAYMENT_METHOD_OPTIONS = [
   { value: 'efectivo', label: 'Efectivo' },
   { value: 'transferencia', label: 'Transferencia' },
@@ -306,6 +310,7 @@ function buildEmptyForm() {
     guest_phone: '', guest_phone_country_code: '+57',
     guest_email: '', guest_nationality: '',
     guest_document_type: '', guest_document_number: '',
+    guest_gender: '', guest_birth_date: '',
     check_in: '', check_out: '',
     adults: 1, minors: 0, children: 0, infants: 0,
     unit_ids: [],
@@ -451,8 +456,12 @@ onMounted(async () => {
         guest_last_name: inq.guest_last_name || '',
         guest_phone: inq.guest_phone || '',
         guest_phone_country_code: inq.phone_country_code || '+57',
-        guest_email: '',
-        guest_nationality: '', guest_document_type: '', guest_document_number: '',
+        guest_email: inq.guest_email || '',
+        guest_nationality: inq.guest_nationality || '',
+        guest_document_type: inq.guest_document_type || '',
+        guest_document_number: inq.guest_document_number || '',
+        guest_gender: inq.guest_gender || '',
+        guest_birth_date: inq.guest_birth_date || '',
         check_in: inq.check_in || '',
         check_out: inq.check_out || '',
         adults: inq.adults ?? 1,
@@ -505,6 +514,8 @@ const submitConversion = async () => {
       phone_country_code: form.value.guest_phone_country_code || '+57',
       email: form.value.guest_email?.trim() || null,
       nationality: form.value.guest_nationality || null,
+      gender: form.value.guest_gender || null,
+      birth_date: form.value.guest_birth_date || null,
       document_type: form.value.guest_document_type || null,
       document_number: form.value.guest_document_number?.trim() || null,
     })
