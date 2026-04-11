@@ -18,9 +18,65 @@ export const DEFAULT_MESSAGE_SETTINGS = {
   checkout_time: '12:00 PM',
 }
 
+export const DEFAULT_DISPONIBILIDAD_NEGATIVA_TEMPLATE = `Hola! 👋
+
+Gracias por tu interés en {{nombre_alojamiento}}.
+
+Lamentablemente no tenemos disponibilidad para
+las fechas que nos indicas:
+
+🗓 Check-in: {{fecha_checkin_larga}}
+🗓 Check-out: {{fecha_checkout_larga}}
+🌙 {{noches}} noches · {{personas}} personas
+
+Te invitamos a consultarnos otras fechas, con
+gusto te ayudamos a encontrar la mejor opción. 😊
+
+{{nombre_alojamiento}} · {{telefono}}`
+
+export const DEFAULT_DISPONIBILIDAD_POSITIVA_TEMPLATE = `Hola! 👋
+
+Tenemos disponibilidad para las fechas que
+nos indicas. 🎉
+
+🗓 Check-in: {{fecha_checkin_larga}}
+🗓 Check-out: {{fecha_checkout_larga}}
+🌙 {{noches}} noches · {{personas}} personas
+
+{{#unidades}}
+🚪 {{nombre_unidad}}
+{{/unidades}}
+
+{{#precio_noche}}
+💰 Precio por noche: {{precio_noche}}
+{{/precio_noche}}
+
+{{#nombre_huesped}}
+Para reservar a nombre de {{nombre_huesped}},
+escríbenos y con gusto te ayudamos. 😊
+{{/nombre_huesped}}
+{{^nombre_huesped}}
+Para reservar, escríbenos y con gusto
+te ayudamos. 😊
+{{/nombre_huesped}}
+
+{{nombre_alojamiento}} · {{telefono}}`
+
 const SYSTEM_MESSAGES = [
   { key: 'quotation', name: 'Cotización', sort_order: 0 },
   { key: 'voucher', name: 'Voucher', sort_order: 1 },
+  {
+    key: 'disponibilidad_negativa',
+    name: 'Sin disponibilidad',
+    sort_order: 3,
+    body: DEFAULT_DISPONIBILIDAD_NEGATIVA_TEMPLATE,
+  },
+  {
+    key: 'disponibilidad_positiva',
+    name: 'Con disponibilidad',
+    sort_order: 4,
+    body: DEFAULT_DISPONIBILIDAD_POSITIVA_TEMPLATE,
+  },
 ]
 
 const normalizeMessageSettings = (data = {}) => ({
@@ -50,7 +106,7 @@ const ensureSystemMessages = async (accountId) => {
   const payload = missing.map((msg) => ({
     account_id: accountId,
     name: msg.name,
-    body: '',
+    body: msg.body || '',
     type: 'system',
     key: msg.key,
     sort_order: msg.sort_order,

@@ -335,6 +335,7 @@ const contextIndex = ref(0)
 const CATEGORY_LABELS = {
   huesped: 'Huésped',
   fechas: 'Fechas',
+  disponibilidad: 'Disponibilidad',
   precio: 'Precio',
   alojamiento: 'Alojamiento',
   checkin: 'Check-in / Check-out',

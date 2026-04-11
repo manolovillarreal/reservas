@@ -60,6 +60,38 @@
             Faltan variables: {{ preregistroPreview.missing.join(', ') }}
           </p>
         </div>
+
+        <div class="rounded-md border border-gray-200 p-4">
+          <div class="flex items-center justify-between gap-3">
+            <p class="font-semibold text-gray-900">Sin disponibilidad</p>
+            <div class="flex items-center gap-2">
+              <button type="button" class="btn-secondary text-xs" @click="toggleSystemPreview('disponibilidad_negativa')">
+                {{ showDisponibilidadNegativaPreview ? 'Ocultar mensaje' : 'Ver mensaje' }}
+              </button>
+              <button type="button" class="btn-secondary text-xs" :disabled="!systemMessageByKey.disponibilidad_negativa" @click="openMessageEditor(systemMessageByKey.disponibilidad_negativa)">Editar</button>
+            </div>
+          </div>
+          <pre v-if="showDisponibilidadNegativaPreview" class="mt-3 whitespace-pre-wrap rounded bg-gray-50 p-3 text-sm text-gray-800">{{ disponibilidadNegativaPreview.text }}</pre>
+          <p v-if="showDisponibilidadNegativaPreview && disponibilidadNegativaPreview.missing.length" class="mt-2 text-xs text-amber-700">
+            Faltan variables: {{ disponibilidadNegativaPreview.missing.join(', ') }}
+          </p>
+        </div>
+
+        <div class="rounded-md border border-gray-200 p-4">
+          <div class="flex items-center justify-between gap-3">
+            <p class="font-semibold text-gray-900">Con disponibilidad</p>
+            <div class="flex items-center gap-2">
+              <button type="button" class="btn-secondary text-xs" @click="toggleSystemPreview('disponibilidad_positiva')">
+                {{ showDisponibilidadPositivaPreview ? 'Ocultar mensaje' : 'Ver mensaje' }}
+              </button>
+              <button type="button" class="btn-secondary text-xs" :disabled="!systemMessageByKey.disponibilidad_positiva" @click="openMessageEditor(systemMessageByKey.disponibilidad_positiva)">Editar</button>
+            </div>
+          </div>
+          <pre v-if="showDisponibilidadPositivaPreview" class="mt-3 whitespace-pre-wrap rounded bg-gray-50 p-3 text-sm text-gray-800">{{ disponibilidadPositivaPreview.text }}</pre>
+          <p v-if="showDisponibilidadPositivaPreview && disponibilidadPositivaPreview.missing.length" class="mt-2 text-xs text-amber-700">
+            Faltan variables: {{ disponibilidadPositivaPreview.missing.join(', ') }}
+          </p>
+        </div>
       </div>
     </div>
 
@@ -149,6 +181,8 @@ import {
 } from '@/components/ui/forms'
 import {
   DEFAULT_MESSAGE_SETTINGS,
+  DEFAULT_DISPONIBILIDAD_NEGATIVA_TEMPLATE,
+  DEFAULT_DISPONIBILIDAD_POSITIVA_TEMPLATE,
   getMessageSettings,
   getPredefinedMessages,
   savePredefinedMessage,
@@ -170,6 +204,8 @@ const router = useRouter()
 const showQuotationPreview = ref(false)
 const showVoucherPreview = ref(false)
 const showPreregistroPreview = ref(false)
+const showDisponibilidadNegativaPreview = ref(false)
+const showDisponibilidadPositivaPreview = ref(false)
 const openCustomPreviewIds = ref(new Set())
 const savingCustom = ref(false)
 const showCustomModal = ref(false)
@@ -203,6 +239,8 @@ const systemMessageByKey = computed(() => {
     quotation: systemMessages.find((msg) => msg.key === 'quotation')?.id || '',
     voucher: systemMessages.find((msg) => msg.key === 'voucher')?.id || '',
     preregistro: systemMessages.find((msg) => msg.key === 'preregistro')?.id || '',
+    disponibilidad_negativa: systemMessages.find((msg) => msg.key === 'disponibilidad_negativa')?.id || '',
+    disponibilidad_positiva: systemMessages.find((msg) => msg.key === 'disponibilidad_positiva')?.id || '',
   }
 })
 
@@ -299,6 +337,36 @@ const preregistroPreview = computed(() => {
   })
 })
 
+const disponibilidadVariables = computed(() => ({
+  ...globalVars.value,
+  nombre_alojamiento: profile.value?.commercial_name || profile.value?.legal_name || 'Marmanu House',
+  telefono: profile.value?.phone || '3102040245',
+  fecha_checkin_larga: 'viernes, 10 de abril de 2026',
+  fecha_checkout_larga: 'lunes, 13 de abril de 2026',
+  noches: 3,
+  personas: 3,
+  unidades: [
+    { nombre_unidad: 'Cabaña 1' },
+    { nombre_unidad: 'Cabaña 2' },
+  ],
+  precio_noche: '$450.000',
+  nombre_huesped: 'Carlos Pérez',
+}))
+
+const disponibilidadNegativaPreview = computed(() => {
+  const template = String(
+    messages.value.find((msg) => msg.type === 'system' && msg.key === 'disponibilidad_negativa')?.body || DEFAULT_DISPONIBILIDAD_NEGATIVA_TEMPLATE
+  ).trim()
+  return resolveTemplate(template, disponibilidadVariables.value)
+})
+
+const disponibilidadPositivaPreview = computed(() => {
+  const template = String(
+    messages.value.find((msg) => msg.type === 'system' && msg.key === 'disponibilidad_positiva')?.body || DEFAULT_DISPONIBILIDAD_POSITIVA_TEMPLATE
+  ).trim()
+  return resolveTemplate(template, disponibilidadVariables.value)
+})
+
 const loadProfileAndSettings = async (accountId) => {
   const [{ data: profileData }, { data: settingsData }] = await Promise.all([
     supabase.from('account_profile').select('*').eq('account_id', accountId).maybeSingle(),
@@ -348,6 +416,16 @@ const toggleSystemPreview = (key) => {
 
   if (key === 'preregistro') {
     showPreregistroPreview.value = !showPreregistroPreview.value
+    return
+  }
+
+  if (key === 'disponibilidad_negativa') {
+    showDisponibilidadNegativaPreview.value = !showDisponibilidadNegativaPreview.value
+    return
+  }
+
+  if (key === 'disponibilidad_positiva') {
+    showDisponibilidadPositivaPreview.value = !showDisponibilidadPositivaPreview.value
   }
 }
 
