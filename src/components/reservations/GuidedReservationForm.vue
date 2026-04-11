@@ -1052,9 +1052,14 @@ const saveAsReservation = async () => {
       guestRecord = await guestsStore.getOrCreateGuestByPhone({
             first_name: form.value.guest_first_name,
             last_name: form.value.guest_last_name,
+            phone: form.value.guest_phone,
+            phone_country_code: form.value.guest_phone_country_code,
+            email: form.value.guest_email || null,
             document_type: form.value.guest_document_type || null,
             document_number: form.value.guest_document_number?.trim() || null,
+            nationality: form.value.guest_nationality || null,
             gender: form.value.guest_gender || null,
+            birth_date: form.value.guest_birth_date || null,
       })
     }
 
@@ -1122,9 +1127,14 @@ const save = async () => {
         guestRecord = await guestsStore.getOrCreateGuestByPhone({
               first_name: form.value.guest_first_name,
               last_name: form.value.guest_last_name,
+              phone: form.value.guest_phone,
+              phone_country_code: form.value.guest_phone_country_code,
+              email: form.value.guest_email || null,
               document_type: form.value.guest_document_type || null,
               document_number: form.value.guest_document_number?.trim() || null,
+              nationality: form.value.guest_nationality || null,
               gender: form.value.guest_gender || null,
+              birth_date: form.value.guest_birth_date || null,
           })
       }
 
@@ -1200,6 +1210,11 @@ const save = async () => {
         guest_phone: form.value.guest_phone,
         guest_email: form.value.guest_email || null,
         phone_country_code: form.value.guest_phone_country_code,
+        guest_nationality: form.value.guest_nationality || null,
+        guest_gender: form.value.guest_gender || null,
+        guest_birth_date: form.value.guest_birth_date || null,
+        guest_document_type: form.value.guest_document_type || null,
+        guest_document_number: form.value.guest_document_number?.trim() || null,
         price_per_night: form.value.price_per_night !== '' ? Number(form.value.price_per_night) : null,
         discount_percentage: form.value.discount_percentage !== '' ? Number(form.value.discount_percentage) : 0,
         commission_percentage: form.value.commission_percentage !== '' ? Number(form.value.commission_percentage) : 0,

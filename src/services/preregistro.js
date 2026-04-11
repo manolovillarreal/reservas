@@ -26,7 +26,6 @@ const buildGuestPayload = (guest) => {
     nationality: normalizeValue(guest.nationality),
     document_type: documentType,
     document_number: documentNumber,
-    document: documentNumber,
     birth_date: normalizeValue(guest.birth_date),
   }
 }
@@ -59,7 +58,6 @@ const upsertGuest = async (guestPayload, accountId) => {
       nationality: guestPayload.nationality || existingGuest.nationality,
       document_type: guestPayload.document_type || existingGuest.document_type,
       document_number: guestPayload.document_number || existingGuest.document_number,
-      document: guestPayload.document || existingGuest.document,
       birth_date: guestPayload.birth_date || existingGuest.birth_date,
     }
 

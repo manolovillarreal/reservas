@@ -35,7 +35,6 @@ const sanitizeGuest = (guest: GuestInput) => {
     document_number: documentNumber,
     phone: normalizeValue(guest.phone),
     email: normalizeValue(guest.email),
-    document: documentNumber,
     birth_date: birthDate,
   }
 }
@@ -106,7 +105,7 @@ const resolveGuest = async (
   if (payload.document_type && payload.document_number) {
     const { data: existing, error: existingError } = await client
       .from('guests')
-      .select('id, name, nationality, document_type, document_number, phone, email, document, birth_date')
+      .select('id, name, nationality, document_type, document_number, phone, email, birth_date')
       .eq('account_id', accountId)
       .eq('document_type', payload.document_type)
       .eq('document_number', payload.document_number)
@@ -122,7 +121,6 @@ const resolveGuest = async (
         document_number: payload.document_number || existing.document_number,
         phone: payload.phone || existing.phone,
         email: payload.email || existing.email,
-        document: payload.document || existing.document,
         birth_date: payload.birth_date || existing.birth_date,
       }
 

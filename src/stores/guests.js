@@ -43,7 +43,6 @@ export const useGuestsStore = defineStore('guests', () => {
       const payload = {
         ...guestData,
         account_id: accountId,
-        document: guestData.document_number || null,
       }
 
       const { data, error: supaError } = await supabase
@@ -119,7 +118,6 @@ export const useGuestsStore = defineStore('guests', () => {
       const accountId = accountStore.getRequiredAccountId()
       const payload = {
         ...guestData,
-        document: guestData.document_number || null,
       }
 
       const { data, error: supaError } = await supabase
