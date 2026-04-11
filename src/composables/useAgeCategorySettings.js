@@ -14,7 +14,7 @@ const _settings = ref({
   children_max_age: 9,
   children_price_pct: 60,
   infants_active: true,
-  infants_max_age: 2,
+  infants_max_age: 1,
   infants_price_pct: 0,
 })
 

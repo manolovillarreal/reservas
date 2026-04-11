@@ -302,7 +302,7 @@ const ageForm = ref({
   children_min_age: 2,
   children_max_age: 9,
   infants_active: true,
-  infants_max_age: 2,
+  infants_max_age: 1,
 })
 
 const loadAgeSettings = async () => {
@@ -315,7 +315,7 @@ const loadAgeSettings = async () => {
     ageForm.value.children_min_age = data.children_min_age ?? 2
     ageForm.value.children_max_age = data.children_max_age ?? 9
     ageForm.value.infants_active = data.infants_active ?? true
-    ageForm.value.infants_max_age = data.infants_max_age ?? 2
+    ageForm.value.infants_max_age = data.infants_max_age ?? 1
   } catch (e) {
     console.warn('[OperationalSettings] loadAgeSettings failed:', e?.message)
   }

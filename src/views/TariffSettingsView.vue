@@ -162,7 +162,7 @@ const ageForm = ref({
   children_max_age: 9,
   children_price_pct: 60,
   infants_active: true,
-  infants_max_age: 2,
+  infants_max_age: 1,
   infants_price_pct: 0,
 })
 
@@ -231,9 +231,24 @@ const saveSettings = async () => {
       price_full_house_peak: toNumberOrNull(form.value.price_full_house_peak),
     }
 
-    const { error } = await supabase
+    const { data: existingSetting, error: existingSettingError } = await supabase
       .from('settings')
-      .upsert(payload, { onConflict: 'account_id' })
+      .select('id')
+      .eq('account_id', accountId)
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (existingSettingError) throw existingSettingError
+
+    const { error } = existingSetting
+      ? await supabase
+          .from('settings')
+          .update(payload)
+          .eq('id', existingSetting.id)
+      : await supabase
+          .from('settings')
+          .insert(payload)
 
     if (error) throw error
 
