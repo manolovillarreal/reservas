@@ -85,12 +85,23 @@
             <li
               v-for="notification in store.notifications"
               :key="notification.id"
-              class="flex cursor-pointer items-start gap-3 px-4 py-3 transition-colors bg-indigo-50/50 hover:bg-indigo-100/50"
+              class="relative flex cursor-pointer items-start gap-3 px-4 py-3 transition-colors bg-indigo-50/50 hover:bg-indigo-100/50"
               @click="handleItemClick(notification)"
             >
+              <button
+                v-if="!notification.is_alert"
+                type="button"
+                class="absolute right-2 top-2 inline-flex h-5 w-5 items-center justify-center rounded text-gray-400 transition hover:bg-white hover:text-gray-700"
+                aria-label="Descartar notificación"
+                @click.stop="handleDismiss(notification.id)"
+              >
+                <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
               <!-- Unread dot -->
               <div class="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-indigo-500" />
-              <div class="min-w-0 flex-1">
+              <div class="min-w-0 flex-1 pr-5">
                 <p class="truncate text-sm font-medium leading-snug text-gray-900">{{ notification.title }}</p>
                 <p v-if="notification.message" class="mt-0.5 line-clamp-2 text-xs text-gray-500">{{ notification.message }}</p>
                 <p class="mt-1 text-xs text-gray-400">{{ timeAgo(notification.created_at) }}</p>
@@ -179,6 +190,10 @@ const handleItemClick = async (notification) => {
     router.push(path)
     emit('close')
   }
+}
+
+const handleDismiss = async (notificationId) => {
+  await store.markAsRead(notificationId)
 }
 
 const handleMarkAll = async () => {

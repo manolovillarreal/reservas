@@ -20,9 +20,18 @@
     <div class="relative select-none overflow-hidden" @touchstart.passive="onTouchStart" @touchend.passive="onTouchEnd">
       <div class="flex transition-transform duration-300 ease-in-out" :style="{ transform: 'translateX(-' + (currentIndex * 100) + '%)' }">
         <div v-for="item in items" :key="item.id" class="w-full shrink-0 cursor-pointer px-4 py-4" @click="handleClick(item)">
-          <div class="flex items-start gap-2">
+          <div class="relative flex items-start gap-2">
+            <button
+              v-if="!item.is_alert"
+              type="button"
+              class="absolute right-0 top-0 inline-flex h-5 w-5 items-center justify-center rounded text-gray-400 transition hover:bg-white hover:text-gray-700"
+              aria-label="Descartar notificación"
+              @click.stop="dismiss(item.id)"
+            >
+              <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
             <span class="mt-0.5 text-base leading-none">{{ typeIcon(item.type) }}</span>
-            <div class="min-w-0">
+            <div class="min-w-0 pr-5">
               <p class="truncate text-sm font-semibold text-gray-900">{{ item.title }}</p>
               <p v-if="item.message" class="mt-1 line-clamp-2 text-sm text-gray-500">{{ item.message }}</p>
               <p class="mt-2 text-xs text-gray-400">{{ timeAgo(item.created_at) }}</p>
@@ -106,5 +115,9 @@ const handleClick = async (item) => {
   }
   const path = paths[item.related_type]
   if (path) router.push(path)
+}
+
+const dismiss = async (id) => {
+  await notifStore.markAsRead(id)
 }
 </script>

@@ -22,12 +22,26 @@
       <p class="mt-2 text-sm text-amber-800">No se encontró el mensaje solicitado para esta cuenta.</p>
     </div>
 
-    <div v-else class="grid grid-cols-1 gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
+    <div v-else class="grid grid-cols-1 gap-6 lg:h-[calc(100dvh-10.5rem)] lg:grid-cols-[320px_minmax(0,1fr)] lg:overflow-hidden">
       <!-- Panel izquierdo — oculto en mobile -->
-      <aside class="hidden sm:block card space-y-5">
+      <aside class="hidden sm:block card space-y-5 lg:h-full lg:overflow-y-auto">
         <div>
           <h2 class="text-xs font-semibold uppercase tracking-wide text-gray-500">Variables</h2>
           <p class="mt-1 text-xs text-gray-500">Haz clic para insertar en la posición actual del cursor.</p>
+        </div>
+
+        <div class="space-y-2">
+          <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500">Modo de inserción</p>
+          <div class="grid grid-cols-3 gap-2">
+            <button
+              v-for="mode in insertionModes"
+              :key="mode.value"
+              type="button"
+              class="rounded-md border px-2 py-1.5 text-xs font-semibold transition"
+              :class="insertionModeButtonClass(mode.value)"
+              @click="insertionMode = mode.value"
+            >{{ mode.label }}</button>
+          </div>
         </div>
 
         <div class="space-y-4">
@@ -38,7 +52,8 @@
                 v-for="item in group.items"
                 :key="item.token"
                 type="button"
-                class="rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700 transition hover:bg-indigo-100"
+                class="rounded-full border px-3 py-1 text-xs font-medium transition"
+                :class="variableChipClass"
                 @click="insertVariable(item.token)"
               >{{ item.label }}</button>
             </div>
@@ -99,7 +114,7 @@
       </aside>
 
       <!-- Panel editor -->
-      <section class="card space-y-4">
+      <section class="card space-y-4 lg:h-full lg:overflow-y-auto">
         <div class="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p class="text-xs uppercase tracking-wide text-gray-500">{{ message.type === 'system' ? 'Sistema' : 'Personalizado' }}</p>
@@ -210,6 +225,20 @@
               <p class="mt-1 text-xs text-gray-500">Toca para insertar.</p>
             </div>
 
+            <div class="space-y-2">
+              <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500">Modo de inserción</p>
+              <div class="grid grid-cols-3 gap-2">
+                <button
+                  v-for="mode in insertionModes"
+                  :key="'d-mode-' + mode.value"
+                  type="button"
+                  class="rounded-md border px-2 py-1.5 text-[11px] font-semibold transition"
+                  :class="insertionModeButtonClass(mode.value)"
+                  @click="insertionMode = mode.value"
+                >{{ mode.label }}</button>
+              </div>
+            </div>
+
             <div class="space-y-4">
               <section v-for="group in variableGroups" :key="'d-' + group.title" class="space-y-2">
                 <h3 class="text-sm font-semibold text-gray-900">{{ group.title }}</h3>
@@ -218,7 +247,8 @@
                     v-for="item in group.items"
                     :key="'d-' + item.token"
                     type="button"
-                    class="rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700 transition hover:bg-indigo-100"
+                    class="rounded-full border px-3 py-1 text-xs font-medium transition"
+                    :class="variableChipClass"
                     @click="insertVariable(item.token, true)"
                   >{{ item.label }}</button>
                 </div>
@@ -289,7 +319,7 @@
 </template>
 
 <script setup>
-import { computed, nextTick, onMounted, ref } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { supabase } from '../services/supabase'
 import { usePermissions } from '../composables/usePermissions'
@@ -320,6 +350,7 @@ const saving = ref(false)
 const message = ref(null)
 const body = ref('')
 const viewMode = ref('raw')
+const insertionMode = ref('insert')
 const textareaRef = ref(null)
 const selectionStart = ref(0)
 const selectionEnd = ref(0)
@@ -346,6 +377,38 @@ const variableGroups = Object.entries(VARIABLE_CATALOG.simples).map(([key, vars]
   title: CATEGORY_LABELS[key] || key,
   items: vars.map((v) => ({ label: v.label, token: v.key })),
 }))
+
+const insertionModes = [
+  { value: 'insert', label: 'Insertar' },
+  { value: 'if_exists', label: 'Si existe' },
+  { value: 'if_not_exists', label: 'Si no existe' },
+]
+
+const insertionModeButtonClass = (mode) => {
+  if (insertionMode.value !== mode) {
+    return 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
+  }
+
+  if (mode === 'if_exists') {
+    return 'bg-green-100 border-green-400 text-green-700'
+  }
+
+  if (mode === 'if_not_exists') {
+    return 'bg-purple-100 border-purple-400 text-purple-700'
+  }
+
+  return 'bg-indigo-100 border-indigo-400 text-indigo-700'
+}
+
+const variableChipClass = computed(() => {
+  if (insertionMode.value === 'if_exists') {
+    return 'border-green-200 bg-green-50 text-green-700 hover:bg-green-100'
+  }
+  if (insertionMode.value === 'if_not_exists') {
+    return 'border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-100'
+  }
+  return 'border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
+})
 
 const blockSnippets = VARIABLE_CATALOG.bloques.map((b) => ({ label: b.label, snippet: b.template }))
 const elseBlockSnippet = {
@@ -582,9 +645,15 @@ const previewVariables = computed(() => {
   const paid = Number(record?.paid_amount || 0)
   const balance = Math.max(0, total - paid)
   const conditionsText = String(accountSettings.value?.voucher_conditions || '').trim()
-  const nombres = String(context.guest_first_name || context.nombres || '').trim()
-  const apellidos = String(context.guest_last_name || context.apellidos || '').trim()
-  const nombreCompleto = `${nombres} ${apellidos}`.trim() || String(context.nombre_huesped || context.nombre_completo || '').trim()
+  const fallbackNombreCompleto = String(context.nombre_huesped || context.nombre_completo || '').trim()
+  const fallbackParts = fallbackNombreCompleto ? fallbackNombreCompleto.split(/\s+/) : []
+  const nombres = String(context.guest_first_name || context.nombres || fallbackParts[0] || '').trim()
+  const apellidos = String(
+    context.guest_last_name
+      || context.apellidos
+      || (fallbackParts.length > 1 ? fallbackParts.slice(1).join(' ') : '')
+  ).trim()
+  const nombreCompleto = `${nombres} ${apellidos}`.trim() || fallbackNombreCompleto
 
   const globalVars = buildGlobalVariables({
     profile: profile.value,
@@ -665,6 +734,21 @@ const renderedPreview = computed(() => {
   return resolveTemplate(body.value, previewVariables.value)
 })
 
+watch([body, previewVariables], ([currentBody, vars]) => {
+  if (!import.meta.env.DEV) return
+  if (!/{{\s*(nombres|apellidos|nombre_completo)\s*}}/.test(String(currentBody || ''))) return
+  if (String(vars?.nombres || '').trim() && String(vars?.apellidos || '').trim()) return
+
+  console.debug('[MessageEditor] Variables de nombre incompletas en preview', {
+    nombres: vars?.nombres,
+    apellidos: vars?.apellidos,
+    nombre_completo: vars?.nombre_completo,
+    contextIndex: contextIndex.value,
+    usingMock: usingMock.value,
+    messageKey: message.value?.key,
+  })
+})
+
 const restoreDefaultMessage = () => {
   if (!isSystemMessage.value) return
 
@@ -736,7 +820,21 @@ const insertText = async (text, closeDrawer = false) => {
   if (closeDrawer) showDrawer.value = false
 }
 
-const insertVariable = (token, closeDrawer = false) => insertText(`{{${token}}}`, closeDrawer)
+const insertVariable = async (token, closeDrawer = false) => {
+  if (insertionMode.value === 'if_exists') {
+    await insertText(`{{#${token}}}\nContenido\n{{/${token}}}`, closeDrawer)
+    insertionMode.value = 'insert'
+    return
+  }
+
+  if (insertionMode.value === 'if_not_exists') {
+    await insertText(`{{^${token}}}\nContenido alternativo\n{{/${token}}}`, closeDrawer)
+    insertionMode.value = 'insert'
+    return
+  }
+
+  await insertText(`{{${token}}}`, closeDrawer)
+}
 
 const saveMessage = async () => {
   if (!message.value) return
