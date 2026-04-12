@@ -199,26 +199,14 @@
         </button>
       </div>
 
-      <div v-else-if="viewMode === 'clasica'" class="grid grid-cols-7 gap-px border border-gray-200 bg-gray-200">
+      <div v-else-if="viewMode === 'clasica' && !isMobile" class="grid grid-cols-7 gap-px border border-gray-200 bg-gray-200">
         <div
           v-for="day in calendarDays"
           :key="`classic-day-${day.date}`"
           class="relative min-h-[120px] overflow-visible bg-white p-2 transition-colors hover:bg-gray-50"
-          :class="isMobile ? 'cursor-pointer min-h-[60px] p-1' : ''"
-          :style="!isMobile ? { minHeight: `${Math.max(120, 41 + (getClassicRowLaneCount(day.date) * 24))}px` } : undefined"
-          @click="isMobile ? openDaySheet(day.date) : null"
+          :style="{ minHeight: `${Math.max(120, 41 + (getClassicRowLaneCount(day.date) * 24))}px` }"
         >
           <div class="text-right text-sm font-semibold text-gray-400">{{ day.dayNumber }}</div>
-
-          <div v-if="isMobile" class="mt-2 flex flex-wrap gap-1">
-            <span
-              v-for="occ in getOccupanciesForDay(day.date).slice(0, 4)"
-              :key="`dot-${day.date}-${occ.id}`"
-              class="h-2 w-2 rounded-full"
-              :class="occupancyDotColor(occ)"
-            ></span>
-            <span v-if="getOccupanciesForDay(day.date).length > 4" class="text-[10px] text-gray-500">+{{ getOccupanciesForDay(day.date).length - 4 }}</span>
-          </div>
 
           <button
             v-for="segment in getClassicSegmentsForDay(day.date)"
@@ -226,15 +214,12 @@
             data-occ-trigger="true"
             type="button"
             class="absolute z-10 truncate rounded px-1.5 py-1 text-left text-xs leading-tight text-white shadow-sm"
-            :class="[occupancyColor(segment), occupancyBorderClass(segment, segment.contextDate), isMobile ? 'px-1 py-0.5 text-[10px]' : '']"
-            :style="!isMobile
-              ? {
-                  top: `${28 + (segment.lane * 24)}px`,
-                  left: segment.leftStyle,
-                  width: segment.widthStyle
-                }
-              : undefined"
-            v-show="!isMobile"
+            :class="[occupancyColor(segment), occupancyBorderClass(segment, segment.contextDate)]"
+            :style="{
+              top: `${28 + (segment.lane * 24)}px`,
+              left: segment.leftStyle,
+              width: segment.widthStyle
+            }"
             @mouseenter="openDesktopTooltip($event, segment, segment.contextDate)"
             @mousemove="openDesktopTooltip($event, segment, segment.contextDate)"
             @mouseleave="closeDesktopTooltip"
@@ -243,6 +228,57 @@
             {{ getOccupancyDisplayLabel(segment, 'clasica') }}<span v-if="segment.occupancy_type === 'reservation' && (segment.reservations?.guests?.first_name || segment.reservations?.guests?.last_name)" class="opacity-80"> · {{ `${segment.reservations.guests.first_name || ''} ${segment.reservations.guests.last_name || ''}`.trim() }}</span><span v-else-if="segment.occupancy_type === 'external' && getExternalSource(segment)" class="opacity-80"> · {{ getExternalSource(segment) }}</span>
           </button>
         </div>
+      </div>
+
+      <div v-else-if="viewMode === 'clasica' && isMobile" class="space-y-3">
+        <section
+          v-for="week in mobileClassicWeeks"
+          :key="`classic-mobile-week-${week.rowStart}`"
+          class="rounded-md border border-gray-200 bg-white p-2"
+        >
+          <div class="grid grid-cols-7 gap-px border border-gray-200 bg-gray-200">
+            <div
+              v-for="day in week.days"
+              :key="`classic-mobile-head-${week.rowStart}-${day.date}`"
+              class="bg-white px-1 py-1 text-center"
+              :class="day.isToday ? 'bg-primary/5' : ''"
+            >
+              <p class="text-[9px] font-medium uppercase text-gray-500">{{ getMobileWeekDayShort(day.date) }}</p>
+              <p class="text-xs font-semibold text-gray-700">{{ day.dayNumber }}</p>
+            </div>
+          </div>
+
+          <div class="mt-1.5">
+            <div class="grid gap-px border border-gray-200 bg-gray-200" :style="mobileClassicWeekGridStyle(week)">
+              <div
+                v-for="day in week.days"
+                :key="`classic-mobile-body-${week.rowStart}-${day.date}`"
+                class="bg-white"
+                :class="day.isToday ? 'bg-primary/5' : ''"
+                :style="{ gridColumn: day.column, gridRow: `1 / span ${week.barRows}` }"
+              ></div>
+
+              <button
+                v-for="segment in week.segments"
+                :key="`classic-mobile-seg-${week.rowStart}-${segment.id}-${segment.rowColStart}`"
+                type="button"
+                class="z-10 overflow-hidden rounded px-1 text-left text-white"
+                :class="[occupancyColor(segment), segment.reservation_id ? '' : 'opacity-70']"
+                :style="mobileClassicSegmentStyle(segment, week)"
+                :disabled="!segment.reservation_id"
+                @click="onMobileClassicBarTap(segment)"
+              >
+                <span
+                  v-if="week.showText && segment.checkinInView"
+                  class="block truncate"
+                  :class="week.textSizeClass"
+                >
+                  {{ mobileClassicSegmentLabel(segment) }}
+                </span>
+              </button>
+            </div>
+          </div>
+        </section>
       </div>
 
       <div v-else-if="viewMode === 'completa' && isMobile" class="space-y-3">
@@ -976,6 +1012,85 @@ const classicRowLayoutMap = computed(() => {
   return layout
 })
 
+const mobileClassicWeeks = computed(() => {
+  if (!isMobile.value || viewMode.value !== 'clasica' || calendarDays.value.length === 0) return []
+
+  const weeks = []
+  const todayIso = toIsoDate(new Date())
+
+  for (let rowStartIndex = 0; rowStartIndex < calendarDays.value.length; rowStartIndex += 7) {
+    const rowDays = calendarDays.value.slice(rowStartIndex, rowStartIndex + 7)
+    const rowStart = rowDays[0]?.date
+    if (!rowStart) continue
+
+    const rowLayout = classicRowLayoutMap.value.get(rowStart)
+    const laneCount = Math.max(1, rowLayout?.laneCount || 0)
+
+    let barHeight = 18
+    let textSizeClass = 'text-[9px]'
+    let showText = true
+
+    if (laneCount >= 6) {
+      barHeight = 10
+      textSizeClass = 'text-[0px]'
+      showText = false
+    } else if (laneCount >= 4) {
+      barHeight = 14
+      textSizeClass = 'text-[8px]'
+      showText = true
+    }
+
+    weeks.push({
+      rowStart,
+      days: rowDays.map((day, index) => ({
+        ...day,
+        column: index + 1,
+        isToday: day.date === todayIso,
+      })),
+      segments: rowLayout?.segments || [],
+      barRows: laneCount,
+      barHeight,
+      showText,
+      textSizeClass,
+    })
+  }
+
+  return weeks
+})
+
+function mobileClassicWeekGridStyle(week) {
+  return {
+    gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
+    gridTemplateRows: `repeat(${week.barRows}, ${week.barHeight}px)`,
+    rowGap: '2px',
+  }
+}
+
+function mobileClassicSegmentStyle(segment, week) {
+  return {
+    gridColumn: `${segment.rowColStart} / span ${segment.spanDays}`,
+    gridRow: `${segment.lane + 1}`,
+    height: `${week.barHeight}px`,
+    lineHeight: `${week.barHeight}px`,
+  }
+}
+
+function getMobileWeekDayShort(dateStr) {
+  return new Date(`${dateStr}T00:00:00Z`)
+    .toLocaleDateString('es-CO', { weekday: 'short', timeZone: 'UTC' })
+    .replace('.', '')
+}
+
+function mobileClassicSegmentLabel(segment) {
+  const reservationName = `${segment.reservations?.guests?.first_name || ''} ${segment.reservations?.guests?.last_name || ''}`.trim()
+  return reservationName || getOccupancyDisplayLabel(segment, 'clasica')
+}
+
+function onMobileClassicBarTap(segment) {
+  if (!segment?.reservation_id) return
+  router.push(`/reservas/${segment.reservation_id}`)
+}
+
 const selectedVenueSet = computed(() => new Set(selectedVenueIds.value))
 
 const visibleVenues = computed(() => {
@@ -1350,10 +1465,6 @@ function occupancyColor(occ) {
     inquiry_hold: 'bg-amber-500',
     external: 'bg-gray-500'
   }[occ.occupancy_type] || 'bg-gray-400'
-}
-
-function occupancyDotColor(occ) {
-  return occupancyColor(occ).replace('bg-', 'bg-')
 }
 
 function occupancyBorderClass(occ, date) {
