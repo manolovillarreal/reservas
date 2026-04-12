@@ -531,6 +531,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { supabase } from '../services/supabase'
+import { DEFAULT_MESSAGE_SETTINGS, getMessageSettings } from '../services/messageSettingsService'
 import { useAccountStore } from '../stores/account'
 import BottomSheet from '../components/ui/BottomSheet.vue'
 import ReservationBadge from '../components/ui/ReservationBadge.vue'
@@ -557,6 +558,7 @@ const weekStart = ref(getWeekStartMonday(new Date()))
 const monthStart = ref(new Date(new Date().getFullYear(), new Date().getMonth(), 1))
 const mobileLegendOpen = ref(false)
 const showMobileRangePicker = ref(false)
+const messageSettings = ref({ ...DEFAULT_MESSAGE_SETTINGS })
 
 const selectedVenueIds = ref([])
 const collapsedVenues = ref({})
@@ -679,6 +681,39 @@ function formatDate(value) {
 
 function formatCurrency(value) {
   return Number(value || 0).toLocaleString('es-CO')
+}
+
+function formatTimeFromDateTime(value) {
+  if (!value) return ''
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
+
+  return date.toLocaleTimeString('es-CO', {
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+function getEntryTimeLabel(occ) {
+  const checkinDateTime = occ?.reservations?.checkin_date
+  const fromDateTime = formatTimeFromDateTime(checkinDateTime)
+  if (fromDateTime) return fromDateTime
+
+  const fromSettings = String(messageSettings.value?.checkin_time || '').trim()
+  if (fromSettings) return fromSettings
+
+  return 'Sin hora definida'
+}
+
+function getExitTimeLabel(occ) {
+  const checkoutDateTime = occ?.reservations?.checkout_date
+  const fromDateTime = formatTimeFromDateTime(checkoutDateTime)
+  if (fromDateTime) return fromDateTime
+
+  const fromSettings = String(messageSettings.value?.checkout_time || '').trim()
+  if (fromSettings) return fromSettings
+
+  return 'Sin hora definida'
 }
 
 function saveCalendarState() {
@@ -1053,7 +1088,7 @@ const periodoEntradas = computed(() => {
           pax: Number(occ.reservations?.adults || 0) + Number(occ.reservations?.minors || 0) + Number(occ.reservations?.children || 0) + Number(occ.reservations?.infants || 0),
           status: occ.reservations?.status || '',
           preregistroStatus: occ.reservations?.preregistro_status || '',
-          checkInTimeLabel: 'Hora no definida',
+          checkInTimeLabel: getEntryTimeLabel(occ),
           unitNames: [],
           reservationId: occ.reservation_id,
         })
@@ -1082,7 +1117,7 @@ const periodoSalidas = computed(() => {
           guestName: `${occ.reservations?.guests?.first_name || ''} ${occ.reservations?.guests?.last_name || ''}`.trim() || '-',
           pax: Number(occ.reservations?.adults || 0) + Number(occ.reservations?.minors || 0) + Number(occ.reservations?.children || 0) + Number(occ.reservations?.infants || 0),
           status: occ.reservations?.status || '',
-          checkOutTimeLabel: 'Hora no definida',
+          checkOutTimeLabel: getExitTimeLabel(occ),
           unitNames: [],
           reservationId: occ.reservation_id,
         })
@@ -1177,7 +1212,7 @@ async function fetchOccupancies() {
     const accountId = accountStore.getRequiredAccountId()
     const { data } = await supabase
       .from('occupancies')
-        .select('id, unit_id, start_date, end_date, occupancy_type, reservation_id, inquiry_id, notes, units(name, venue_id, venues(name)), reservations(id, guests!reservations_guest_id_fkey(first_name, last_name), adults, minors, children, infants, source_detail_info:source_details!reservations_source_detail_id_fkey(label_es), total_amount, paid_amount, check_in, check_out, status)')
+      .select('id, unit_id, start_date, end_date, occupancy_type, reservation_id, inquiry_id, notes, units(name, venue_id, venues(name)), reservations(id, guests!reservations_guest_id_fkey(first_name, last_name), adults, minors, children, infants, source_detail_info:source_details!reservations_source_detail_id_fkey(label_es), total_amount, paid_amount, check_in, check_out, checkin_date, checkout_date, status)')
       .eq('account_id', accountId)
       .lt('start_date', toExclusive)
       .gte('end_date', periodFrom.value)
@@ -1199,6 +1234,19 @@ async function fetchOccupancies() {
     }))
   } finally {
     loading.value = false
+  }
+}
+
+async function fetchMessageSettingsData() {
+  const accountId = accountStore.getRequiredAccountId()
+  try {
+    const settings = await getMessageSettings(accountId)
+    messageSettings.value = {
+      ...DEFAULT_MESSAGE_SETTINGS,
+      ...settings,
+    }
+  } catch {
+    messageSettings.value = { ...DEFAULT_MESSAGE_SETTINGS }
   }
 }
 
@@ -1582,7 +1630,7 @@ onMounted(async () => {
     applyPreset()
   }
 
-  await fetchMasterData()
+  await Promise.all([fetchMasterData(), fetchMessageSettingsData()])
   await fetchOccupancies()
 
   document.addEventListener('click', onOutsideClick)
