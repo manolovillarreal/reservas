@@ -126,10 +126,17 @@ export const buildGlobalVariables = ({ profile = {}, accountSettings = {}, conte
   const descripcionAlojamiento = profile.short_description || '-'
   const porcentajeAnticipo = accountSettings.anticipo_pct != null ? Number(accountSettings.anticipo_pct) : 50
 
-  const nombreCompleto = context.nombre_completo ||
-    (context.guest_first_name || context.guest_last_name
-      ? `${context.guest_first_name || ''} ${context.guest_last_name || ''}`.trim()
-      : context.nombre_huesped || context.guest_name || '')
+  const nombres = String(context.nombres || context.guest_first_name || '').trim()
+  const apellidos = String(context.apellidos || context.guest_last_name || '').trim()
+  const nombreCompleto = String(
+    context.nombre_completo ||
+    `${nombres} ${apellidos}`.trim() ||
+    context.nombre_huesped ||
+    context.guest_name ||
+    ''
+  ).trim()
+  const checkIn = context.check_in ? formatDate(context.check_in) : '-'
+  const checkOut = context.check_out ? formatDate(context.check_out) : '-'
 
   return {
     nombre_alojamiento: nombreAlojamiento,
@@ -138,11 +145,13 @@ export const buildGlobalVariables = ({ profile = {}, accountSettings = {}, conte
     descripcion_alojamiento: descripcionAlojamiento,
     porcentaje_anticipo: porcentajeAnticipo,
     nombre_completo: nombreCompleto || '-',
-    nombres: context.nombres || context.guest_first_name || '-',
-    apellidos: context.apellidos || context.guest_last_name || '-',
+    nombres: nombres || '-',
+    apellidos: apellidos || '-',
     nombre_huesped: nombreCompleto || '-',
-    check_in: context.check_in ? formatDate(context.check_in) : '-',
-    check_out: context.check_out ? formatDate(context.check_out) : '-',
+    check_in: checkIn,
+    check_out: checkOut,
+    fecha_checkin: checkIn,
+    fecha_checkout: checkOut,
     noches: context.nights ?? '-',
     personas: context.personas ?? '-',
     codigo_referencia: context.reference || '-',
@@ -344,6 +353,7 @@ export const VARIABLE_CATALOG = {
       { key: 'nombre_completo', label: 'Nombre completo', ejemplo: 'Santiago Montero' },
       { key: 'nombres', label: 'Nombres', ejemplo: 'Santiago' },
       { key: 'apellidos', label: 'Apellidos', ejemplo: 'Montero' },
+      { key: 'nombre_huesped', label: 'Alias nombre completo', ejemplo: 'Santiago Montero' },
     ],
     fechas: [
       { key: 'fecha_checkin', label: 'Check-in (fecha)', ejemplo: '2026-06-12' },
@@ -355,7 +365,6 @@ export const VARIABLE_CATALOG = {
       { key: 'noches', label: 'Noches', ejemplo: '3' },
       { key: 'personas', label: 'Personas', ejemplo: '4' },
       { key: 'precio_noche', label: 'Precio por noche', ejemplo: '$840.000' },
-      { key: 'nombre_huesped', label: 'Nombre huésped', ejemplo: 'Carlos Pérez' },
     ],
     precio: [
       { key: 'total', label: 'Total', ejemplo: '$2.394.000' },
@@ -441,39 +450,76 @@ export const VARIABLE_CATALOG = {
 }
 
 export function generateAiPrompt() {
-  const simplesLines = []
-  for (const vars of Object.values(VARIABLE_CATALOG.simples)) {
-    for (const v of vars) {
-      simplesLines.push(`  {{${v.key}}} → ${v.label} — Ej: ${v.ejemplo}`)
-    }
-  }
-
-  const bloquesLines = []
-  for (const b of VARIABLE_CATALOG.bloques) {
-    bloquesLines.push(`  {{#${b.key}}}...{{/${b.key}}}`)
-    bloquesLines.push(`  → ${b.descripcion}`)
-  }
-
-  bloquesLines.push('  {{^variable}}...{{/variable}}')
-  bloquesLines.push('  → Else del sistema: aparece solo si la variable no existe o está vacía')
-
   return [
     'Necesito construir un mensaje de WhatsApp para mi alojamiento usando un sistema de plantillas con variables y bloques.',
     '',
     'VARIABLES SIMPLES — se reemplazan por el valor real:',
-    ...simplesLines,
+    '  {{nombre_completo}} → Nombre completo — Ej: Santiago Montero',
+    '  {{nombres}} → Nombres (solo nombres de pila) — Ej: Santiago',
+    '  {{apellidos}} → Apellidos — Ej: Montero',
+    '  {{nombre_huesped}} → Alias de nombre_completo (compatibilidad con plantillas anteriores)',
+    '  {{fecha_checkin}} → Check-in (fecha) — Ej: 2026-06-12',
+    '  {{fecha_checkout}} → Check-out (fecha) — Ej: 2026-06-15',
+    '  {{fecha_checkin_larga}} → Check-in (texto) — Ej: viernes, 12 de junio de 2026',
+    '  {{fecha_checkout_larga}} → Check-out (texto) — Ej: lunes, 15 de junio de 2026',
+    '  {{noches}} → Noches — Ej: 3',
+    '  {{personas}} → Personas — Ej: 4',
+    '  {{precio_noche}} → Precio por noche — Ej: $840.000',
+    '  {{total}} → Total — Ej: $2.394.000',
+    '  {{pagado}} → Pagado — Ej: $600.000',
+    '  {{saldo_pendiente}} → Saldo pendiente — Ej: $600.000',
+    '  {{porcentaje_anticipo}} → % Anticipo — Ej: 50',
+    '  {{codigo_referencia}} → Código de referencia — Ej: 25KBXM',
+    '  {{fecha_vigencia}} → Vigencia — Ej: 31 de marzo de 2026',
+    '  {{nombre_alojamiento}} → Nombre del alojamiento — Ej: Marmanu House',
+    '  {{telefono}} → Teléfono — Ej: 3102040245',
+    '  {{ubicacion}} → Ubicación (Google Maps) — Ej: https://maps.app.goo.gl/xxxxx',
+    '  {{descripcion_alojamiento}} → Descripción — Ej: Casa vacacional frente al mar...',
+    '  {{hora_checkin}} → Hora check-in — Ej: 3:00 PM',
+    '  {{hora_checkout}} → Hora check-out — Ej: 12:00 PM',
+    '  {{condiciones}} → Condiciones del alojamiento — Ej: No mascotas. No fiestas.',
+    '  {{link_preregistro}} → Link de pre-registro — Ej: https://app.tekmiinn.com/prerregistro/abc123',
     '',
     'BLOQUES ITERANTES Y CONDICIONALES:',
-    ...bloquesLines,
+    '  {{#unidades}}...{{/unidades}}',
+    '  → Se repite por cada unidad. Si no hay unidades el bloque desaparece completo.',
+    '  Variables internas: {{nombre_unidad}}, {{descripcion_unidad}}',
+    '',
+    '  {{#descuento}}...{{/descuento}}',
+    '  → Solo aparece si hay descuento aplicado.',
+    '  Variables internas: {{porcentaje_descuento}}, {{valor_descuento}}',
+    '',
+    '  {{#amenidades_comunes}}...{{/amenidades_comunes}}',
+    '  → Solo aparece si hay amenidades configuradas.',
+    '',
+    '  {{#fecha_vigencia}}...{{/fecha_vigencia}}',
+    '  → Solo aparece si hay fecha de vigencia.',
+    '',
+    '  {{#pago_completo}}...{{/pago_completo}}',
+    '  → Solo aparece si el pago está completo.',
+    '  Variables internas: {{total}}, {{pagado}}',
+    '',
+    '  {{#saldo_pendiente}}...{{/saldo_pendiente}}',
+    '  → Solo aparece si hay saldo pendiente.',
+    '  Variables internas: {{total}}, {{pagado}}, {{saldo_pendiente}}',
+    '',
+    '  {{#sin_pagos}}...{{/sin_pagos}}',
+    '  → Solo si no hay ningún pago registrado.',
+    '  Variables internas: {{total}}',
+    '',
+    '  {{#condiciones}}...{{/condiciones}}',
+    '  → Solo si hay condiciones configuradas.',
+    '',
+    '  {{^variable}}...{{/variable}}',
+    '  → Else: aparece solo si la variable no existe o está vacía.',
     '',
     'REGLAS IMPORTANTES:',
     '  - Usar exactamente la sintaxis {{variable}} con dobles llaves',
-    '  - Los bloques abren con {{#nombre}} y cierran con {{/nombre}}',
-    '  - El bloque else usa {{^nombre}} y se renderiza cuando esa variable no existe o está vacía',
+    '  - Bloques abren con {{#nombre}} y cierran con {{/nombre}}',
+    '  - Bloque else usa {{^nombre}}',
     '  - Puedes usar emojis libremente',
-    '  - El texto fuera de bloques siempre aparece',
-    '  - Puedes combinar variables dentro de bloques',
-    '  - Después de resolver bloques y variables, el sistema limpia líneas en blanco residuales y deja máximo una línea vacía entre párrafos',
+    '  - Texto fuera de bloques siempre aparece',
+    '  - El sistema limpia líneas en blanco residuales dejando máximo una línea vacía entre párrafos',
     '',
     'Antes de construir el mensaje, hazme las preguntas necesarias para entender qué tipo de mensaje necesito, para qué situación es, qué información quiero mostrar y qué tono prefiero. Una vez tengas todo claro, construye el mensaje usando únicamente las variables y bloques del sistema descritos arriba.',
   ].join('\n')

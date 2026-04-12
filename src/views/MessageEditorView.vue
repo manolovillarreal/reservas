@@ -582,11 +582,17 @@ const previewVariables = computed(() => {
   const paid = Number(record?.paid_amount || 0)
   const balance = Math.max(0, total - paid)
   const conditionsText = String(accountSettings.value?.voucher_conditions || '').trim()
+  const nombres = String(context.guest_first_name || context.nombres || '').trim()
+  const apellidos = String(context.guest_last_name || context.apellidos || '').trim()
+  const nombreCompleto = `${nombres} ${apellidos}`.trim() || String(context.nombre_huesped || context.nombre_completo || '').trim()
 
   const globalVars = buildGlobalVariables({
     profile: profile.value,
     accountSettings: accountSettings.value,
     context: {
+      nombres,
+      apellidos,
+      nombre_completo: nombreCompleto,
       guest_first_name: context.guest_first_name,
       guest_last_name: context.guest_last_name,
       check_in: record?.check_in,

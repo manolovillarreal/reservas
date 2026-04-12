@@ -7,12 +7,28 @@
           <label class="block text-xs font-semibold uppercase tracking-wide text-gray-500">Vista</label>
           <div class="mt-1 grid grid-cols-3 gap-2">
             <button
-              v-for="option in mobileViewOptions"
+              v-for="option in mobileCalendarViewOptions"
               :key="option.value"
               type="button"
               class="rounded-md px-3 py-2 text-sm font-medium transition"
-              :class="mobileViewPreset === option.value ? 'bg-primary text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
-              @click="mobileViewPreset = option.value"
+              :class="viewMode === option.value ? 'bg-primary text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
+              @click="viewMode = option.value"
+            >
+              {{ option.label }}
+            </button>
+          </div>
+        </div>
+
+        <div v-if="isMobile" class="w-full">
+          <label class="block text-xs font-semibold uppercase tracking-wide text-gray-500">Periodo</label>
+          <div class="mt-1 grid grid-cols-3 gap-2">
+            <button
+              v-for="option in mobilePeriodOptions"
+              :key="option.value"
+              type="button"
+              class="rounded-md px-3 py-2 text-sm font-medium transition"
+              :class="periodPreset === option.value ? 'bg-primary text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
+              @click="periodPreset = option.value"
             >
               {{ option.label }}
             </button>
@@ -474,18 +490,17 @@ const isTouchDevice = ref(false)
 const selectedDayForSheet = ref('')
 const daySheetOpen = ref(false)
 
-const mobileViewOptions = [
+const mobileCalendarViewOptions = [
+  { value: 'clasica', label: 'Clásica' },
+  { value: 'completa', label: 'Completa' },
+  { value: 'por_unidad', label: 'Por unidad' }
+]
+
+const mobilePeriodOptions = [
   { value: 'today', label: 'Hoy' },
   { value: 'this_week', label: 'Semana' },
   { value: 'next_30', label: '30 días' }
 ]
-
-const mobileViewPreset = computed({
-  get: () => periodPreset.value,
-  set: (value) => {
-    periodPreset.value = value
-  }
-})
 
 const daySheetOccupancies = computed(() => {
   if (!selectedDayForSheet.value) return []
@@ -1402,13 +1417,6 @@ watch(periodPreset, async () => {
   applyPreset()
   tooltip.value.visible = false
   await fetchOccupancies()
-})
-
-watch(isMobile, (mobile) => {
-  if (!mobile) return
-  if (viewMode.value !== 'clasica') {
-    viewMode.value = 'clasica'
-  }
 })
 
 watch(weekStart, async () => {
