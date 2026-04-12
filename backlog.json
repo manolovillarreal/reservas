@@ -109,6 +109,7 @@
     { "id": 108, "t": "Widget disponibilidad — mensajes WhatsApp, checkboxes unidades, campos opcionales", "c": "Feature", "s": "d" },
     { "id": 109, "t": "Botón X para descartar notificaciones efímeras", "c": "Ajuste UI", "s": "d" },
     { "id": 110, "t": "Editor mensajes — scroll independiente panel izquierdo", "c": "Ajuste UI", "s": "d" },
-    { "id": 111, "t": "Editor mensajes — toggles modo inserción Si existe / Si no existe", "c": "Feature", "s": "d" }
+    { "id": 111, "t": "Editor mensajes — toggles modo inserción Si existe / Si no existe", "c": "Feature", "s": "d" },
+    { "id": 112, "t": "Mejoras calendario mobile — tabs entradas/salidas, filtros periodo, persistencia", "c": "Ajuste UI", "s": "d" }
   ]
 }

@@ -1,41 +1,9 @@
 <template>
-  <div class="space-y-6 p-2 sm:p-6">
-    <div class="flex flex-wrap items-center justify-between gap-4">
+  <div class="space-y-3 p-1 sm:space-y-6 sm:p-6">
+    <div class="hidden flex-wrap items-center justify-between gap-4 sm:flex">
       <h1 class="text-2xl font-bold text-gray-800">Calendario</h1>
       <div class="flex flex-wrap items-end gap-3">
-        <div v-if="isMobile" class="w-full">
-          <label class="block text-xs font-semibold uppercase tracking-wide text-gray-500">Vista</label>
-          <div class="mt-1 grid grid-cols-3 gap-2">
-            <button
-              v-for="option in mobileCalendarViewOptions"
-              :key="option.value"
-              type="button"
-              class="rounded-md px-3 py-2 text-sm font-medium transition"
-              :class="viewMode === option.value ? 'bg-primary text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
-              @click="viewMode = option.value"
-            >
-              {{ option.label }}
-            </button>
-          </div>
-        </div>
-
-        <div v-if="isMobile" class="w-full">
-          <label class="block text-xs font-semibold uppercase tracking-wide text-gray-500">Periodo</label>
-          <div class="mt-1 grid grid-cols-3 gap-2">
-            <button
-              v-for="option in mobilePeriodOptions"
-              :key="option.value"
-              type="button"
-              class="rounded-md px-3 py-2 text-sm font-medium transition"
-              :class="periodPreset === option.value ? 'bg-primary text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
-              @click="periodPreset = option.value"
-            >
-              {{ option.label }}
-            </button>
-          </div>
-        </div>
-
-        <div v-if="!isMobile">
+        <div>
           <label class="block text-xs font-semibold uppercase tracking-wide text-gray-500">Vista</label>
           <select v-model="viewMode" class="mt-1 rounded-md border-gray-300 text-sm">
             <option value="clasica">Clásica</option>
@@ -44,29 +12,80 @@
           </select>
         </div>
 
-        <div v-if="!isMobile">
+        <div>
           <label class="block text-xs font-semibold uppercase tracking-wide text-gray-500">Periodo</label>
           <select v-model="periodPreset" class="mt-1 rounded-md border-gray-300 text-sm">
             <option value="today">Hoy</option>
             <option value="this_week">Esta semana</option>
-            <option value="next_30">Proximos 30 dias</option>
             <option value="this_month">Este mes</option>
             <option value="custom">Personalizado</option>
           </select>
         </div>
 
-        <div v-if="periodPreset === 'custom'">
-          <label class="block text-xs font-semibold uppercase tracking-wide text-gray-500">Desde</label>
-          <input v-model="periodFrom" type="date" class="mt-1 rounded-md border-gray-300 text-sm">
+        <div v-if="periodPreset === 'custom'" class="w-full max-w-[420px]">
+          <AppDateRangePicker
+            v-model="customRangeModel"
+            label-start="Desde"
+            label-end="Hasta"
+          />
         </div>
-
-        <div v-if="periodPreset === 'custom'">
-          <label class="block text-xs font-semibold uppercase tracking-wide text-gray-500">Hasta</label>
-          <input v-model="periodTo" type="date" class="mt-1 rounded-md border-gray-300 text-sm">
-        </div>
-
       </div>
     </div>
+
+    <div class="space-y-2 sm:hidden">
+      <div class="grid grid-cols-3 gap-1.5">
+        <button
+          v-for="option in mobileCalendarViewOptions"
+          :key="`mobile-view-${option.value}`"
+          type="button"
+          class="rounded-md px-2 py-1.5 text-xs font-semibold transition"
+          :class="viewMode === option.value ? 'bg-primary text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
+          @click="viewMode = option.value"
+        >
+          {{ option.label }}
+        </button>
+      </div>
+
+      <div class="grid grid-cols-[1fr_1fr_1fr_auto] gap-1.5">
+        <button
+          v-for="option in mobilePeriodOptions"
+          :key="`mobile-period-${option.value}`"
+          type="button"
+          class="rounded-md px-2 py-1.5 text-xs font-semibold transition"
+          :class="periodPreset === option.value ? 'bg-primary text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
+          @click="periodPreset = option.value"
+        >
+          {{ option.label }}
+        </button>
+        <button
+          type="button"
+          class="inline-flex items-center justify-center rounded-md border px-2 py-1.5 text-gray-600 transition"
+          :class="periodPreset === 'custom' || showMobileRangePicker ? 'border-primary bg-primary/10 text-primary' : 'border-gray-200 bg-white hover:bg-gray-50'"
+          aria-label="Seleccionar rango personalizado"
+          @click="toggleMobileRangePicker"
+        >
+          <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M8 7V3m8 4V3m-9 8h10m-13 9h16a1 1 0 0 0 1-1V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a1 1 0 0 0 1 1Z" />
+          </svg>
+        </button>
+      </div>
+
+      <div v-if="showMobileRangePicker" class="rounded-md border border-gray-200 bg-white p-2 shadow-sm">
+        <AppDateRangePicker
+          v-model="customRangeModel"
+          label-start=""
+          label-end=""
+        />
+      </div>
+    </div>
+
+    <div class="calendar-tabs view-mode-toggle">
+      <button type="button" class="toggle-btn" :class="{ active: activeTab === 'calendar' }" @click="activeTab = 'calendar'">Calendario</button>
+      <button type="button" class="toggle-btn" :class="{ active: activeTab === 'entries' }" @click="activeTab = 'entries'">Entradas</button>
+      <button type="button" class="toggle-btn" :class="{ active: activeTab === 'exits' }" @click="activeTab = 'exits'">Salidas</button>
+    </div>
+
+    <div v-if="activeTab === 'calendar'" class="space-y-3">
 
     <div
       v-if="viewMode === 'completa' && !showAgendaView"
@@ -91,13 +110,30 @@
       </div>
     </div>
 
-    <div class="overflow-x-auto rounded-lg border border-gray-200 bg-white p-2 sm:p-6 shadow-sm">
-      <div class="mb-6 flex flex-wrap gap-4 text-sm font-medium text-gray-600">
-        <span class="flex items-center"><span class="mr-2 h-3 w-3 rounded-full bg-blue-500"></span> Reserva</span>
-        <span class="flex items-center"><span class="mr-2 h-3 w-3 rounded-full bg-orange-500"></span> Mantenimiento</span>
-        <span class="flex items-center"><span class="mr-2 h-3 w-3 rounded-full bg-purple-500"></span> Uso propietario</span>
-        <span class="flex items-center"><span class="mr-2 h-3 w-3 rounded-full bg-amber-500"></span> Hold temporal</span>
-        <span class="flex items-center"><span class="mr-2 h-3 w-3 rounded-full bg-gray-500"></span> Externo</span>
+    <div
+      class="rounded-lg border border-gray-200 bg-white shadow-sm"
+      :class="isMobile ? 'p-2' : 'overflow-x-auto p-6'"
+    >
+      <div class="mb-3 sm:mb-6">
+        <button
+          v-if="isMobile"
+          type="button"
+          class="inline-flex items-center gap-1 rounded-md border border-gray-200 bg-white px-2 py-1 text-xs font-medium text-gray-700 transition hover:bg-gray-50"
+          @click="mobileLegendOpen = !mobileLegendOpen"
+        >
+          {{ mobileLegendOpen ? 'Ocultar leyenda' : 'Ver leyenda' }}
+          <span class="text-[10px]">{{ mobileLegendOpen ? '▲' : '▼' }}</span>
+        </button>
+
+        <transition name="legend-collapse">
+          <div v-if="!isMobile || mobileLegendOpen" class="mt-2 flex flex-wrap gap-3 text-xs font-medium text-gray-600 sm:mt-0 sm:gap-4 sm:text-sm">
+            <span class="flex items-center"><span class="mr-2 h-3 w-3 rounded-full bg-blue-500"></span> Reserva</span>
+            <span class="flex items-center"><span class="mr-2 h-3 w-3 rounded-full bg-orange-500"></span> Mantenimiento</span>
+            <span class="flex items-center"><span class="mr-2 h-3 w-3 rounded-full bg-purple-500"></span> Uso propietario</span>
+            <span class="flex items-center"><span class="mr-2 h-3 w-3 rounded-full bg-amber-500"></span> Hold temporal</span>
+            <span class="flex items-center"><span class="mr-2 h-3 w-3 rounded-full bg-gray-500"></span> Externo</span>
+          </div>
+        </transition>
       </div>
 
       <div v-if="calendarMetrics && !loading" class="mb-4 flex flex-wrap gap-6 rounded-md border border-gray-100 bg-gray-50 px-4 py-3 text-sm text-gray-700">
@@ -207,6 +243,46 @@
             {{ getOccupancyDisplayLabel(segment, 'clasica') }}<span v-if="segment.occupancy_type === 'reservation' && (segment.reservations?.guests?.first_name || segment.reservations?.guests?.last_name)" class="opacity-80"> · {{ `${segment.reservations.guests.first_name || ''} ${segment.reservations.guests.last_name || ''}`.trim() }}</span><span v-else-if="segment.occupancy_type === 'external' && getExternalSource(segment)" class="opacity-80"> · {{ getExternalSource(segment) }}</span>
           </button>
         </div>
+      </div>
+
+      <div v-else-if="viewMode === 'completa' && isMobile" class="space-y-3">
+        <div v-if="mobileCompleteUnits.length === 0" class="rounded-md border border-gray-200 bg-gray-50 px-4 py-6 text-sm text-gray-500">
+          No hay unidades visibles para mostrar.
+        </div>
+
+        <section v-for="unitBlock in mobileCompleteUnits" :key="`mobile-complete-${unitBlock.unitId}`" class="rounded-md border border-gray-200 bg-white p-3">
+          <div class="mb-2 flex items-center justify-between gap-2">
+            <div class="min-w-0">
+              <p class="truncate text-sm font-semibold text-gray-900">{{ unitBlock.unitName }}</p>
+              <p class="truncate text-[11px] text-gray-500">{{ unitBlock.venueName }}</p>
+            </div>
+            <span class="rounded-full px-2 py-0.5 text-xs font-semibold" :class="unitBlock.occupiedNow ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'">
+              {{ unitBlock.occupiedNow ? 'Ocupada' : 'Libre' }}
+            </span>
+          </div>
+
+          <div class="grid gap-1" :style="mobileBarsGridStyle">
+            <button
+              v-for="bar in unitBlock.dayBars"
+              :key="`mobile-day-${unitBlock.unitId}-${bar.date}`"
+              type="button"
+              class="group rounded px-0.5 py-1"
+              :class="bar.today ? 'bg-primary/10' : ''"
+              :disabled="!bar.reservationId"
+              @click="bar.reservationId ? router.push(`/reservas/${bar.reservationId}`) : null"
+            >
+              <span
+                class="mx-auto block w-full rounded-sm transition"
+                :class="[
+                  bar.reservationId ? 'bg-blue-500 group-hover:bg-blue-600' : 'bg-gray-200',
+                  bar.today ? 'ring-1 ring-primary/50' : ''
+                ]"
+                :style="{ height: bar.reservationId ? '18px' : '6px', minHeight: '6px' }"
+              ></span>
+              <span class="mt-1 block text-center text-[9px] text-gray-500">{{ bar.dayNumber }}</span>
+            </button>
+          </div>
+        </section>
       </div>
 
       <div v-else-if="viewMode === 'completa'" class="space-y-4">
@@ -340,59 +416,62 @@
       </div>
     </div>
 
-    <!-- Entradas y Salidas del periodo -->
-    <div v-if="!showAgendaView && !loading" class="grid grid-cols-1 gap-6 sm:grid-cols-2">
-      <div>
-        <h2 class="mb-3 text-sm font-semibold uppercase tracking-wider text-gray-500">Entradas</h2>
-        <div v-if="periodoEntradas.length === 0" class="rounded-md border border-dashed border-gray-200 bg-gray-50 px-4 py-4 text-sm italic text-gray-400">
-          Sin entradas en el periodo.
-        </div>
-        <div v-else class="space-y-2">
-          <button
-            v-for="item in periodoEntradas"
-            :key="`entrada-${item.key}`"
-            type="button"
-            class="w-full rounded-md border border-gray-200 bg-white p-3 text-left shadow-sm transition-shadow hover:border-gray-300 hover:shadow"
-            @click="router.push(`/reservas/${item.reservationId}`)"
-          >
-            <div class="flex items-start justify-between gap-2">
-              <div class="min-w-0">
-                <p class="text-xs font-medium text-gray-500">{{ formatDate(item.date) }}</p>
-                <p class="truncate text-sm font-semibold text-gray-900">{{ item.guestName }}</p>
-                <p class="truncate text-xs text-gray-600">{{ item.unitLabel }}</p>
-                <p class="text-xs text-gray-500">{{ item.pax }} personas</p>
-              </div>
-              <ReservationBadge :status="item.status" />
-            </div>
-          </button>
-        </div>
-      </div>
+    </div>
 
-      <div>
-        <h2 class="mb-3 text-sm font-semibold uppercase tracking-wider text-gray-500">Salidas</h2>
-        <div v-if="periodoSalidas.length === 0" class="rounded-md border border-dashed border-gray-200 bg-gray-50 px-4 py-4 text-sm italic text-gray-400">
-          Sin salidas en el periodo.
-        </div>
-        <div v-else class="space-y-2">
-          <button
-            v-for="item in periodoSalidas"
-            :key="`salida-${item.key}`"
-            type="button"
-            class="w-full rounded-md border border-gray-200 bg-white p-3 text-left shadow-sm transition-shadow hover:border-gray-300 hover:shadow"
-            @click="router.push(`/reservas/${item.reservationId}`)"
-          >
-            <div class="flex items-start justify-between gap-2">
-              <div class="min-w-0">
-                <p class="text-xs font-medium text-gray-500">{{ formatDate(item.date) }}</p>
-                <p class="truncate text-sm font-semibold text-gray-900">{{ item.guestName }}</p>
-                <p class="truncate text-xs text-gray-600">{{ item.unitLabel }}</p>
-                <p class="text-xs text-gray-500">{{ item.pax }} personas</p>
-              </div>
-              <ReservationBadge :status="item.status" />
-            </div>
-          </button>
-        </div>
+    <div v-else-if="activeTab === 'entries'" class="space-y-2">
+      <div v-if="loading" class="rounded-md border border-gray-200 bg-gray-50 px-4 py-6 text-sm text-gray-500">
+        Cargando entradas...
       </div>
+      <div v-else-if="periodoEntradas.length === 0" class="rounded-md border border-dashed border-gray-200 bg-gray-50 px-4 py-4 text-sm italic text-gray-400">
+        Sin entradas en el periodo.
+      </div>
+      <button
+        v-for="item in periodoEntradas"
+        v-else
+        :key="`tab-entrada-${item.key}`"
+        type="button"
+        class="w-full rounded-md border border-gray-200 bg-white p-3 text-left shadow-sm transition-shadow hover:border-gray-300 hover:shadow"
+        @click="router.push(`/reservas/${item.reservationId}`)"
+      >
+        <div class="flex items-start justify-between gap-2">
+          <div class="min-w-0">
+            <p class="text-xs font-medium text-gray-500">{{ formatDate(item.date) }} · {{ item.checkInTimeLabel }}</p>
+            <p class="truncate text-sm font-semibold text-gray-900">{{ item.guestName }}</p>
+            <p class="truncate text-xs text-gray-600">{{ item.unitLabel }}</p>
+            <p class="text-xs text-gray-500">{{ item.pax }} personas</p>
+          </div>
+          <span class="rounded-full px-2 py-0.5 text-xs font-medium" :class="preregistroBadgeClass(item.preregistroStatus)">
+            {{ preregistroBadgeLabel(item.preregistroStatus) }}
+          </span>
+        </div>
+      </button>
+    </div>
+
+    <div v-else class="space-y-2">
+      <div v-if="loading" class="rounded-md border border-gray-200 bg-gray-50 px-4 py-6 text-sm text-gray-500">
+        Cargando salidas...
+      </div>
+      <div v-else-if="periodoSalidas.length === 0" class="rounded-md border border-dashed border-gray-200 bg-gray-50 px-4 py-4 text-sm italic text-gray-400">
+        Sin salidas en el periodo.
+      </div>
+      <button
+        v-for="item in periodoSalidas"
+        v-else
+        :key="`tab-salida-${item.key}`"
+        type="button"
+        class="w-full rounded-md border border-gray-200 bg-white p-3 text-left shadow-sm transition-shadow hover:border-gray-300 hover:shadow"
+        @click="router.push(`/reservas/${item.reservationId}`)"
+      >
+        <div class="flex items-start justify-between gap-2">
+          <div class="min-w-0">
+            <p class="text-xs font-medium text-gray-500">{{ formatDate(item.date) }} · {{ item.checkOutTimeLabel }}</p>
+            <p class="truncate text-sm font-semibold text-gray-900">{{ item.guestName }}</p>
+            <p class="truncate text-xs text-gray-600">{{ item.unitLabel }}</p>
+            <p class="text-xs text-gray-500">{{ item.pax }} personas</p>
+          </div>
+          <ReservationBadge :status="item.status" />
+        </div>
+      </button>
     </div>
 
     <div
@@ -455,6 +534,7 @@ import { supabase } from '../services/supabase'
 import { useAccountStore } from '../stores/account'
 import BottomSheet from '../components/ui/BottomSheet.vue'
 import ReservationBadge from '../components/ui/ReservationBadge.vue'
+import AppDateRangePicker from '../components/ui/forms/AppDateRangePicker.vue'
 import { useBreakpoint } from '../composables/useBreakpoint'
 
 const route = useRoute()
@@ -469,11 +549,14 @@ const venues = ref([])
 const loading = ref(false)
 
 const viewMode = ref('completa')
-const periodPreset = ref('next_30')
+const periodPreset = ref('this_month')
 const periodFrom = ref('')
 const periodTo = ref('')
+const activeTab = ref('calendar')
 const weekStart = ref(getWeekStartMonday(new Date()))
 const monthStart = ref(new Date(new Date().getFullYear(), new Date().getMonth(), 1))
+const mobileLegendOpen = ref(false)
+const showMobileRangePicker = ref(false)
 
 const selectedVenueIds = ref([])
 const collapsedVenues = ref({})
@@ -499,8 +582,31 @@ const mobileCalendarViewOptions = [
 const mobilePeriodOptions = [
   { value: 'today', label: 'Hoy' },
   { value: 'this_week', label: 'Semana' },
-  { value: 'next_30', label: '30 días' }
+  { value: 'this_month', label: 'Este mes' }
 ]
+
+const customRangeModel = computed({
+  get: () => ({
+    start: periodFrom.value || null,
+    end: periodTo.value || null,
+  }),
+  set: (range) => {
+    const start = normalizeIsoDate(range?.start)
+    const end = normalizeIsoDate(range?.end)
+    if (!start && !end) return
+
+    periodPreset.value = 'custom'
+    if (start) periodFrom.value = start
+    if (end) periodTo.value = end
+  }
+})
+
+function toggleMobileRangePicker() {
+  showMobileRangePicker.value = !showMobileRangePicker.value
+  if (showMobileRangePicker.value && periodPreset.value !== 'custom') {
+    periodPreset.value = 'custom'
+  }
+}
 
 const daySheetOccupancies = computed(() => {
   if (!selectedDayForSheet.value) return []
@@ -578,7 +684,8 @@ function formatCurrency(value) {
 function saveCalendarState() {
   const state = {
     viewMode: showAgendaView.value ? 'agenda' : viewMode.value,
-    periodPreset: periodPreset.value
+    periodPreset: periodPreset.value,
+    activeTab: activeTab.value,
   }
 
   if (periodPreset.value === 'custom') {
@@ -601,10 +708,17 @@ function restoreCalendarState() {
   }
 
   const allowedViewModes = new Set(['clasica', 'completa', 'por_unidad', 'agenda'])
-  const allowedPresets = new Set(['today', 'this_week', 'next_30', 'custom', 'this_month'])
+  const allowedPresets = new Set(['today', 'this_week', 'custom', 'this_month'])
+  const allowedTabs = new Set(['calendar', 'entries', 'exits'])
 
   const restoredViewMode = String(parsedState?.viewMode || '')
-  const restoredPreset = String(parsedState?.periodPreset || '')
+  const restoredPresetRaw = String(parsedState?.periodPreset || '')
+  const restoredPreset = restoredPresetRaw === 'next_30' ? 'this_month' : restoredPresetRaw
+  const restoredTab = String(parsedState?.activeTab || '')
+
+  if (allowedTabs.has(restoredTab)) {
+    activeTab.value = restoredTab
+  }
 
   if (allowedViewModes.has(restoredViewMode) && restoredViewMode !== 'agenda') {
     viewMode.value = restoredViewMode
@@ -679,8 +793,8 @@ function applyPreset() {
     return
   }
 
-  periodFrom.value = toIsoDate(today)
-  periodTo.value = toIsoDate(addDays(today, 29))
+  periodFrom.value = toIsoDate(monthStart.value)
+  periodTo.value = toIsoDate(new Date(monthStart.value.getFullYear(), monthStart.value.getMonth() + 1, 0))
 }
 
 const calendarDays = computed(() => {
@@ -834,6 +948,46 @@ const visibleVenues = computed(() => {
   return venues.value.filter((venue) => selectedVenueSet.value.has(venue.id))
 })
 
+const mobileBarsGridStyle = computed(() => ({
+  gridTemplateColumns: `repeat(${Math.max(calendarDays.value.length, 1)}, minmax(0, 1fr))`
+}))
+
+const mobileCompleteUnits = computed(() => {
+  if (!isMobile.value || viewMode.value !== 'completa') return []
+
+  const todayIso = toIsoDate(new Date())
+  const allUnits = visibleVenues.value.flatMap((venue) =>
+    getUnitsByVenue(venue.id).map((unit) => ({
+      unitId: unit.id,
+      unitName: unit.name,
+      venueName: venue.name,
+    }))
+  )
+
+  return allUnits.map((unitMeta) => {
+    const occupiedNow = getUnitOccupanciesForDay(unitMeta.unitId, todayIso)
+      .some((occ) => occ.occupancy_type === 'reservation')
+
+    const dayBars = calendarDays.value.map((day) => {
+      const unitOccs = getUnitOccupanciesForDay(unitMeta.unitId, day.date)
+      const reservationOcc = unitOccs.find((occ) => occ.occupancy_type === 'reservation' && occ.reservation_id)
+
+      return {
+        date: day.date,
+        dayNumber: day.dayNumber,
+        today: day.date === todayIso,
+        reservationId: reservationOcc?.reservation_id || null,
+      }
+    })
+
+    return {
+      ...unitMeta,
+      occupiedNow,
+      dayBars,
+    }
+  })
+})
+
 const filteredOccupancies = computed(() => {
   if (selectedVenueSet.value.size === 0) return occupancies.value
   return occupancies.value.filter((occ) => selectedVenueSet.value.has(occ.units?.venue_id))
@@ -898,6 +1052,8 @@ const periodoEntradas = computed(() => {
           guestName: `${occ.reservations?.guests?.first_name || ''} ${occ.reservations?.guests?.last_name || ''}`.trim() || '-',
           pax: Number(occ.reservations?.adults || 0) + Number(occ.reservations?.minors || 0) + Number(occ.reservations?.children || 0) + Number(occ.reservations?.infants || 0),
           status: occ.reservations?.status || '',
+          preregistroStatus: occ.reservations?.preregistro_status || '',
+          checkInTimeLabel: 'Hora no definida',
           unitNames: [],
           reservationId: occ.reservation_id,
         })
@@ -926,6 +1082,7 @@ const periodoSalidas = computed(() => {
           guestName: `${occ.reservations?.guests?.first_name || ''} ${occ.reservations?.guests?.last_name || ''}`.trim() || '-',
           pax: Number(occ.reservations?.adults || 0) + Number(occ.reservations?.minors || 0) + Number(occ.reservations?.children || 0) + Number(occ.reservations?.infants || 0),
           status: occ.reservations?.status || '',
+          checkOutTimeLabel: 'Hora no definida',
           unitNames: [],
           reservationId: occ.reservation_id,
         })
@@ -1392,6 +1549,29 @@ function goToNextDay() {
   }
 }
 
+function preregistroBadgeLabel(status) {
+  if (!status) return 'Sin preregistro'
+
+  const map = {
+    completo: 'Pre-registro completo',
+    incompleto: 'Pre-registro incompleto',
+    pendiente: 'Pre-registro pendiente',
+    rechazado: 'Pre-registro rechazado',
+  }
+
+  return map[String(status).toLowerCase()] || String(status)
+}
+
+function preregistroBadgeClass(status) {
+  if (!status) return 'bg-gray-100 text-gray-600'
+
+  const normalized = String(status).toLowerCase()
+  if (normalized === 'completo') return 'bg-emerald-100 text-emerald-700'
+  if (normalized === 'incompleto' || normalized === 'pendiente') return 'bg-amber-100 text-amber-700'
+  if (normalized === 'rechazado') return 'bg-red-100 text-red-700'
+  return 'bg-indigo-100 text-indigo-700'
+}
+
 onMounted(async () => {
   isTouchDevice.value = Boolean(window.matchMedia?.('(pointer: coarse)')?.matches || 'ontouchstart' in window)
 
@@ -1415,8 +1595,20 @@ onBeforeUnmount(() => {
 
 watch(periodPreset, async () => {
   applyPreset()
+  if (periodPreset.value !== 'custom') {
+    showMobileRangePicker.value = false
+  }
   tooltip.value.visible = false
+  saveCalendarState()
   await fetchOccupancies()
+})
+
+watch(viewMode, () => {
+  saveCalendarState()
+})
+
+watch(activeTab, () => {
+  saveCalendarState()
 })
 
 watch(weekStart, async () => {
@@ -1433,6 +1625,58 @@ watch(monthStart, async () => {
 
 watch([periodFrom, periodTo], async () => {
   if (periodPreset.value !== 'custom') return
+  saveCalendarState()
   await fetchOccupancies()
 })
 </script>
+
+<style scoped>
+.view-mode-toggle {
+  display: inline-flex;
+  gap: 0;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.calendar-tabs {
+  width: fit-content;
+}
+
+.toggle-btn {
+  height: 36px;
+  padding: 0 12px;
+  font-size: 13px;
+  font-weight: 400;
+  border: 1px solid #e5e7eb;
+  margin: -1px;
+  background: #ffffff;
+  color: #6b7280;
+  transition: all 0.2s ease;
+}
+
+.toggle-btn.active {
+  background: #eef2ff;
+  border-color: #4c2fff;
+  color: #4c2fff;
+  font-weight: 500;
+}
+
+.legend-collapse-enter-active,
+.legend-collapse-leave-active {
+  transition: all 0.2s ease;
+}
+
+.legend-collapse-enter-from,
+.legend-collapse-leave-to {
+  max-height: 0;
+  opacity: 0;
+}
+
+.legend-collapse-enter-to,
+.legend-collapse-leave-from {
+  max-height: 120px;
+  opacity: 1;
+}
+</style>
