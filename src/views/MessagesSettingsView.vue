@@ -17,10 +17,33 @@
           <div class="flex items-center justify-between gap-3">
             <p class="font-semibold text-gray-900">Cotización</p>
             <div class="flex items-center gap-2">
-              <button type="button" class="btn-secondary text-xs" @click="toggleSystemPreview('quotation')">
-                {{ showQuotationPreview ? 'Ocultar mensaje' : 'Ver mensaje' }}
+              <button
+                type="button"
+                class="btn-secondary inline-flex items-center gap-1 text-xs"
+                @click="toggleSystemPreview('quotation')"
+                :aria-label="showQuotationPreview ? 'Ocultar mensaje' : 'Ver mensaje'"
+                :title="showQuotationPreview ? 'Ocultar mensaje' : 'Ver mensaje'"
+              >
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+                <span class="hidden sm:inline">{{ showQuotationPreview ? 'Ocultar mensaje' : 'Ver mensaje' }}</span>
               </button>
-              <button type="button" class="btn-secondary text-xs" :disabled="!systemMessageByKey.quotation" @click="openMessageEditor(systemMessageByKey.quotation)">Editar</button>
+              <button
+                type="button"
+                class="btn-secondary inline-flex items-center gap-1 text-xs"
+                :disabled="!systemMessageByKey.quotation"
+                @click="openMessageEditor(systemMessageByKey.quotation)"
+                aria-label="Editar mensaje"
+                title="Editar mensaje"
+              >
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M12 20h9"></path>
+                  <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path>
+                </svg>
+                <span class="hidden sm:inline">Editar</span>
+              </button>
             </div>
           </div>
           <pre v-if="showQuotationPreview" class="mt-3 whitespace-pre-wrap rounded bg-gray-50 p-3 text-sm text-gray-800">{{ quotationPreview.text }}</pre>
@@ -33,10 +56,33 @@
           <div class="flex items-center justify-between gap-3">
             <p class="font-semibold text-gray-900">Voucher</p>
             <div class="flex items-center gap-2">
-              <button type="button" class="btn-secondary text-xs" @click="toggleSystemPreview('voucher')">
-                {{ showVoucherPreview ? 'Ocultar mensaje' : 'Ver mensaje' }}
+              <button
+                type="button"
+                class="btn-secondary inline-flex items-center gap-1 text-xs"
+                @click="toggleSystemPreview('voucher')"
+                :aria-label="showVoucherPreview ? 'Ocultar mensaje' : 'Ver mensaje'"
+                :title="showVoucherPreview ? 'Ocultar mensaje' : 'Ver mensaje'"
+              >
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+                <span class="hidden sm:inline">{{ showVoucherPreview ? 'Ocultar mensaje' : 'Ver mensaje' }}</span>
               </button>
-              <button type="button" class="btn-secondary text-xs" :disabled="!systemMessageByKey.voucher" @click="openMessageEditor(systemMessageByKey.voucher)">Editar</button>
+              <button
+                type="button"
+                class="btn-secondary inline-flex items-center gap-1 text-xs"
+                :disabled="!systemMessageByKey.voucher"
+                @click="openMessageEditor(systemMessageByKey.voucher)"
+                aria-label="Editar mensaje"
+                title="Editar mensaje"
+              >
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M12 20h9"></path>
+                  <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path>
+                </svg>
+                <span class="hidden sm:inline">Editar</span>
+              </button>
             </div>
           </div>
           <pre v-if="showVoucherPreview" class="mt-3 whitespace-pre-wrap rounded bg-gray-50 p-3 text-sm text-gray-800">{{ voucherPreview.text }}</pre>
@@ -49,10 +95,33 @@
           <div class="flex items-center justify-between gap-3">
             <p class="font-semibold text-gray-900">Pre-registro</p>
             <div class="flex items-center gap-2">
-              <button type="button" class="btn-secondary text-xs" @click="toggleSystemPreview('preregistro')">
-                {{ showPreregistroPreview ? 'Ocultar mensaje' : 'Ver mensaje' }}
+              <button
+                type="button"
+                class="btn-secondary inline-flex items-center gap-1 text-xs"
+                @click="toggleSystemPreview('preregistro')"
+                :aria-label="showPreregistroPreview ? 'Ocultar mensaje' : 'Ver mensaje'"
+                :title="showPreregistroPreview ? 'Ocultar mensaje' : 'Ver mensaje'"
+              >
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+                <span class="hidden sm:inline">{{ showPreregistroPreview ? 'Ocultar mensaje' : 'Ver mensaje' }}</span>
               </button>
-              <button type="button" class="btn-secondary text-xs" :disabled="!systemMessageByKey.preregistro" @click="openMessageEditor(systemMessageByKey.preregistro)">Editar</button>
+              <button
+                type="button"
+                class="btn-secondary inline-flex items-center gap-1 text-xs"
+                :disabled="!systemMessageByKey.preregistro"
+                @click="openMessageEditor(systemMessageByKey.preregistro)"
+                aria-label="Editar mensaje"
+                title="Editar mensaje"
+              >
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M12 20h9"></path>
+                  <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path>
+                </svg>
+                <span class="hidden sm:inline">Editar</span>
+              </button>
             </div>
           </div>
           <pre v-if="showPreregistroPreview" class="mt-3 whitespace-pre-wrap rounded bg-gray-50 p-3 text-sm text-gray-800">{{ preregistroPreview.text }}</pre>
@@ -65,10 +134,33 @@
           <div class="flex items-center justify-between gap-3">
             <p class="font-semibold text-gray-900">Sin disponibilidad</p>
             <div class="flex items-center gap-2">
-              <button type="button" class="btn-secondary text-xs" @click="toggleSystemPreview('disponibilidad_negativa')">
-                {{ showDisponibilidadNegativaPreview ? 'Ocultar mensaje' : 'Ver mensaje' }}
+              <button
+                type="button"
+                class="btn-secondary inline-flex items-center gap-1 text-xs"
+                @click="toggleSystemPreview('disponibilidad_negativa')"
+                :aria-label="showDisponibilidadNegativaPreview ? 'Ocultar mensaje' : 'Ver mensaje'"
+                :title="showDisponibilidadNegativaPreview ? 'Ocultar mensaje' : 'Ver mensaje'"
+              >
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+                <span class="hidden sm:inline">{{ showDisponibilidadNegativaPreview ? 'Ocultar mensaje' : 'Ver mensaje' }}</span>
               </button>
-              <button type="button" class="btn-secondary text-xs" :disabled="!systemMessageByKey.disponibilidad_negativa" @click="openMessageEditor(systemMessageByKey.disponibilidad_negativa)">Editar</button>
+              <button
+                type="button"
+                class="btn-secondary inline-flex items-center gap-1 text-xs"
+                :disabled="!systemMessageByKey.disponibilidad_negativa"
+                @click="openMessageEditor(systemMessageByKey.disponibilidad_negativa)"
+                aria-label="Editar mensaje"
+                title="Editar mensaje"
+              >
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M12 20h9"></path>
+                  <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path>
+                </svg>
+                <span class="hidden sm:inline">Editar</span>
+              </button>
             </div>
           </div>
           <pre v-if="showDisponibilidadNegativaPreview" class="mt-3 whitespace-pre-wrap rounded bg-gray-50 p-3 text-sm text-gray-800">{{ disponibilidadNegativaPreview.text }}</pre>
@@ -81,10 +173,33 @@
           <div class="flex items-center justify-between gap-3">
             <p class="font-semibold text-gray-900">Con disponibilidad</p>
             <div class="flex items-center gap-2">
-              <button type="button" class="btn-secondary text-xs" @click="toggleSystemPreview('disponibilidad_positiva')">
-                {{ showDisponibilidadPositivaPreview ? 'Ocultar mensaje' : 'Ver mensaje' }}
+              <button
+                type="button"
+                class="btn-secondary inline-flex items-center gap-1 text-xs"
+                @click="toggleSystemPreview('disponibilidad_positiva')"
+                :aria-label="showDisponibilidadPositivaPreview ? 'Ocultar mensaje' : 'Ver mensaje'"
+                :title="showDisponibilidadPositivaPreview ? 'Ocultar mensaje' : 'Ver mensaje'"
+              >
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+                <span class="hidden sm:inline">{{ showDisponibilidadPositivaPreview ? 'Ocultar mensaje' : 'Ver mensaje' }}</span>
               </button>
-              <button type="button" class="btn-secondary text-xs" :disabled="!systemMessageByKey.disponibilidad_positiva" @click="openMessageEditor(systemMessageByKey.disponibilidad_positiva)">Editar</button>
+              <button
+                type="button"
+                class="btn-secondary inline-flex items-center gap-1 text-xs"
+                :disabled="!systemMessageByKey.disponibilidad_positiva"
+                @click="openMessageEditor(systemMessageByKey.disponibilidad_positiva)"
+                aria-label="Editar mensaje"
+                title="Editar mensaje"
+              >
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M12 20h9"></path>
+                  <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path>
+                </svg>
+                <span class="hidden sm:inline">Editar</span>
+              </button>
             </div>
           </div>
           <pre v-if="showDisponibilidadPositivaPreview" class="mt-3 whitespace-pre-wrap rounded bg-gray-50 p-3 text-sm text-gray-800">{{ disponibilidadPositivaPreview.text }}</pre>
@@ -106,38 +221,112 @@
       </div>
 
       <div v-else class="space-y-3">
-        <div v-for="(msg, index) in renderedCustomMessages" :key="msg.id" class="rounded-md border border-gray-200 p-3">
-          <div class="flex items-start justify-between gap-3">
-            <div class="min-w-0">
-              <p class="font-medium text-gray-900">{{ msg.name }}</p>
-            </div>
-            <div class="flex shrink-0 items-center gap-2">
-              <button type="button" class="btn-secondary text-xs" @click="moveMessage(index, -1)" :disabled="index === 0">↑</button>
-              <button type="button" class="btn-secondary text-xs" @click="moveMessage(index, 1)" :disabled="index === customMessages.length - 1">↓</button>
-              <button type="button" class="btn-secondary text-xs" @click="toggleCustomPreview(msg.id)">
-                {{ isCustomPreviewOpen(msg.id) ? 'Ocultar mensaje' : 'Ver mensaje' }}
-              </button>
+        <div v-for="msg in renderedCustomMessages" :key="msg.id" class="relative">
+          <div v-if="showDropIndicator(msg.id, 'before')" class="mb-2 h-0.5 rounded-full bg-indigo-500"></div>
+
+          <div
+            :data-message-id="msg.id"
+            class="rounded-md border p-3 transition select-none"
+            :class="isDraggingMessage(msg.id)
+              ? 'border-indigo-300 bg-indigo-50/50 opacity-60 shadow-sm'
+              : 'border-gray-200 bg-white'"
+            @dragover.prevent="onDragOver($event, msg.id)"
+            @drop.prevent="onDrop(msg.id)"
+          >
+            <div class="flex items-start gap-3">
               <button
                 type="button"
-                class="inline-flex h-7 w-7 items-center justify-center rounded-md text-gray-500 transition hover:bg-gray-100 hover:text-gray-700"
-                @click="copyToClipboard(msg.renderedText)"
-                title="Copiar mensaje"
+                draggable="true"
+                class="mt-0.5 inline-flex h-9 w-9 shrink-0 cursor-grab touch-none items-center justify-center rounded-md border border-dashed border-gray-300 text-gray-400 transition hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-600 active:cursor-grabbing"
+                aria-label="Reordenar mensaje"
+                title="Arrastra para reordenar"
+                @dragstart="onDragStart($event, msg.id)"
+                @dragend="onDragEnd"
+                @touchstart.prevent="onTouchStart($event, msg.id)"
               >
-                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <circle cx="9" cy="6" r="1.5"></circle>
+                  <circle cx="15" cy="6" r="1.5"></circle>
+                  <circle cx="9" cy="12" r="1.5"></circle>
+                  <circle cx="15" cy="12" r="1.5"></circle>
+                  <circle cx="9" cy="18" r="1.5"></circle>
+                  <circle cx="15" cy="18" r="1.5"></circle>
                 </svg>
               </button>
-              <button type="button" class="btn-secondary text-xs" @click="openMessageEditor(msg.id)">Editar</button>
-              <button type="button" class="btn-secondary text-xs text-red-700" @click="removeCustom(msg.id)">Eliminar</button>
+
+              <div class="min-w-0 flex-1">
+                <div class="flex items-start justify-between gap-3">
+                  <div class="min-w-0">
+                    <p class="font-medium text-gray-900">{{ msg.name }}</p>
+                  </div>
+                  <div class="flex shrink-0 flex-wrap items-center justify-end gap-2">
+                    <button
+                      type="button"
+                      class="btn-secondary inline-flex items-center gap-1 text-xs"
+                      @click="toggleCustomPreview(msg.id)"
+                      :aria-label="isCustomPreviewOpen(msg.id) ? 'Ocultar mensaje' : 'Ver mensaje'"
+                      :title="isCustomPreviewOpen(msg.id) ? 'Ocultar mensaje' : 'Ver mensaje'"
+                    >
+                      <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                      </svg>
+                      <span class="hidden sm:inline">{{ isCustomPreviewOpen(msg.id) ? 'Ocultar mensaje' : 'Ver mensaje' }}</span>
+                    </button>
+                    <button
+                      type="button"
+                      class="inline-flex h-7 w-7 items-center justify-center rounded-md text-gray-500 transition hover:bg-gray-100 hover:text-gray-700"
+                      @click="copyToClipboard(msg.renderedText)"
+                      title="Copiar mensaje"
+                      :aria-label="`Copiar ${msg.name}`"
+                    >
+                      <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                      </svg>
+                    </button>
+                    <button
+                      type="button"
+                      class="btn-secondary inline-flex items-center gap-1 text-xs"
+                      @click="openMessageEditor(msg.id)"
+                      aria-label="Editar mensaje"
+                      title="Editar mensaje"
+                    >
+                      <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M12 20h9"></path>
+                        <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path>
+                      </svg>
+                      <span class="hidden sm:inline">Editar</span>
+                    </button>
+                    <button
+                      type="button"
+                      class="btn-secondary inline-flex items-center gap-1 text-xs text-red-700"
+                      @click="removeCustom(msg.id)"
+                      aria-label="Eliminar mensaje"
+                      title="Eliminar mensaje"
+                    >
+                      <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M3 6h18"></path>
+                        <path d="M8 6V4h8v2"></path>
+                        <path d="M19 6l-1 14H6L5 6"></path>
+                        <path d="M10 11v6"></path>
+                        <path d="M14 11v6"></path>
+                      </svg>
+                      <span class="hidden sm:inline">Eliminar</span>
+                    </button>
+                  </div>
+                </div>
+                <div v-if="isCustomPreviewOpen(msg.id)" class="mt-3 border-t border-gray-100 pt-3">
+                  <pre class="whitespace-pre-wrap rounded bg-gray-50 p-3 text-sm text-gray-800">{{ msg.renderedText }}</pre>
+                  <p v-if="msg.missing.length" class="mt-2 text-xs text-amber-700">
+                    Faltan variables: {{ msg.missing.join(', ') }}
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
-          <div v-if="isCustomPreviewOpen(msg.id)" class="mt-3 border-t border-gray-100 pt-3">
-            <pre class="whitespace-pre-wrap rounded bg-gray-50 p-3 text-sm text-gray-800">{{ msg.renderedText }}</pre>
-            <p v-if="msg.missing.length" class="mt-2 text-xs text-amber-700">
-              Faltan variables: {{ msg.missing.join(', ') }}
-            </p>
-          </div>
+
+          <div v-if="showDropIndicator(msg.id, 'after')" class="mt-2 h-0.5 rounded-full bg-indigo-500"></div>
         </div>
       </div>
     </div>
@@ -168,7 +357,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { supabase } from '../services/supabase'
 import { useAccountStore } from '../stores/account'
@@ -209,6 +398,9 @@ const showDisponibilidadPositivaPreview = ref(false)
 const openCustomPreviewIds = ref(new Set())
 const savingCustom = ref(false)
 const showCustomModal = ref(false)
+const activeDragMessageId = ref('')
+const dropIndicator = ref({ id: '', position: 'before' })
+const touchDragActive = ref(false)
 
 const profile = ref({})
 const accountSettings = ref({})
@@ -402,6 +594,128 @@ const toggleCustomPreview = (id) => {
 }
 
 const isCustomPreviewOpen = (id) => openCustomPreviewIds.value.has(id)
+const isDraggingMessage = (id) => String(activeDragMessageId.value) === String(id)
+const showDropIndicator = (id, position) => String(dropIndicator.value.id) === String(id) && dropIndicator.value.position === position
+
+const clearDragState = () => {
+  activeDragMessageId.value = ''
+  dropIndicator.value = { id: '', position: 'before' }
+  touchDragActive.value = false
+}
+
+const getCustomMessageIndex = (id) => customMessages.value.findIndex((msg) => String(msg.id) === String(id))
+
+const setDropIndicatorFromPoint = (clientY) => {
+  const elements = Array.from(document.querySelectorAll('[data-message-id]'))
+  if (!elements.length) {
+    dropIndicator.value = { id: '', position: 'before' }
+    return
+  }
+
+  for (const element of elements) {
+    const rect = element.getBoundingClientRect()
+    const midpoint = rect.top + rect.height / 2
+
+    if (clientY < midpoint) {
+      dropIndicator.value = {
+        id: element.dataset.messageId || '',
+        position: 'before',
+      }
+      return
+    }
+  }
+
+  const lastElement = elements[elements.length - 1]
+  dropIndicator.value = {
+    id: lastElement?.dataset.messageId || '',
+    position: 'after',
+  }
+}
+
+const reorderCustomMessages = async (fromId, toId = dropIndicator.value.id, position = dropIndicator.value.position) => {
+  const fromIndex = getCustomMessageIndex(fromId)
+  const toIndex = getCustomMessageIndex(toId)
+
+  if (fromIndex < 0 || toIndex < 0) {
+    clearDragState()
+    return
+  }
+
+  const list = [...customMessages.value]
+  const [moved] = list.splice(fromIndex, 1)
+  let destinationIndex = position === 'after' ? toIndex + 1 : toIndex
+
+  if (fromIndex < toIndex) {
+    destinationIndex -= 1
+  }
+
+  list.splice(destinationIndex, 0, moved)
+
+  const didChange = list.some((item, index) => item.id !== customMessages.value[index]?.id)
+  if (!didChange) {
+    clearDragState()
+    return
+  }
+
+  try {
+    const accountId = accountStore.getRequiredAccountId()
+    await reorderPredefinedMessages(accountId, list.map((item) => item.id))
+    messages.value = await getPredefinedMessages(accountId)
+  } catch (err) {
+    toast.error(err.message || 'No se pudo reordenar el mensaje.')
+  } finally {
+    clearDragState()
+  }
+}
+
+const onDragStart = (event, id) => {
+  activeDragMessageId.value = String(id)
+  event.dataTransfer.effectAllowed = 'move'
+  event.dataTransfer.setData('text/plain', String(id))
+}
+
+const onDragOver = (event, id) => {
+  if (!activeDragMessageId.value) return
+
+  const rect = event.currentTarget.getBoundingClientRect()
+  dropIndicator.value = {
+    id,
+    position: event.clientY < rect.top + rect.height / 2 ? 'before' : 'after',
+  }
+}
+
+const onDrop = async (id) => {
+  if (!activeDragMessageId.value) return
+  const position = dropIndicator.value.id === id ? dropIndicator.value.position : 'after'
+  await reorderCustomMessages(activeDragMessageId.value, id, position)
+}
+
+const onDragEnd = () => {
+  if (!touchDragActive.value) {
+    clearDragState()
+  }
+}
+
+const handleTouchMove = (event) => {
+  if (!touchDragActive.value || !event.touches?.length) return
+  event.preventDefault()
+  setDropIndicatorFromPoint(event.touches[0].clientY)
+}
+
+const handleTouchEnd = async () => {
+  if (!touchDragActive.value || !activeDragMessageId.value || !dropIndicator.value.id) {
+    clearDragState()
+    return
+  }
+
+  await reorderCustomMessages(activeDragMessageId.value, dropIndicator.value.id, dropIndicator.value.position)
+}
+
+const onTouchStart = (event, id) => {
+  activeDragMessageId.value = String(id)
+  touchDragActive.value = true
+  setDropIndicatorFromPoint(event.touches[0].clientY)
+}
 
 const toggleSystemPreview = (key) => {
   if (key === 'quotation') {
@@ -484,22 +798,16 @@ const removeCustom = async (id) => {
   }
 }
 
-const moveMessage = async (index, direction) => {
-  const targetIndex = index + direction
-  if (targetIndex < 0 || targetIndex >= customMessages.value.length) return
+onMounted(() => {
+  loadData()
+  window.addEventListener('touchmove', handleTouchMove, { passive: false })
+  window.addEventListener('touchend', handleTouchEnd)
+  window.addEventListener('touchcancel', clearDragState)
+})
 
-  const list = [...customMessages.value]
-  const [moved] = list.splice(index, 1)
-  list.splice(targetIndex, 0, moved)
-
-  try {
-    const accountId = accountStore.getRequiredAccountId()
-    await reorderPredefinedMessages(accountId, list.map((item) => item.id))
-    messages.value = await getPredefinedMessages(accountId)
-  } catch (err) {
-    toast.error(err.message || 'No se pudo reordenar el mensaje.')
-  }
-}
-
-onMounted(loadData)
+onBeforeUnmount(() => {
+  window.removeEventListener('touchmove', handleTouchMove)
+  window.removeEventListener('touchend', handleTouchEnd)
+  window.removeEventListener('touchcancel', clearDragState)
+})
 </script>
