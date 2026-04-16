@@ -55,6 +55,13 @@
             :autoResize="true"
             placeholder="Nuestra casa está ubicada en el corazón de la isla, a pocos pasos de la playa..."
           />
+          <AppTextarea
+            v-model="profileForm.common_amenities"
+            label="Amenidades comunes"
+            :rows="4"
+            :autoResize="true"
+            placeholder="Piscina · WiFi · Zona BBQ · Parqueadero · Acceso a playa"
+          />
           <AppInput
             v-model="profileForm.location_url"
             label="Ubicacion (Google Maps)"
@@ -177,6 +184,7 @@ const profileForm = ref({
   logo_url: '',
   reference_prefix: '',
   short_description: '',
+  common_amenities: '',
   location_url: '',
 })
 
@@ -212,6 +220,7 @@ const setProfileForm = (data = {}) => {
     logo_url: data.logo_url || '',
     reference_prefix: data.reference_prefix || '',
     short_description: data.short_description || '',
+    common_amenities: data.common_amenities || '',
     location_url: data.location_url || '',
   }
 }
@@ -357,6 +366,7 @@ const saveProfile = async () => {
       logo_url: logoUrl,
       reference_prefix: profileForm.value.reference_prefix,
       short_description: profileForm.value.short_description || null,
+      common_amenities: profileForm.value.common_amenities || null,
       location_url: profileForm.value.location_url || null,
     }
 

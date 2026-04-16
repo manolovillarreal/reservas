@@ -303,7 +303,13 @@ export const buildQuotationWhatsAppMessage = (inquiry, profile, quoteUrl = '', o
           valor_descuento: formatCop(discountAmount),
         }
       : null,
-    amenidades_comunes: String(inquiry?.amenidades_comunes || profile?.short_description || '').trim(),
+    amenidades_comunes: String(inquiry?.amenidades_comunes || '').trim() || buildGlobalVariables({
+      profile,
+      accountSettings,
+      context: {
+        amenidades_comunes: inquiry?.amenidades_comunes,
+      },
+    }).amenidades_comunes,
     url_cotizacion: quoteUrl || '-',
   }
 

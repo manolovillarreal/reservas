@@ -124,6 +124,13 @@ export const buildGlobalVariables = ({ profile = {}, accountSettings = {}, conte
   const telefono = profile.phone || '-'
   const ubicacion = profile.location_url || '-'
   const descripcionAlojamiento = profile.short_description || '-'
+  const amenidadesComunes = String(
+    context.amenidades_comunes ||
+    profile.common_amenities ||
+    accountSettings.common_amenities ||
+    profile.short_description ||
+    ''
+  ).trim()
   const porcentajeAnticipo = accountSettings.anticipo_pct != null ? Number(accountSettings.anticipo_pct) : 50
 
   const nombres = String(context.nombres || context.guest_first_name || '').trim()
@@ -143,6 +150,7 @@ export const buildGlobalVariables = ({ profile = {}, accountSettings = {}, conte
     telefono,
     ubicacion,
     descripcion_alojamiento: descripcionAlojamiento,
+    amenidades_comunes: amenidadesComunes,
     porcentaje_anticipo: porcentajeAnticipo,
     nombre_completo: nombreCompleto || '-',
     nombres: nombres || '-',
