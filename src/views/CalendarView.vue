@@ -257,13 +257,20 @@
               @click="onMobileClassicBarTap(segment)"
             >
               <span
-                v-if="week.showText && segment.checkinInView"
+                v-if="week.showText"
                 class="block overflow-hidden whitespace-nowrap"
                 :class="week.textSizeClass"
               >
                 <span
-                  class="inline-block min-w-full"
-                  :class="mobileClassicSegmentTextClass(segment, week)"
+                  v-if="mobileClassicUsesMarquee(segment, week)"
+                  class="calendar-segment-marquee-track"
+                >
+                  <span class="calendar-segment-marquee-copy">{{ mobileClassicSegmentStaticLabel(segment) }}</span>
+                  <span class="calendar-segment-marquee-copy" aria-hidden="true">{{ mobileClassicSegmentStaticLabel(segment) }}</span>
+                </span>
+                <span
+                  v-else
+                  class="inline-block min-w-full truncate"
                 >
                   {{ mobileClassicSegmentLabel(segment) }}
                 </span>
@@ -469,14 +476,35 @@
           <span>Salidas: <span class="font-semibold text-gray-900">{{ calendarMetrics.departures }}</span></span>
         </div>
 
-        <button
-          type="button"
-          class="inline-flex items-center gap-1 rounded-md border border-gray-200 bg-white px-2 py-1 text-xs font-medium text-gray-700 transition hover:bg-gray-50"
-          @click="mobileLegendOpen = !mobileLegendOpen"
-        >
-          {{ mobileLegendOpen ? 'Ocultar leyenda' : 'Ver leyenda' }}
-          <span class="text-[10px]">{{ mobileLegendOpen ? '▲' : '▼' }}</span>
-        </button>
+        <div class="flex items-center justify-between gap-2">
+          <button
+            type="button"
+            class="inline-flex items-center gap-1 rounded-md border border-gray-200 bg-white px-2 py-1 text-xs font-medium text-gray-700 transition hover:bg-gray-50"
+            @click="mobileLegendOpen = !mobileLegendOpen"
+          >
+            {{ mobileLegendOpen ? 'Ocultar leyenda' : 'Ver leyenda' }}
+            <span class="text-[10px]">{{ mobileLegendOpen ? '▲' : '▼' }}</span>
+          </button>
+
+          <button
+            type="button"
+            class="inline-flex h-8 w-8 items-center justify-center rounded-md border transition"
+            :class="mobileClassicAnimationsEnabled ? 'border-primary bg-primary/10 text-primary' : 'border-gray-200 bg-white text-gray-500 hover:bg-gray-50'"
+            :aria-label="mobileClassicAnimationsEnabled ? 'Desactivar animación de barras' : 'Activar animación de barras'"
+            :title="mobileClassicAnimationsEnabled ? 'Animación activa' : 'Vista estándar por habitación'"
+            @click="toggleMobileClassicAnimations"
+          >
+            <svg v-if="mobileClassicAnimationsEnabled" class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M2.458 12C3.732 7.943 7.523 5 12 5s8.268 2.943 9.542 7c-1.274 4.057-5.065 7-9.542 7S3.732 16.057 2.458 12Z" />
+              <circle cx="12" cy="12" r="3" stroke-width="1.8" />
+            </svg>
+            <svg v-else class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M3 3l18 18" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M10.584 10.587A2 2 0 0 0 13.414 13.417" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9.88 5.09A10.94 10.94 0 0 1 12 5c4.477 0 8.268 2.943 9.542 7a11.02 11.02 0 0 1-3.024 4.142M6.228 6.228C4.53 7.373 3.216 9.063 2.458 12c1.274 4.057 5.065 7 9.542 7 1.61 0 3.131-.381 4.478-1.059" />
+            </svg>
+          </button>
+        </div>
 
         <transition name="legend-collapse">
           <div v-if="mobileLegendOpen" class="flex flex-wrap gap-3 text-xs font-medium text-gray-600">
@@ -564,7 +592,7 @@
             <div class="flex items-start justify-between gap-2">
               <div class="min-w-0">
                 <div class="mb-1 flex flex-wrap items-center gap-1.5">
-                  <span class="rounded-full px-2 py-0.5 text-[10px] font-semibold" :class="item.urgency.badgeClass">{{ item.urgency.label }}</span>
+                  <span class="rounded-full px-2 py-0.5 text-[10px] font-semibold" :class="item.exitBadge.badgeClass">{{ item.exitBadge.label }}</span>
                   <p class="text-xs font-medium text-gray-500">{{ formatDate(item.date) }} · {{ item.checkOutTimeLabel }}</p>
                 </div>
                 <p class="truncate text-sm font-semibold text-gray-900">{{ item.guestName }}</p>
@@ -663,6 +691,7 @@ const monthStart = ref(new Date(new Date().getFullYear(), new Date().getMonth(),
 const mobileLegendOpen = ref(false)
 const showMobileRangePicker = ref(false)
 const messageSettings = ref({ ...DEFAULT_MESSAGE_SETTINGS })
+const mobileClassicAnimationsEnabled = ref(true)
 const mobileClassicLabelTick = ref(0)
 let mobileClassicRotationInterval = null
 
@@ -714,6 +743,11 @@ function toggleMobileRangePicker() {
   if (showMobileRangePicker.value && periodPreset.value !== 'custom') {
     periodPreset.value = 'custom'
   }
+}
+
+function toggleMobileClassicAnimations() {
+  mobileClassicAnimationsEnabled.value = !mobileClassicAnimationsEnabled.value
+  saveCalendarState()
 }
 
 const daySheetOccupancies = computed(() => {
@@ -827,6 +861,7 @@ function saveCalendarState() {
     viewMode: showAgendaView.value ? 'agenda' : viewMode.value,
     periodPreset: periodPreset.value,
     activeTab: activeTab.value,
+    mobileBarAnimationsEnabled: mobileClassicAnimationsEnabled.value,
   }
 
   if (periodPreset.value === 'custom') {
@@ -856,6 +891,10 @@ function restoreCalendarState() {
   const restoredPresetRaw = String(parsedState?.periodPreset || '')
   const restoredPreset = restoredPresetRaw === 'next_30' ? 'this_month' : restoredPresetRaw
   const restoredTab = String(parsedState?.activeTab || '')
+
+  if (typeof parsedState?.mobileBarAnimationsEnabled === 'boolean') {
+    mobileClassicAnimationsEnabled.value = parsedState.mobileBarAnimationsEnabled
+  }
 
   if (allowedTabs.has(restoredTab)) {
     activeTab.value = restoredTab
@@ -1105,12 +1144,12 @@ const mobileClassicRows = computed(() => {
     let showText = true
 
     if (laneCount >= 6) {
-      barHeight = 10
-      textSizeClass = 'text-[7px]'
+      barHeight = 12
+      textSizeClass = 'text-[7px] font-medium'
       showText = true
     } else if (laneCount >= 4) {
       barHeight = 14
-      textSizeClass = 'text-[8px]'
+      textSizeClass = 'text-[8px] font-medium'
       showText = true
     }
 
@@ -1162,12 +1201,33 @@ function getReservationPax(occ) {
     + Number(occ?.reservations?.infants || 0)
 }
 
-function mobileClassicSegmentTextClass(segment, week) {
-  if (week.barHeight <= 14 || segment.spanDays <= 2) return 'calendar-segment-marquee'
-  return 'truncate'
+function mobileClassicUsesMarquee(segment, week) {
+  if (!mobileClassicAnimationsEnabled.value) return false
+  return week.barRows >= 4 || week.barHeight <= 14 || segment.spanDays <= 2
+}
+
+function mobileClassicSegmentStaticLabel(segment) {
+  if (!mobileClassicAnimationsEnabled.value) {
+    return getOccupancyDisplayLabel(segment, 'clasica')
+  }
+
+  if (segment.occupancy_type !== 'reservation') {
+    return getOccupancyDisplayLabel(segment, 'clasica')
+  }
+
+  const guestFirstName = String(segment.reservations?.guests?.first_name || '').trim()
+  const unitName = segment.units?.name || 'Unidad'
+  const pax = getReservationPax(segment)
+  const unitAndPax = pax > 0 ? `${unitName} · ${pax} pax` : unitName
+
+  return guestFirstName ? `${unitAndPax} · ${guestFirstName}` : unitAndPax
 }
 
 function mobileClassicSegmentLabel(segment) {
+  if (!mobileClassicAnimationsEnabled.value) {
+    return getOccupancyDisplayLabel(segment, 'clasica')
+  }
+
   if (segment.occupancy_type !== 'reservation') {
     return getOccupancyDisplayLabel(segment, 'clasica')
   }
@@ -1175,13 +1235,13 @@ function mobileClassicSegmentLabel(segment) {
   const reservationName = `${segment.reservations?.guests?.first_name || ''} ${segment.reservations?.guests?.last_name || ''}`.trim()
   const unitName = segment.units?.name || 'Unidad'
   const pax = getReservationPax(segment)
+  const unitAndPax = pax > 0 ? `${unitName} · ${pax} pax` : unitName
   const rotation = [
-    reservationName || unitName,
-    unitName,
-    pax > 0 ? `${pax} pax` : 'Reserva',
+    unitAndPax,
+    reservationName || unitAndPax,
   ]
 
-  return rotation[mobileClassicLabelTick.value % rotation.length]
+  return rotation[mobileClassicLabelTick.value % 2]
 }
 
 function onMobileClassicBarTap(segment) {
@@ -1296,18 +1356,9 @@ function getOperationUrgency(date) {
 
   const diff = getIsoDayDiff(todayIsoDate.value, date)
 
-  if (diff < 0) {
-    return {
-      key: 'urgentes',
-      label: 'Pendiente',
-      badgeClass: 'bg-red-100 text-red-700',
-      priority: 0,
-    }
-  }
-
   if (diff === 0) {
     return {
-      key: 'urgentes',
+      key: 'proximas',
       label: 'Hoy',
       badgeClass: 'bg-rose-100 text-rose-700',
       priority: 1,
@@ -1323,8 +1374,68 @@ function getOperationUrgency(date) {
     }
   }
 
+  if (diff > 1) {
+    return {
+      key: 'proximas',
+      label: `En ${diff} días`,
+      badgeClass: 'bg-sky-100 text-sky-700',
+      priority: 3,
+    }
+  }
+
   return {
-    key: 'proximas',
+    key: 'completed',
+    label: 'Completada',
+    badgeClass: 'bg-gray-100 text-gray-700',
+    priority: 4,
+  }
+}
+
+function isReservationAlreadyClosed(status) {
+  const normalized = String(status || '').toLowerCase()
+  return normalized === 'completed' || normalized === 'cancelled'
+}
+
+function isOverdueCheckout(item) {
+  return Boolean(item?.date && item.date < todayIsoDate.value && !isReservationAlreadyClosed(item.status))
+}
+
+function getExitBadgeMeta(item) {
+  if (isOverdueCheckout(item)) {
+    return {
+      label: 'Checkout vencido',
+      badgeClass: 'bg-red-100 text-red-700',
+      priority: 0,
+    }
+  }
+
+  if (item.date < todayIsoDate.value) {
+    return {
+      label: 'Completada',
+      badgeClass: 'bg-gray-100 text-gray-700',
+      priority: 4,
+    }
+  }
+
+  if (item.date === todayIsoDate.value) {
+    return {
+      label: 'Hoy',
+      badgeClass: 'bg-rose-100 text-rose-700',
+      priority: 1,
+    }
+  }
+
+  const diff = getIsoDayDiff(todayIsoDate.value, item.date)
+
+  if (diff === 1) {
+    return {
+      label: 'Mañana',
+      badgeClass: 'bg-amber-100 text-amber-700',
+      priority: 2,
+    }
+  }
+
+  return {
     label: `En ${diff} días`,
     badgeClass: 'bg-sky-100 text-sky-700',
     priority: 3,
@@ -1333,24 +1444,67 @@ function getOperationUrgency(date) {
 
 function groupTimelineItems(items) {
   const groups = [
-    { key: 'urgentes', label: 'Más cercanas', items: [] },
-    { key: 'proximas', label: 'Programadas', items: [] },
+    { key: 'proximas', label: 'Próximas', items: [] },
+    { key: 'completed', label: 'Completadas', items: [] },
   ]
 
   items.forEach((item) => {
     const urgency = getOperationUrgency(item.date)
     const groupedItem = { ...item, urgency }
-    const target = urgency.key === 'urgentes' ? groups[0] : groups[1]
+    const target = urgency.key === 'completed' ? groups[1] : groups[0]
     target.items.push(groupedItem)
   })
 
-  groups.forEach((group) => {
-    group.items.sort((a, b) => {
-      if (a.urgency.priority !== b.urgency.priority) return a.urgency.priority - b.urgency.priority
-      const dateDiff = a.date.localeCompare(b.date)
-      if (dateDiff !== 0) return dateDiff
-      return String(a.checkInTimeLabel || a.checkOutTimeLabel || '').localeCompare(String(b.checkInTimeLabel || b.checkOutTimeLabel || ''))
-    })
+  groups[0].items.sort((a, b) => {
+    if (a.urgency.priority !== b.urgency.priority) return a.urgency.priority - b.urgency.priority
+    const dateDiff = a.date.localeCompare(b.date)
+    if (dateDiff !== 0) return dateDiff
+    return String(a.checkInTimeLabel || a.checkOutTimeLabel || '').localeCompare(String(b.checkInTimeLabel || b.checkOutTimeLabel || ''))
+  })
+
+  groups[1].items.sort((a, b) => {
+    const dateDiff = b.date.localeCompare(a.date)
+    if (dateDiff !== 0) return dateDiff
+    return String(a.checkInTimeLabel || a.checkOutTimeLabel || '').localeCompare(String(b.checkInTimeLabel || b.checkOutTimeLabel || ''))
+  })
+
+  return groups.filter((group) => group.items.length > 0)
+}
+
+function groupExitTimelineItems(items) {
+  const groups = [
+    { key: 'upcoming', label: 'Próximas', items: [] },
+    { key: 'completed', label: 'Completadas', items: [] },
+  ]
+
+  items.forEach((item) => {
+    const exitBadge = getExitBadgeMeta(item)
+    const groupedItem = {
+      ...item,
+      exitBadge,
+      overduePending: isOverdueCheckout(item),
+    }
+
+    if (item.date < todayIsoDate.value) {
+      groups[1].items.push(groupedItem)
+      return
+    }
+
+    groups[0].items.push(groupedItem)
+  })
+
+  groups[0].items.sort((a, b) => {
+    if (a.exitBadge.priority !== b.exitBadge.priority) return a.exitBadge.priority - b.exitBadge.priority
+    const dateDiff = a.date.localeCompare(b.date)
+    if (dateDiff !== 0) return dateDiff
+    return String(a.checkOutTimeLabel || '').localeCompare(String(b.checkOutTimeLabel || ''))
+  })
+
+  groups[1].items.sort((a, b) => {
+    if (a.overduePending !== b.overduePending) return a.overduePending ? -1 : 1
+    const dateDiff = b.date.localeCompare(a.date)
+    if (dateDiff !== 0) return dateDiff
+    return String(a.checkOutTimeLabel || '').localeCompare(String(b.checkOutTimeLabel || ''))
   })
 
   return groups.filter((group) => group.items.length > 0)
@@ -1416,7 +1570,7 @@ const periodoSalidas = computed(() => {
 })
 
 const periodoEntradasGrouped = computed(() => groupTimelineItems(periodoEntradas.value))
-const periodoSalidasGrouped = computed(() => groupTimelineItems(periodoSalidas.value))
+const periodoSalidasGrouped = computed(() => groupExitTimelineItems(periodoSalidas.value))
 
 const todayAgendaEvents = computed(() => {
   const todayIso = periodFrom.value
@@ -1947,7 +2101,7 @@ function preregistroBadgeClass(status) {
 onMounted(async () => {
   isTouchDevice.value = Boolean(window.matchMedia?.('(pointer: coarse)')?.matches || 'ontouchstart' in window)
   mobileClassicRotationInterval = window.setInterval(() => {
-    mobileClassicLabelTick.value = (mobileClassicLabelTick.value + 1) % 3
+    mobileClassicLabelTick.value = (mobileClassicLabelTick.value + 1) % 2
   }, 1800)
 
   const restored = restoreCalendarState()
@@ -2059,21 +2213,26 @@ watch([periodFrom, periodTo], async () => {
   opacity: 1;
 }
 
-.calendar-segment-marquee {
-  padding-inline-end: 0.75rem;
-  animation: calendar-segment-marquee 5.5s ease-in-out infinite;
+.calendar-segment-marquee-track {
+  display: inline-flex;
+  align-items: center;
+  min-width: max-content;
+  gap: 1rem;
+  animation: calendar-segment-marquee 9s linear infinite;
   will-change: transform;
 }
 
+.calendar-segment-marquee-copy {
+  display: inline-block;
+  padding-inline-end: 0.25rem;
+}
+
 @keyframes calendar-segment-marquee {
-  0%, 18% {
+  from {
     transform: translateX(0);
   }
-  45%, 70% {
-    transform: translateX(-18%);
-  }
-  100% {
-    transform: translateX(0);
+  to {
+    transform: translateX(calc(-50% - 0.5rem));
   }
 }
 </style>
