@@ -43,9 +43,9 @@
         </section>
 
         <!-- CONDITIONS -->
-        <section v-if="shouldShowConditions" class="doc-section" :class="'section-' + preset.body.sectionStyle">
+        <section v-if="shouldShowConditions" class="doc-section doc-section-conditions" :class="'section-' + preset.body.sectionStyle">
           <h2 class="section-title">Condiciones de hospedaje</h2>
-          <p class="section-text">{{ conditionsText }}</p>
+          <p class="section-text section-text-padded">{{ conditionsText }}</p>
         </section>
 
         <!-- CUSTOM FIELD -->
@@ -529,6 +529,16 @@ const resolvedCustomFieldContent = computed(() => resolveVariables(normalizedSet
   color: var(--doc-body-text);
   white-space: pre-wrap;
   line-height: 1.4;
+}
+
+.section-text-padded {
+  padding-inline: 10px;
+}
+
+.doc-section-conditions.section-line,
+.doc-section-conditions.section-space {
+  padding-left: 12px;
+  padding-right: 12px;
 }
 
 /* ==================== FOOTER ==================== */

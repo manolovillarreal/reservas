@@ -1,15 +1,25 @@
 <template>
   <div v-if="can('settings', 'edit')" class="space-y-6">
-    <div class="flex items-center justify-between gap-3">
+    <div class="flex flex-wrap items-center justify-between gap-3">
       <div>
         <h1 class="text-3xl font-semibold tracking-tight text-gray-900">Personalización</h1>
         <p class="text-sm text-gray-500">Configura la informacion comercial, contacto y condiciones de tu cuenta.</p>
       </div>
-      <button type="button" class="btn-secondary text-sm" @click="goBack">Volver a configuracion</button>
+      <div class="flex items-center gap-2">
+        <button type="button" class="btn-secondary text-sm" @click="goBack">Volver a configuracion</button>
+        <button
+          type="submit"
+          form="profile-settings-form"
+          class="btn-primary text-sm"
+          :disabled="savingProfile || loadingProfile"
+        >
+          {{ savingProfile ? 'Guardando...' : 'Guardar' }}
+        </button>
+      </div>
     </div>
 
     <div class="card">
-      <form class="space-y-6" @submit.prevent="saveProfile">
+      <form id="profile-settings-form" class="space-y-6" @submit.prevent="saveProfile">
         <AppFormSection title="Informacion comercial" :divider="false" :collapsible="isMobile" :defaultOpen="true">
           <AppFormGrid :columns="2">
             <AppInput v-model="profileForm.commercial_name" label="Nombre comercial" />

@@ -307,6 +307,7 @@ onMounted(async () => {
     display: block !important;
     padding: 0 !important;
     height: auto !important;
+    min-height: calc(100vh - 2.4cm) !important;
   }
 
   /*
@@ -317,7 +318,7 @@ onMounted(async () => {
   :deep(.doc-sheet) {
     display: table !important;
     width: 100% !important;
-    min-height: 0 !important;
+    min-height: calc(100vh - 2.4cm) !important;
     height: auto !important;
     border: none !important;
     box-shadow: none !important;
@@ -382,6 +383,8 @@ onMounted(async () => {
 
   :deep(.doc-footer) {
     display: table-footer-group !important;
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
   }
 
   /* El padding en el contenedor interior del footer */

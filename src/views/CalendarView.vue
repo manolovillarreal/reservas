@@ -89,7 +89,7 @@
 
     <div
       v-if="viewMode === 'completa' && !showAgendaView"
-      class="rounded-lg border border-gray-200 bg-white p-4 shadow-sm"
+      class="rounded-lg border border-gray-200 bg-white p-3 shadow-sm sm:p-4"
     >
       <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Filtro de sedes</p>
       <div class="mt-2 flex flex-wrap gap-2">
@@ -112,7 +112,7 @@
 
     <div
       class="rounded-lg border border-gray-200 bg-white shadow-sm"
-      :class="isMobile ? 'p-2' : 'overflow-x-auto p-6'"
+      :class="isMobile ? 'p-1.5' : 'overflow-x-auto p-6'"
     >
       <div v-if="!isMobile" class="mb-3 sm:mb-6">
         <div class="mt-2 flex flex-wrap gap-3 text-xs font-medium text-gray-600 sm:mt-0 sm:gap-4 sm:text-sm">
@@ -258,10 +258,15 @@
             >
               <span
                 v-if="week.showText && segment.checkinInView"
-                class="block truncate"
+                class="block overflow-hidden whitespace-nowrap"
                 :class="week.textSizeClass"
               >
-                {{ mobileClassicSegmentLabel(segment) }}
+                <span
+                  class="inline-block min-w-full"
+                  :class="mobileClassicSegmentTextClass(segment, week)"
+                >
+                  {{ mobileClassicSegmentLabel(segment) }}
+                </span>
               </span>
             </button>
           </div>
@@ -273,7 +278,7 @@
           No hay unidades visibles para mostrar.
         </div>
 
-        <section v-for="unitBlock in mobileCompleteUnits" :key="`mobile-complete-${unitBlock.unitId}`" class="rounded-md border border-gray-200 bg-white p-3">
+        <section v-for="unitBlock in mobileCompleteUnits" :key="`mobile-complete-${unitBlock.unitId}`" class="rounded-md border border-gray-200 bg-white p-2 sm:p-3">
           <div class="mb-2 flex items-center justify-between gap-2">
             <div class="min-w-0">
               <p class="truncate text-sm font-semibold text-gray-900">{{ unitBlock.unitName }}</p>
@@ -404,7 +409,7 @@
             <span class="text-sm text-gray-500">{{ isVenueCollapsed(venue.id) ? '+' : '-' }}</span>
           </button>
 
-          <div v-if="!isVenueCollapsed(venue.id)" class="space-y-2 p-3">
+          <div v-if="!isVenueCollapsed(venue.id)" class="space-y-2 p-2 sm:p-3">
             <div v-for="unit in getUnitsByVenue(venue.id)" :key="`unit-collapse-${unit.id}`" class="rounded-md border border-gray-200">
               <button
                 type="button"
@@ -415,23 +420,42 @@
                 <span class="text-sm text-gray-500">{{ isUnitCollapsed(unit.id) ? '+' : '-' }}</span>
               </button>
 
-              <div v-if="!isUnitCollapsed(unit.id)" class="space-y-1 border-t border-gray-100 p-3">
-                <button
-                  v-for="occ in getUnitOccupancies(unit.id)"
-                  :key="`unit-occ-${occ.id}`"
-                  data-occ-trigger="true"
-                  type="button"
-                  class="block w-full truncate rounded px-2 py-1 text-left text-xs text-white"
-                  :class="occupancyColor(occ)"
-                  @mouseenter="openDesktopTooltip($event, occ, null)"
-                  @mousemove="openDesktopTooltip($event, occ, null)"
-                  @mouseleave="closeDesktopTooltip"
-                  @click="onOccupancyClick($event, occ, null)"
-                >
-                  {{ getOccupancyDisplayLabel(occ, 'por_unidad') }} · {{ occ.start_date }} -> {{ occ.end_date }}
-                </button>
+              <div v-if="!isUnitCollapsed(unit.id)" class="space-y-2 border-t border-gray-100 p-2 sm:p-3">
+                <template v-if="getUnitOccupancyGroups(unit.id).length > 0">
+                  <section
+                    v-for="group in getUnitOccupancyGroups(unit.id)"
+                    :key="`unit-occ-group-${unit.id}-${group.key}`"
+                    class="space-y-1"
+                  >
+                    <div class="flex items-center justify-between gap-2 rounded-md bg-gray-50 px-2 py-1">
+                      <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-600">{{ group.label }}</p>
+                      <span class="rounded-full px-2 py-0.5 text-[10px] font-semibold" :class="group.badgeClass">{{ group.items.length }}</span>
+                    </div>
 
-                <p v-if="getUnitOccupancies(unit.id).length === 0" class="text-xs text-gray-500">Sin ocupaciones en el periodo.</p>
+                    <button
+                      v-for="occ in group.items"
+                      :key="`unit-occ-${group.key}-${occ.id}`"
+                      data-occ-trigger="true"
+                      type="button"
+                      class="block w-full rounded px-2 py-1.5 text-left text-xs text-white"
+                      :class="occupancyColor(occ)"
+                      @mouseenter="openDesktopTooltip($event, occ, null)"
+                      @mousemove="openDesktopTooltip($event, occ, null)"
+                      @mouseleave="closeDesktopTooltip"
+                      @click="onOccupancyClick($event, occ, null)"
+                    >
+                      <div class="flex items-start justify-between gap-2">
+                        <div class="min-w-0">
+                          <p class="truncate font-semibold">{{ getOccupancyDisplayLabel(occ, 'por_unidad') }}</p>
+                          <p class="truncate text-[11px] text-white/90">{{ formatDate(occ.start_date) }} → {{ formatDate(occ.end_date) }}</p>
+                        </div>
+                        <span class="shrink-0 rounded-full bg-white/20 px-1.5 py-0.5 text-[10px] font-semibold text-white">{{ getUnitOccupancyChipLabel(occ) }}</span>
+                      </div>
+                    </button>
+                  </section>
+                </template>
+
+                <p v-else class="text-xs text-gray-500">Sin ocupaciones en el periodo.</p>
               </div>
             </div>
           </div>
@@ -468,60 +492,90 @@
 
     </div>
 
-    <div v-else-if="activeTab === 'entries'" class="space-y-2">
+    <div v-else-if="activeTab === 'entries'" class="space-y-3">
       <div v-if="loading" class="rounded-md border border-gray-200 bg-gray-50 px-4 py-6 text-sm text-gray-500">
         Cargando entradas...
       </div>
       <div v-else-if="periodoEntradas.length === 0" class="rounded-md border border-dashed border-gray-200 bg-gray-50 px-4 py-4 text-sm italic text-gray-400">
         Sin entradas en el periodo.
       </div>
-      <button
-        v-for="item in periodoEntradas"
-        v-else
-        :key="`tab-entrada-${item.key}`"
-        type="button"
-        class="w-full rounded-md border border-gray-200 bg-white p-3 text-left shadow-sm transition-shadow hover:border-gray-300 hover:shadow"
-        @click="router.push(`/reservas/${item.reservationId}`)"
-      >
-        <div class="flex items-start justify-between gap-2">
-          <div class="min-w-0">
-            <p class="text-xs font-medium text-gray-500">{{ formatDate(item.date) }} · {{ item.checkInTimeLabel }}</p>
-            <p class="truncate text-sm font-semibold text-gray-900">{{ item.guestName }}</p>
-            <p class="truncate text-xs text-gray-600">{{ item.unitLabel }}</p>
-            <p class="text-xs text-gray-500">{{ item.pax }} personas</p>
+      <template v-else>
+        <section
+          v-for="group in periodoEntradasGrouped"
+          :key="`entries-group-${group.key}`"
+          class="space-y-2"
+        >
+          <div class="flex items-center justify-between gap-2 rounded-md bg-gray-50 px-3 py-2">
+            <p class="text-xs font-semibold uppercase tracking-wide text-gray-600">{{ group.label }}</p>
+            <span class="rounded-full bg-gray-200 px-2 py-0.5 text-[10px] font-semibold text-gray-700">{{ group.items.length }}</span>
           </div>
-          <span class="rounded-full px-2 py-0.5 text-xs font-medium" :class="preregistroBadgeClass(item.preregistroStatus)">
-            {{ preregistroBadgeLabel(item.preregistroStatus) }}
-          </span>
-        </div>
-      </button>
+
+          <button
+            v-for="item in group.items"
+            :key="`tab-entrada-${item.key}`"
+            type="button"
+            class="w-full rounded-md border border-gray-200 bg-white p-2 text-left shadow-sm transition-shadow hover:border-gray-300 hover:shadow sm:p-3"
+            @click="router.push(`/reservas/${item.reservationId}`)"
+          >
+            <div class="flex items-start justify-between gap-2">
+              <div class="min-w-0">
+                <div class="mb-1 flex flex-wrap items-center gap-1.5">
+                  <span class="rounded-full px-2 py-0.5 text-[10px] font-semibold" :class="item.urgency.badgeClass">{{ item.urgency.label }}</span>
+                  <p class="text-xs font-medium text-gray-500">{{ formatDate(item.date) }} · {{ item.checkInTimeLabel }}</p>
+                </div>
+                <p class="truncate text-sm font-semibold text-gray-900">{{ item.guestName }}</p>
+                <p class="truncate text-xs text-gray-600">{{ item.unitLabel }}</p>
+                <p class="text-xs text-gray-500">{{ item.pax }} personas</p>
+              </div>
+              <span class="rounded-full px-2 py-0.5 text-xs font-medium" :class="preregistroBadgeClass(item.preregistroStatus)">
+                {{ preregistroBadgeLabel(item.preregistroStatus) }}
+              </span>
+            </div>
+          </button>
+        </section>
+      </template>
     </div>
 
-    <div v-else class="space-y-2">
+    <div v-else class="space-y-3">
       <div v-if="loading" class="rounded-md border border-gray-200 bg-gray-50 px-4 py-6 text-sm text-gray-500">
         Cargando salidas...
       </div>
       <div v-else-if="periodoSalidas.length === 0" class="rounded-md border border-dashed border-gray-200 bg-gray-50 px-4 py-4 text-sm italic text-gray-400">
         Sin salidas en el periodo.
       </div>
-      <button
-        v-for="item in periodoSalidas"
-        v-else
-        :key="`tab-salida-${item.key}`"
-        type="button"
-        class="w-full rounded-md border border-gray-200 bg-white p-3 text-left shadow-sm transition-shadow hover:border-gray-300 hover:shadow"
-        @click="router.push(`/reservas/${item.reservationId}`)"
-      >
-        <div class="flex items-start justify-between gap-2">
-          <div class="min-w-0">
-            <p class="text-xs font-medium text-gray-500">{{ formatDate(item.date) }} · {{ item.checkOutTimeLabel }}</p>
-            <p class="truncate text-sm font-semibold text-gray-900">{{ item.guestName }}</p>
-            <p class="truncate text-xs text-gray-600">{{ item.unitLabel }}</p>
-            <p class="text-xs text-gray-500">{{ item.pax }} personas</p>
+      <template v-else>
+        <section
+          v-for="group in periodoSalidasGrouped"
+          :key="`exits-group-${group.key}`"
+          class="space-y-2"
+        >
+          <div class="flex items-center justify-between gap-2 rounded-md bg-gray-50 px-3 py-2">
+            <p class="text-xs font-semibold uppercase tracking-wide text-gray-600">{{ group.label }}</p>
+            <span class="rounded-full bg-gray-200 px-2 py-0.5 text-[10px] font-semibold text-gray-700">{{ group.items.length }}</span>
           </div>
-          <ReservationBadge :status="item.status" />
-        </div>
-      </button>
+
+          <button
+            v-for="item in group.items"
+            :key="`tab-salida-${item.key}`"
+            type="button"
+            class="w-full rounded-md border border-gray-200 bg-white p-2 text-left shadow-sm transition-shadow hover:border-gray-300 hover:shadow sm:p-3"
+            @click="router.push(`/reservas/${item.reservationId}`)"
+          >
+            <div class="flex items-start justify-between gap-2">
+              <div class="min-w-0">
+                <div class="mb-1 flex flex-wrap items-center gap-1.5">
+                  <span class="rounded-full px-2 py-0.5 text-[10px] font-semibold" :class="item.urgency.badgeClass">{{ item.urgency.label }}</span>
+                  <p class="text-xs font-medium text-gray-500">{{ formatDate(item.date) }} · {{ item.checkOutTimeLabel }}</p>
+                </div>
+                <p class="truncate text-sm font-semibold text-gray-900">{{ item.guestName }}</p>
+                <p class="truncate text-xs text-gray-600">{{ item.unitLabel }}</p>
+                <p class="text-xs text-gray-500">{{ item.pax }} personas</p>
+              </div>
+              <ReservationBadge :status="item.status" />
+            </div>
+          </button>
+        </section>
+      </template>
     </div>
 
     <div
@@ -609,6 +663,8 @@ const monthStart = ref(new Date(new Date().getFullYear(), new Date().getMonth(),
 const mobileLegendOpen = ref(false)
 const showMobileRangePicker = ref(false)
 const messageSettings = ref({ ...DEFAULT_MESSAGE_SETTINGS })
+const mobileClassicLabelTick = ref(0)
+let mobileClassicRotationInterval = null
 
 const selectedVenueIds = ref([])
 const collapsedVenues = ref({})
@@ -947,6 +1003,8 @@ const calendarDayIndexMap = computed(() => {
   return map
 })
 
+const todayIsoDate = computed(() => toIsoDate(new Date()))
+
 const classicRowLayoutMap = computed(() => {
   const layout = new Map()
   if (calendarDays.value.length === 0) return layout
@@ -1032,7 +1090,7 @@ const mobileClassicRows = computed(() => {
   if (!isMobile.value || viewMode.value !== 'clasica' || calendarDays.value.length === 0) return []
 
   const rows = []
-  const todayIso = toIsoDate(new Date())
+  const todayIso = todayIsoDate.value
 
   for (let rowStartIndex = 0; rowStartIndex < calendarDays.value.length; rowStartIndex += 7) {
     const rowDays = calendarDays.value.slice(rowStartIndex, rowStartIndex + 7)
@@ -1048,8 +1106,8 @@ const mobileClassicRows = computed(() => {
 
     if (laneCount >= 6) {
       barHeight = 10
-      textSizeClass = 'text-[0px]'
-      showText = false
+      textSizeClass = 'text-[7px]'
+      showText = true
     } else if (laneCount >= 4) {
       barHeight = 14
       textSizeClass = 'text-[8px]'
@@ -1097,9 +1155,33 @@ function mobileClassicSegmentStyle(segment, week) {
   }
 }
 
+function getReservationPax(occ) {
+  return Number(occ?.reservations?.adults || 0)
+    + Number(occ?.reservations?.minors || 0)
+    + Number(occ?.reservations?.children || 0)
+    + Number(occ?.reservations?.infants || 0)
+}
+
+function mobileClassicSegmentTextClass(segment, week) {
+  if (week.barHeight <= 14 || segment.spanDays <= 2) return 'calendar-segment-marquee'
+  return 'truncate'
+}
+
 function mobileClassicSegmentLabel(segment) {
+  if (segment.occupancy_type !== 'reservation') {
+    return getOccupancyDisplayLabel(segment, 'clasica')
+  }
+
   const reservationName = `${segment.reservations?.guests?.first_name || ''} ${segment.reservations?.guests?.last_name || ''}`.trim()
-  return reservationName || getOccupancyDisplayLabel(segment, 'clasica')
+  const unitName = segment.units?.name || 'Unidad'
+  const pax = getReservationPax(segment)
+  const rotation = [
+    reservationName || unitName,
+    unitName,
+    pax > 0 ? `${pax} pax` : 'Reserva',
+  ]
+
+  return rotation[mobileClassicLabelTick.value % rotation.length]
 }
 
 function onMobileClassicBarTap(segment) {
@@ -1202,6 +1284,78 @@ const calendarMetrics = computed(() => {
   return { occupancyPct, arrivals, departures }
 })
 
+function getOperationUrgency(date) {
+  if (!date) {
+    return {
+      key: 'proximas',
+      label: 'Programada',
+      badgeClass: 'bg-gray-100 text-gray-600',
+      priority: 3,
+    }
+  }
+
+  const diff = getIsoDayDiff(todayIsoDate.value, date)
+
+  if (diff < 0) {
+    return {
+      key: 'urgentes',
+      label: 'Pendiente',
+      badgeClass: 'bg-red-100 text-red-700',
+      priority: 0,
+    }
+  }
+
+  if (diff === 0) {
+    return {
+      key: 'urgentes',
+      label: 'Hoy',
+      badgeClass: 'bg-rose-100 text-rose-700',
+      priority: 1,
+    }
+  }
+
+  if (diff === 1) {
+    return {
+      key: 'proximas',
+      label: 'Mañana',
+      badgeClass: 'bg-amber-100 text-amber-700',
+      priority: 2,
+    }
+  }
+
+  return {
+    key: 'proximas',
+    label: `En ${diff} días`,
+    badgeClass: 'bg-sky-100 text-sky-700',
+    priority: 3,
+  }
+}
+
+function groupTimelineItems(items) {
+  const groups = [
+    { key: 'urgentes', label: 'Más cercanas', items: [] },
+    { key: 'proximas', label: 'Programadas', items: [] },
+  ]
+
+  items.forEach((item) => {
+    const urgency = getOperationUrgency(item.date)
+    const groupedItem = { ...item, urgency }
+    const target = urgency.key === 'urgentes' ? groups[0] : groups[1]
+    target.items.push(groupedItem)
+  })
+
+  groups.forEach((group) => {
+    group.items.sort((a, b) => {
+      if (a.urgency.priority !== b.urgency.priority) return a.urgency.priority - b.urgency.priority
+      const dateDiff = a.date.localeCompare(b.date)
+      if (dateDiff !== 0) return dateDiff
+      return String(a.checkInTimeLabel || a.checkOutTimeLabel || '').localeCompare(String(b.checkInTimeLabel || b.checkOutTimeLabel || ''))
+    })
+  })
+
+  return groups.filter((group) => group.items.length > 0)
+}
+
 const periodoEntradas = computed(() => {
   if (!periodFrom.value || !periodTo.value) return []
   const map = new Map()
@@ -1260,6 +1414,9 @@ const periodoSalidas = computed(() => {
     .map((e) => ({ ...e, unitLabel: e.unitNames.join(', ') }))
     .sort((a, b) => a.date.localeCompare(b.date))
 })
+
+const periodoEntradasGrouped = computed(() => groupTimelineItems(periodoEntradas.value))
+const periodoSalidasGrouped = computed(() => groupTimelineItems(periodoSalidas.value))
 
 const todayAgendaEvents = computed(() => {
   const todayIso = periodFrom.value
@@ -1426,6 +1583,46 @@ function getUnitOccupancies(unitId) {
   return filteredOccupancies.value
     .filter((occ) => occ.unit_id === unitId)
     .sort((a, b) => a.start_date.localeCompare(b.start_date))
+}
+
+function getUnitOccupancyChipLabel(occ) {
+  if (occ.occupancy_type !== 'reservation') {
+    return occ.occupancy_type === 'inquiry_hold' ? 'Hold' : 'Bloqueo'
+  }
+
+  if (occ.end_date <= todayIsoDate.value) return 'Completada'
+  if (occ.start_date > todayIsoDate.value) return 'Por venir'
+  return 'En estadía'
+}
+
+function getUnitOccupancyGroups(unitId) {
+  const grouped = [
+    { key: 'upcoming', label: 'Por venir', badgeClass: 'bg-sky-100 text-sky-700', items: [] },
+    { key: 'current', label: 'En estadía', badgeClass: 'bg-emerald-100 text-emerald-700', items: [] },
+    { key: 'completed', label: 'Completadas', badgeClass: 'bg-gray-200 text-gray-700', items: [] },
+    { key: 'blocked', label: 'Bloqueos', badgeClass: 'bg-amber-100 text-amber-700', items: [] },
+  ]
+
+  getUnitOccupancies(unitId).forEach((occ) => {
+    if (occ.occupancy_type !== 'reservation') {
+      grouped[3].items.push(occ)
+      return
+    }
+
+    if (occ.end_date <= todayIsoDate.value) {
+      grouped[2].items.push(occ)
+      return
+    }
+
+    if (occ.start_date > todayIsoDate.value) {
+      grouped[0].items.push(occ)
+      return
+    }
+
+    grouped[1].items.push(occ)
+  })
+
+  return grouped.filter((group) => group.items.length > 0)
 }
 
 function getUnitSegmentsForComplete(unitId) {
@@ -1749,6 +1946,9 @@ function preregistroBadgeClass(status) {
 
 onMounted(async () => {
   isTouchDevice.value = Boolean(window.matchMedia?.('(pointer: coarse)')?.matches || 'ontouchstart' in window)
+  mobileClassicRotationInterval = window.setInterval(() => {
+    mobileClassicLabelTick.value = (mobileClassicLabelTick.value + 1) % 3
+  }, 1800)
 
   const restored = restoreCalendarState()
   const queryOverrideApplied = applyQueryPeriodOverrides()
@@ -1765,6 +1965,10 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   saveCalendarState()
+  if (mobileClassicRotationInterval) {
+    window.clearInterval(mobileClassicRotationInterval)
+    mobileClassicRotationInterval = null
+  }
   document.removeEventListener('click', onOutsideClick)
 })
 
@@ -1853,5 +2057,23 @@ watch([periodFrom, periodTo], async () => {
 .legend-collapse-leave-from {
   max-height: 120px;
   opacity: 1;
+}
+
+.calendar-segment-marquee {
+  padding-inline-end: 0.75rem;
+  animation: calendar-segment-marquee 5.5s ease-in-out infinite;
+  will-change: transform;
+}
+
+@keyframes calendar-segment-marquee {
+  0%, 18% {
+    transform: translateX(0);
+  }
+  45%, 70% {
+    transform: translateX(-18%);
+  }
+  100% {
+    transform: translateX(0);
+  }
 }
 </style>

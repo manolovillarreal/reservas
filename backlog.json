@@ -111,6 +111,7 @@
     { "id": 110, "t": "Editor mensajes — scroll independiente panel izquierdo", "c": "Ajuste UI", "s": "d" },
     { "id": 111, "t": "Editor mensajes — toggles modo inserción Si existe / Si no existe", "c": "Feature", "s": "d" },
     { "id": 112, "t": "Mejoras calendario mobile — tabs entradas/salidas, filtros periodo, persistencia", "c": "Ajuste UI", "s": "d" },
-    { "id": 113, "t": "Mensajes — drag & drop reordenar, iconos en mobile", "c": "Ajuste UI", "s": "d" }
+    { "id": 113, "t": "Mensajes — drag & drop reordenar, iconos en mobile", "c": "Ajuste UI", "s": "d" },
+    { "id": 114, "t": "Calendario — entradas/salidas ordenadas, vista unidad por estado, texto animado mobile", "c": "Ajuste UI", "s": "d" }
   ]
 }
