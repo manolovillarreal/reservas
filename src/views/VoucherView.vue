@@ -25,34 +25,28 @@
         type="voucher"
       >
         <section class="doc-content-section border-b pb-4">
-          <h1 class="doc-content-title text-2xl font-semibold">Comprobante de Reserva</h1>
-          <p class="mt-2 text-base font-semibold text-gray-900">Codigo de reserva: {{ formattedReferenceDisplay }}</p>
-          <div class="mt-3 grid grid-cols-1 gap-1 text-sm text-gray-700 md:grid-cols-3 md:gap-3">
-            <p><span class="font-semibold">Reserva:</span> {{ reservation.reservation_number || '-' }}</p>
-            <p><span class="font-semibold">Codigo:</span> {{ reservation.reference_code || '-' }}</p>
-            <p><span class="font-semibold">Emitido:</span> {{ issuedAtLabel }}</p>
+          <div class="flex items-baseline justify-between gap-3">
+            <h1 class="doc-content-title text-xl font-semibold">Comprobante de Reserva</h1>
+            <span class="text-xs text-gray-400 font-mono">{{ reservation.reference_code || '-' }} · {{ guestData.name }} · Emitido {{ issuedAtLabel }}</span>
           </div>
-        </section>
 
-        <section class="doc-content-section border-b py-4">
-          <h2 class="doc-content-subtitle text-sm font-semibold uppercase tracking-wide">Datos de la reserva</h2>
-          <div class="mt-3 grid grid-cols-1 gap-2 text-sm text-gray-700 md:grid-cols-2">
+          <div class="mt-3 rounded-md border border-gray-100 bg-gray-50 px-3 py-2">
+            <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Titular</p>
+            <div class="grid grid-cols-2 gap-x-6 gap-y-1 print:grid-cols-2 text-sm text-gray-700">
+              <p><span class="font-semibold">Nombre:</span> {{ guestData.name }}</p>
+              <p><span class="font-semibold">Documento:</span> {{ guestData.document }}</p>
+              <p><span class="font-semibold">Teléfono:</span> {{ guestData.phone }}</p>
+              <p><span class="font-semibold">Email:</span> {{ guestData.email }}</p>
+            </div>
+          </div>
+
+          <div class="mt-3 grid grid-cols-2 gap-x-6 gap-y-1 text-sm text-gray-700 print:grid-cols-3 md:grid-cols-3">
             <p><span class="font-semibold">Unidad:</span> {{ unitLabel }}</p>
-            <p><span class="font-semibold">Origen:</span> {{ sourceLabel }}</p>
             <p><span class="font-semibold">Check-in:</span> {{ formatDateShort(reservation.check_in) }}</p>
             <p><span class="font-semibold">Check-out:</span> {{ formatDateShort(reservation.check_out) }}</p>
+            <p><span class="font-semibold">Origen:</span> {{ sourceLabel }}</p>
             <p><span class="font-semibold">Noches:</span> {{ nights }}</p>
-            <p><span class="font-semibold">Adultos:</span> {{ Number(reservation.adults || 0) }} · <span class="font-semibold">Ninos:</span> {{ Number(reservation.children || 0) }}</p>
-          </div>
-        </section>
-
-        <section class="doc-content-section border-b py-4">
-          <h2 class="doc-content-subtitle text-sm font-semibold uppercase tracking-wide">Datos del huesped</h2>
-          <div class="mt-3 grid grid-cols-1 gap-2 text-sm text-gray-700 md:grid-cols-2">
-            <p><span class="font-semibold">Nombre:</span> {{ guestData.name }}</p>
-            <p><span class="font-semibold">Documento:</span> {{ guestData.document }}</p>
-            <p><span class="font-semibold">Telefono:</span> {{ guestData.phone }}</p>
-            <p><span class="font-semibold">Email:</span> {{ guestData.email }}</p>
+            <p><span class="font-semibold">Huéspedes:</span> {{ Number(reservation.adults || 0) }} · <span class="font-semibold">Ninos:</span> {{ Number(reservation.children || 0) }}</p>
           </div>
         </section>
 
@@ -104,7 +98,6 @@
 
         <footer class="pt-4 text-sm text-gray-700">
           <p>Este documento es un comprobante de reserva y no constituye factura de venta.</p>
-          <p class="mt-2"><span class="font-semibold">Generado el:</span> {{ generatedAtLabel }}</p>
         </footer>
       </DocumentTemplate>
     </div>
