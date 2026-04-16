@@ -17,7 +17,7 @@
       <form class="mt-4 space-y-6" @submit.prevent="saveSettings">
         <AppFormSection title="Tarifas generales" :divider="true" :collapsible="isMobile" :defaultOpen="true">
           <AppFormGrid :columns="2">
-            <AppInput v-model="form.price_general_base" type="number" label="Precio base general" prefix="$" hint="Opcional" />
+            <AppInput v-model="form.price_general_base" type="number" label="Precio base por noche (hasta 2 personas)" prefix="$" hint="Este precio incluye hasta 2 personas. Las personas adicionales se cobran aparte según la tarifa configurada." />
             <AppInput v-model="form.price_general_min" type="number" label="Precio minimo general" prefix="$" hint="Opcional" />
             <AppInput v-model="form.price_general_extra" type="number" label="Precio por persona adicional general" prefix="$" hint="Opcional" />
             <AppInput v-model="form.price_per_person_base" type="number" label="Precio por persona por noche" prefix="$" hint="Para cotizaciones sin unidad asignada" />

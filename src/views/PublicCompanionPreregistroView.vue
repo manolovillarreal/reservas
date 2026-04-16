@@ -8,7 +8,7 @@
           alt="Logo alojamiento"
           class="mx-auto mb-3 h-14 w-14 rounded-lg border border-gray-200 bg-white object-contain"
         >
-        <h1 class="text-3xl font-bold text-gray-900">Pre-registro de acompañante</h1>
+        <h1 class="text-3xl font-bold text-gray-900">{{ primaryGuestName ? `Acompañantes de ${primaryGuestName}` : 'Acompañantes de la reserva' }}</h1>
         <p class="mt-2 text-base font-semibold text-gray-800">{{ accommodationName }}</p>
         <p class="mt-1 text-sm text-gray-600">Completa tus datos antes de tu llegada al alojamiento.</p>
       </header>

@@ -19,12 +19,30 @@
 
     <div class="relative select-none overflow-hidden" @touchstart.passive="onTouchStart" @touchend.passive="onTouchEnd">
       <div class="flex transition-transform duration-300 ease-in-out" :style="{ transform: 'translateX(-' + (currentIndex * 100) + '%)' }">
-        <div v-for="item in items" :key="item.id" class="w-full shrink-0 cursor-pointer px-4 py-4" @click="handleCardClick(item)">
-          <div class="flex items-start gap-2">
-            <span class="mt-0.5 text-base leading-none">{{ typeIcon(item.type) }}</span>
-            <div class="min-w-0">
-              <p class="truncate text-sm font-semibold text-gray-900">{{ item.title }}</p>
-              <p v-if="item.message" class="mt-1 line-clamp-2 text-sm text-gray-500">{{ item.message }}</p>
+        <div v-for="item in items" :key="item.id" class="w-full shrink-0 px-4 py-4">
+          <div class="space-y-3 rounded-lg border border-amber-100 bg-amber-50/40 p-3">
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0">
+                <p class="truncate text-sm font-semibold text-gray-900">{{ item.guestName }}</p>
+                <p class="mt-1 text-xs text-gray-500">Check-in: {{ item.checkInLabel }}<span v-if="item.unit"> · {{ item.unit }}</span></p>
+              </div>
+              <span class="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700">{{ item.alerts.length }}</span>
+            </div>
+
+            <ul class="space-y-2">
+              <li v-for="alert in item.alerts" :key="alert.id" class="flex items-start gap-2 text-sm text-gray-700">
+                <span class="mt-0.5 text-base leading-none">{{ typeIcon(alert.type) }}</span>
+                <div class="min-w-0">
+                  <p class="font-medium text-gray-900">{{ alert.title }}</p>
+                  <p v-if="alert.message" class="text-xs text-gray-500">{{ alert.message }}</p>
+                </div>
+              </li>
+            </ul>
+
+            <div class="flex justify-end">
+              <button type="button" class="rounded-md border border-amber-200 bg-white px-3 py-1.5 text-xs font-semibold text-amber-800 transition hover:bg-amber-50" @click="handleCardClick(item)">
+                Ver reserva
+              </button>
             </div>
           </div>
         </div>
@@ -64,11 +82,12 @@ const buildOperationalAlerts = () => {
   const today = toIsoDate(new Date())
   const tomorrow = toIsoDate(new Date(Date.now() + 86400000))
   const plus7 = toIsoDate(new Date(Date.now() + 7 * 86400000))
-  const alerts = []
+  const grouped = []
 
   for (const res of reservStore.reservations) {
     const name = res.guest_display_name || 'Huesped'
     const unit = res.unit_names_display || ''
+    const alerts = []
 
     if (res.status === 'confirmed' && res.check_in === today) {
       alerts.push({
@@ -76,8 +95,6 @@ const buildOperationalAlerts = () => {
         type: 'check_in_hoy',
         title: 'Check-in hoy',
         message: unit ? name + ' · ' + unit : name,
-        related_type: 'reservation',
-        related_id: res.id,
       })
     }
 
@@ -87,8 +104,6 @@ const buildOperationalAlerts = () => {
         type: 'check_out_hoy',
         title: 'Check-out hoy',
         message: unit ? name + ' · ' + unit : name,
-        related_type: 'reservation',
-        related_id: res.id,
       })
     }
 
@@ -99,8 +114,6 @@ const buildOperationalAlerts = () => {
         type: 'check_out_vencido',
         title: 'Check-out vencido',
         message: name + ' · ' + days + ' dia' + (days !== 1 ? 's' : '') + ' vencido',
-        related_type: 'reservation',
-        related_id: res.id,
       })
     }
 
@@ -112,9 +125,7 @@ const buildOperationalAlerts = () => {
           id: 'op_prereg_' + res.id,
           type: 'preregistro_pending',
           title: 'Pre-registro pendiente',
-          message: name + ' · llega el ' + formatDate(res.check_in),
-          related_type: 'reservation',
-          related_id: res.id,
+          message: 'Llega el ' + formatDate(res.check_in),
         })
       }
 
@@ -124,24 +135,33 @@ const buildOperationalAlerts = () => {
           id: 'op_balance_' + res.id,
           type: 'balance_pending',
           title: 'Saldo pendiente',
-          message: name + ' · pendiente antes del check-in',
-          related_type: 'reservation',
-          related_id: res.id,
+          message: 'Pendiente antes del check-in',
         })
       }
 
       alerts.push({
         id: 'op_proximos_' + res.id,
         type: 'check_in_proximos',
-        title: 'Check-in proximo',
-        message: name + ' · ' + formatDate(res.check_in) + (unit ? ' · ' + unit : ''),
+        title: 'Check-in próximo',
+        message: formatDate(res.check_in) + (unit ? ' · ' + unit : ''),
+      })
+    }
+
+    if (alerts.length > 0) {
+      grouped.push({
+        id: 'reservation_alerts_' + res.id,
+        guestName: name,
+        checkIn: res.check_in,
+        checkInLabel: formatDate(res.check_in),
+        unit,
+        alerts,
         related_type: 'reservation',
         related_id: res.id,
       })
     }
   }
 
-  operationalAlerts.value = alerts
+  operationalAlerts.value = grouped.sort((a, b) => String(a.checkIn || '').localeCompare(String(b.checkIn || '')))
 }
 
 const items = computed(() => operationalAlerts.value)

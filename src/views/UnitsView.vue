@@ -135,9 +135,9 @@
             <AppInput
               v-model="form.price_base"
               type="number"
-              label="Precio base por noche"
+              label="Precio base por noche (hasta 2 personas)"
               prefix="$"
-              :hint="generalHint(generalPricing.price_general_base)"
+              :hint="`${generalHint(generalPricing.price_general_base)} · Incluye hasta 2 personas; las adicionales se cobran aparte.`"
             />
             <AppInput
               v-model="form.price_min"

@@ -113,6 +113,7 @@
     { "id": 112, "t": "Mejoras calendario mobile — tabs entradas/salidas, filtros periodo, persistencia", "c": "Ajuste UI", "s": "d" },
     { "id": 113, "t": "Mensajes — drag & drop reordenar, iconos en mobile", "c": "Ajuste UI", "s": "d" },
     { "id": 114, "t": "Calendario — entradas/salidas ordenadas, vista unidad por estado, texto animado mobile", "c": "Ajuste UI", "s": "d" },
-    { "id": 115, "t": "Formulario guiado — guardar borrador local, restaurar al volver", "c": "Feature", "s": "d" }
+    { "id": 115, "t": "Formulario guiado — guardar borrador local, restaurar al volver", "c": "Feature", "s": "d" },
+    { "id": 116, "t": "Fixes — titular en acompañantes, full house condicionado, alertas agrupadas, labels tarifas", "c": "Fix", "s": "d" }
   ]
 }

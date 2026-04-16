@@ -330,7 +330,7 @@
         </button>
         <div v-if="panels.unit" class="border-t border-gray-100 px-4 pb-4 pt-3 space-y-1">
           <label
-            v-if="availableUnitsForVenue.length > 0"
+            v-if="showFullHouseToggle"
             class="mb-2 flex cursor-pointer items-center gap-2 rounded border border-dashed px-2 py-2 text-sm"
             :class="isFullHouseSelected ? 'border-primary/50 bg-primary/5' : 'border-gray-300 hover:bg-gray-50'"
           >
@@ -368,10 +368,14 @@
           <AppInput
             v-model="form.price_per_night"
             type="number"
-            label="Precio por noche"
+            label="Precio base por noche (hasta 2 personas)"
             prefix="$"
             :hint="suggestionHint || 'Opcional'"
           />
+
+          <p class="-mt-2 text-xs text-gray-500">
+            Este precio incluye hasta 2 personas. Las personas adicionales se cobran aparte según la tarifa configurada.
+          </p>
 
           <AppInlineAlert
             v-if="pricingSuggestion.estimatedLabel"
@@ -661,6 +665,7 @@ const accountPricing = ref({
   price_full_house_base: null,
   price_full_house_peak: null,
 })
+const accountUnits = ref([])
 
 // ── Computeds ──────────────────────────────────────────
 const totalPersonas = computed(() =>
@@ -755,6 +760,17 @@ const availableUnitsForVenue = computed(() => {
   return units.filter(u => u.venue_id === form.value.venue_id)
 })
 
+const venueUnitsCount = computed(() => {
+  if (!form.value.venue_id) return 0
+  return accountUnits.value.filter((unit) => unit.venue_id === form.value.venue_id).length
+})
+
+const allVenueUnitsAvailable = computed(() => {
+  if (!form.value.venue_id) return false
+  const availableCount = availableUnitsForVenue.value.length
+  return availableCount > 1 && venueUnitsCount.value > 1 && availableCount === venueUnitsCount.value
+})
+
 const allUnitsSelected = computed(() => {
   const venueUnits = availableUnitsForVenue.value
   if (!venueUnits.length) return false
@@ -771,7 +787,11 @@ const hasFullHouseTariff = computed(() => {
 
 const hasPeakPolicy = computed(() => accountPricing.value.price_peak_pct !== null && accountPricing.value.price_peak_pct !== 0)
 
-const showFullHouseToggle = computed(() => allUnitsSelected.value && hasFullHouseTariff.value)
+const showFullHouseToggle = computed(() => {
+  return hasFullHouseTariff.value
+    && allVenueUnitsAvailable.value
+    && allUnitsSelected.value
+})
 
 const selectedUnitsForPricing = computed(() => {
   const selectedSet = new Set(form.value.unit_ids || [])
@@ -789,8 +809,8 @@ const pricingSuggestion = computed(() => buildPricingSuggestion({
   infants: Number(form.value.infants || 0),
   ageSettings: ageCategorySettings.value,
   usePeak: usePeakPricing.value,
-  useFullHouse: useFullHousePricing.value,
-  allUnitsSelected: allUnitsSelected.value,
+  useFullHouse: useFullHousePricing.value && showFullHouseToggle.value,
+  allUnitsSelected: allUnitsSelected.value && allVenueUnitsAvailable.value,
 }))
 
 const suggestionHint = computed(() => pricingSuggestion.value.originLabel || '')
@@ -1494,7 +1514,13 @@ const save = async () => {
 onMounted(async () => {
   const accountId = accountStore.getRequiredAccountId()
   await guestsStore.fetchGuests()
-  await Promise.all([loadAccountPricing(), loadAgeCategorySettings()])
+  await Promise.all([
+    loadAccountPricing(),
+    loadAgeCategorySettings(),
+    supabase.from('units').select('id, venue_id').eq('account_id', accountId).eq('is_active', true).then(({ data }) => {
+      accountUnits.value = data || []
+    })
+  ])
 
   if (hasPreloadedContext.value && props.initialCheckIn && props.initialCheckOut) {
     await avail.checkAvailability({
