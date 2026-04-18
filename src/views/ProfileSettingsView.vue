@@ -20,6 +20,35 @@
 
     <div class="card">
       <form id="profile-settings-form" class="space-y-6" @submit.prevent="saveProfile">
+          <AppFormSection title="Logo" description="Se usa en documentos y vistas compartidas." :collapsible="isMobile" :defaultOpen="!isMobile">
+          <AppFieldGroup tone="info" compact>
+            <div class="flex flex-wrap items-start gap-4">
+              <div class="h-24 w-24 overflow-hidden rounded-md border border-[#E5E7EB] bg-white">
+                <img
+                  v-if="logoPreviewUrl"
+                  :src="logoPreviewUrl"
+                  alt="Logo cuenta"
+                  class="h-full w-full object-contain"
+                >
+                <div v-else class="flex h-full items-center justify-center text-xs text-[#9CA3AF]">Sin logo</div>
+              </div>
+              <div class="space-y-2">
+                <input
+                  ref="logoInputRef"
+                  type="file"
+                  accept="image/png,image/jpeg,image/svg+xml,image/webp"
+                  class="hidden"
+                  @change="onLogoSelected"
+                >
+                <button type="button" class="btn-secondary min-h-[44px] px-4 text-sm" @click="openLogoPicker">Cambiar logo</button>
+                <AppFieldHint message="Maximo 2MB. Formatos permitidos: PNG, JPG, JPEG, SVG y WEBP." />
+              </div>
+            </div>
+          </AppFieldGroup>
+          <AppInlineAlert v-if="logoError" type="error" :message="logoError" />
+        </AppFormSection>
+
+        
         <AppFormSection title="Informacion comercial" :divider="false" :collapsible="isMobile" :defaultOpen="true">
           <AppFormGrid :columns="2">
             <AppInput v-model="profileForm.commercial_name" label="Nombre comercial" />
@@ -89,54 +118,7 @@
           />
         </AppFormSection>
 
-        <AppFormSection title="Logo" description="Se usa en documentos y vistas compartidas." :collapsible="isMobile" :defaultOpen="!isMobile">
-          <AppFieldGroup tone="info" compact>
-            <div class="flex flex-wrap items-start gap-4">
-              <div class="h-24 w-24 overflow-hidden rounded-md border border-[#E5E7EB] bg-white">
-                <img
-                  v-if="logoPreviewUrl"
-                  :src="logoPreviewUrl"
-                  alt="Logo cuenta"
-                  class="h-full w-full object-contain"
-                >
-                <div v-else class="flex h-full items-center justify-center text-xs text-[#9CA3AF]">Sin logo</div>
-              </div>
-              <div class="space-y-2">
-                <input
-                  ref="logoInputRef"
-                  type="file"
-                  accept="image/png,image/jpeg,image/svg+xml,image/webp"
-                  class="hidden"
-                  @change="onLogoSelected"
-                >
-                <button type="button" class="btn-secondary min-h-[44px] px-4 text-sm" @click="openLogoPicker">Cambiar logo</button>
-                <AppFieldHint message="Maximo 2MB. Formatos permitidos: PNG, JPG, JPEG, SVG y WEBP." />
-              </div>
-            </div>
-          </AppFieldGroup>
-          <AppInlineAlert v-if="logoError" type="error" :message="logoError" />
-        </AppFormSection>
-
-        <AppFormSection title="Condiciones del alojamiento" description="Este texto se mostrará en vouchers y cotizaciones." :collapsible="isMobile" :defaultOpen="!isMobile">
-          <textarea
-            v-model="voucherConditions"
-            rows="5"
-            class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-800 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30"
-            placeholder="Escribe aquí las condiciones del alojamiento..."
-          ></textarea>
-        </AppFormSection>
-
-        <AppFormSection title="Politica de reserva" :collapsible="isMobile" :defaultOpen="!isMobile">
-          <AppTextarea
-            v-model="profileForm.politica_reserva"
-            label="Politica de reserva"
-            :rows="6"
-            :autoResize="true"
-            placeholder="Política de reserva"
-          />
-          <AppFieldHint message="Aparece después de las condiciones en los documentos de cotización y voucher" />
-        </AppFormSection>
-
+      
         <div :class="isMobile ? 'sticky bottom-0 z-20 -mx-4 border-t border-[#E5E7EB] bg-white px-4 py-3 shadow-[0_-6px_18px_rgba(15,23,42,0.06)]' : ''">
           <AppFormActions
             submit-label="Guardar"

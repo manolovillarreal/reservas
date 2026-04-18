@@ -148,6 +148,7 @@ const fetchData = async () => {
 const documentTemplateSettings = computed(() => ({
   ...(documentSettings.value || {}),
   conditions_text: voucherConditions.value,
+  reservation_policy_text: String(profile.value?.politica_reserva || '').trim(),
 }))
 
 const nights = computed(() => {

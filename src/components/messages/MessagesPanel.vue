@@ -87,7 +87,7 @@
 import { computed, ref, watch } from 'vue'
 import BottomSheet from '../ui/BottomSheet.vue'
 import {
-  buildGlobalVariables,
+  buildReservationContext,
   buildVoucherMessage,
   resolveTemplate,
 } from '../../utils/messageUtils'
@@ -109,53 +109,25 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue', 'copied'])
 const openMessageIds = ref([])
 
-const currentContext = computed(() => {
-  if (props.mode === 'reservation') {
-    const reservation = props.reservation || {}
-    const nights = reservation?.check_in && reservation?.check_out
-      ? Math.max(0, Math.ceil((new Date(reservation.check_out) - new Date(reservation.check_in)) / 86400000))
-      : 0
-    const total = Number(reservation.total_amount || 0)
-    const paid = Number(reservation.paid_amount || 0)
-    const balance = Math.max(0, total - paid)
-    return {
-      guest_first_name: reservation.guests?.first_name || '',
-      guest_last_name: reservation.guests?.last_name || '',
-      check_in: reservation.check_in,
-      check_out: reservation.check_out,
-      nights,
-      personas: Number(reservation.adults || 0) + Number(reservation.children || 0),
-      reference: reservation.reference_code || reservation.reservation_number || '-',
-      total,
-      paid,
-      balance,
-    }
-  }
-
-  const inquiry = props.inquiry || {}
-  const nights = inquiry?.check_in && inquiry?.check_out
-    ? Math.max(0, Math.ceil((new Date(inquiry.check_out) - new Date(inquiry.check_in)) / 86400000))
-    : 0
-  const subtotal = Number(inquiry.price_per_night || 0) * nights
-  const discountAmount = subtotal * (Number(inquiry.discount_percentage || 0) / 100)
-  const total = Math.max(0, subtotal - discountAmount)
-
-  return {
-    guest_first_name: inquiry.guest_first_name || '',
-    guest_last_name: inquiry.guest_last_name || '',
-    check_in: inquiry.check_in,
-    check_out: inquiry.check_out,
-    nights,
-    personas: Number(inquiry.adults || 0) + Number(inquiry.children || 0),
-    reference: inquiry.reference_code || inquiry.inquiry_number || '-',
-    total,
-  }
-})
-
-const globalVars = computed(() => buildGlobalVariables({
-  profile: props.profile,
-  accountSettings: props.accountSettings,
-  context: currentContext.value,
+const globalVars = computed(() => buildReservationContext({
+  reservation: props.mode === 'reservation' ? props.reservation : null,
+  inquiry: props.mode === 'inquiry'
+    ? {
+        ...(props.inquiry || {}),
+        units: (props.availableUnits || [])
+          .filter((unit) => (props.inquiry?.unit_ids || []).includes(unit.id)),
+      }
+    : null,
+  accountProfile: {
+    ...(props.accountSettings || {}),
+    ...props.profile,
+    voucher_conditions: props.voucherConditions || props.accountSettings?.voucher_conditions || '',
+  },
+  messageSettings: {
+    ...(props.accountSettings || {}),
+    ...(props.systemSettings || {}),
+    voucher_conditions: props.voucherConditions || props.accountSettings?.voucher_conditions || '',
+  },
 }))
 
 const systemQuotation = computed(() => {
@@ -168,7 +140,7 @@ const systemQuotation = computed(() => {
     const text = buildQuotationWhatsAppMessage(
       {
         ...inquiry,
-        nights: currentContext.value.nights,
+        nights: globalVars.value.noches,
       },
       props.profile,
       buildQuotePublicUrl(inquiry.quote_token),

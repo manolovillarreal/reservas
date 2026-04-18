@@ -60,7 +60,35 @@
           </div>
         </div>
       </div>
+  <!-- Fechas -->
+      <div class="card">
+        <h2 class="mb-1 text-sm font-semibold uppercase tracking-wide text-gray-500">Fechas</h2>
+        <p class="mb-4 text-xs text-gray-400">Controla cómo se comportan los selectores de fecha en los formularios.</p>
 
+        <div class="divide-y divide-gray-100 rounded-md border border-gray-200">
+          <div class="flex items-center justify-between px-4 py-3">
+            <div>
+              <p class="text-sm font-medium text-gray-800">Permitir seleccionar fechas anteriores</p>
+              <p class="text-xs text-gray-500">Si está desactivado, no se podrán elegir fechas pasadas en los selectores de fecha.</p>
+            </div>
+            <button
+              type="button"
+              :disabled="saving"
+              class="relative ml-4 inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors disabled:opacity-50"
+              :class="form.allow_past_dates_in_pickers ? 'bg-indigo-600' : 'bg-gray-200'"
+              @click="toggle('allow_past_dates_in_pickers')"
+            >
+              <span
+                class="pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow ring-0 transition-transform"
+                :class="form.allow_past_dates_in_pickers ? 'translate-x-4' : 'translate-x-0'"
+              />
+            </button>
+          </div>
+        </div>
+
+        <p v-if="saveError" class="mt-3 text-xs text-red-600">{{ saveError }}</p>
+        <p v-if="saveOk" class="mt-3 text-xs text-emerald-600">Guardado correctamente.</p>
+      </div>
       <!-- Horarios -->
       <div class="card">
         <h2 class="mb-1 text-sm font-semibold uppercase tracking-wide text-gray-500">Horarios</h2>
@@ -107,36 +135,36 @@
         </div>
       </div>
 
-      <!-- Fechas -->
       <div class="card">
-        <h2 class="mb-1 text-sm font-semibold uppercase tracking-wide text-gray-500">Fechas</h2>
-        <p class="mb-4 text-xs text-gray-400">Controla cómo se comportan los selectores de fecha en los formularios.</p>
+        <h2 class="mb-1 text-sm font-semibold uppercase tracking-wide text-gray-500">Políticas</h2>
+        <p class="mb-4 text-xs text-gray-400">Administra las condiciones operativas que aparecen en vouchers y cotizaciones.</p>
 
-        <div class="divide-y divide-gray-100 rounded-md border border-gray-200">
-          <div class="flex items-center justify-between px-4 py-3">
-            <div>
-              <p class="text-sm font-medium text-gray-800">Permitir seleccionar fechas anteriores</p>
-              <p class="text-xs text-gray-500">Si está desactivado, no se podrán elegir fechas pasadas en los selectores de fecha.</p>
-            </div>
-            <button
-              type="button"
-              :disabled="saving"
-              class="relative ml-4 inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors disabled:opacity-50"
-              :class="form.allow_past_dates_in_pickers ? 'bg-indigo-600' : 'bg-gray-200'"
-              @click="toggle('allow_past_dates_in_pickers')"
-            >
-              <span
-                class="pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow ring-0 transition-transform"
-                :class="form.allow_past_dates_in_pickers ? 'translate-x-4' : 'translate-x-0'"
-              />
-            </button>
+        <div class="space-y-4">
+          <div>
+            <label class="mb-1 block text-sm font-medium text-gray-800">Condiciones del alojamiento</label>
+            <textarea
+              v-model="form.voucher_conditions"
+              rows="12"
+              class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-800 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30"
+              placeholder="Escribe aquí las condiciones del alojamiento..."
+              @blur="save"
+            ></textarea>
+          </div>
+
+          <div>
+            <AppTextarea
+              v-model="form.politica_reserva"
+              label="Políticas de reserva"
+              :rows="12"
+              :autoResize="true"
+              placeholder="Escribe aquí las políticas de reserva..."
+              @blur="save"
+            />
+            <AppFieldHint message="Aparece después de las condiciones en los documentos de cotización y voucher" />
           </div>
         </div>
-
-        <p v-if="saveError" class="mt-3 text-xs text-red-600">{{ saveError }}</p>
-        <p v-if="saveOk" class="mt-3 text-xs text-emerald-600">Guardado correctamente.</p>
       </div>
-
+    
       <!-- Categorías de edad -->
       <div class="card">
         <h2 class="mb-1 text-sm font-semibold uppercase tracking-wide text-gray-500">Categorías de edad</h2>
@@ -273,7 +301,7 @@ import { supabase } from '../services/supabase'
 import { useAccountStore } from '../stores/account'
 import { usePermissions } from '../composables/usePermissions'
 import { getAgeCategorySettings, saveAgeCategorySettings } from '../services/ageRangeService'
-import { AppInput, AppFieldHint } from '@/components/ui/forms'
+import { AppInput, AppFieldHint, AppTextarea } from '@/components/ui/forms'
 
 const accountStore = useAccountStore()
 const { can } = usePermissions()
@@ -289,6 +317,8 @@ const form = ref({
   checkin_time: '3:00 PM',
   checkout_time: '12:00 PM',
   anticipo_pct: 50,
+  voucher_conditions: '',
+  politica_reserva: '',
 })
 
 const load = async () => {
@@ -297,12 +327,12 @@ const load = async () => {
     const [{ data }, { data: profileData }] = await Promise.all([
       supabase
         .from('settings')
-        .select('allow_checkin_without_preregistro, allow_checkout_without_preregistro, allow_past_dates_in_pickers, anticipo_pct')
+        .select('allow_checkin_without_preregistro, allow_checkout_without_preregistro, allow_past_dates_in_pickers, anticipo_pct, voucher_conditions')
         .eq('account_id', accountId)
         .maybeSingle(),
       supabase
         .from('account_profile')
-        .select('checkin_time, checkout_time, anticipo_pct')
+        .select('checkin_time, checkout_time, anticipo_pct, politica_reserva')
         .eq('account_id', accountId)
         .maybeSingle(),
     ])
@@ -312,12 +342,14 @@ const load = async () => {
       form.value.allow_checkout_without_preregistro = data.allow_checkout_without_preregistro ?? true
       form.value.allow_past_dates_in_pickers = data.allow_past_dates_in_pickers ?? true
       form.value.anticipo_pct = data.anticipo_pct ?? form.value.anticipo_pct
+      form.value.voucher_conditions = data.voucher_conditions || ''
     }
 
     if (profileData) {
       form.value.checkin_time = profileData.checkin_time || '3:00 PM'
       form.value.checkout_time = profileData.checkout_time || '12:00 PM'
       form.value.anticipo_pct = profileData.anticipo_pct ?? form.value.anticipo_pct
+      form.value.politica_reserva = profileData.politica_reserva || ''
     }
   } catch (e) {
     console.warn('[OperationalSettings] load failed:', e?.message)
@@ -339,6 +371,7 @@ const save = async () => {
         allow_checkout_without_preregistro: form.value.allow_checkout_without_preregistro,
         allow_past_dates_in_pickers: form.value.allow_past_dates_in_pickers,
         anticipo_pct: anticipoPct,
+        voucher_conditions: String(form.value.voucher_conditions || '').trim(),
       })
       .eq('account_id', accountId)
 
@@ -351,6 +384,7 @@ const save = async () => {
         checkin_time: String(form.value.checkin_time || '').trim() || '3:00 PM',
         checkout_time: String(form.value.checkout_time || '').trim() || '12:00 PM',
         anticipo_pct: anticipoPct,
+        politica_reserva: String(form.value.politica_reserva || '').trim() || null,
       }, { onConflict: 'account_id' })
 
     if (profileError) throw profileError

@@ -1,7 +1,21 @@
 <template>
   <div class="mx-auto max-w-4xl space-y-6">
-    <div class="flex items-center justify-between">
-      <button type="button" class="text-sm font-medium text-gray-500 hover:text-gray-900" @click="goBack">← Volver a Consultas</button>
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <div class="flex flex-wrap items-center gap-2">
+        <button type="button" class="text-sm font-medium text-gray-500 hover:text-gray-900" @click="goBack">← Volver a Consultas</button>
+        <button
+          type="button"
+          class="btn-secondary text-sm"
+          :disabled="!previousInquiryId"
+          @click="goToPreviousInquiry"
+        >← Anterior</button>
+        <button
+          type="button"
+          class="btn-secondary text-sm"
+          :disabled="!nextInquiryId"
+          @click="goToNextInquiry"
+        >Siguiente →</button>
+      </div>
       <div class="flex items-center gap-2">
         <button
           v-if="inquiry"
@@ -310,6 +324,7 @@ const showMessagesPanel = ref(false)
 const predefinedMessages = ref([])
 const systemMessageSettings = ref({})
 const accountSettings = ref({})
+const inquiryNavigationIds = ref([])
 
 const availableTransitions = computed(() => getAvailableInquiryTransitions(inquiry.value?.status))
 const inquiryGuestFullName = computed(() => `${inquiry.value?.guest_first_name || ''} ${inquiry.value?.guest_last_name || ''}`.trim())
@@ -326,6 +341,17 @@ const isQuoteExpired = computed(() => {
   if (inquiry.value?.status !== 'cotizada') return false
   if (!inquiry.value?.quote_expires_at) return false
   return new Date(inquiry.value.quote_expires_at) < new Date()
+})
+const currentInquiryIndex = computed(() => inquiryNavigationIds.value.findIndex((id) => id === route.params.id))
+const previousInquiryId = computed(() => {
+  const index = currentInquiryIndex.value
+  return index > 0 ? inquiryNavigationIds.value[index - 1] : ''
+})
+const nextInquiryId = computed(() => {
+  const index = currentInquiryIndex.value
+  return index >= 0 && index < inquiryNavigationIds.value.length - 1
+    ? inquiryNavigationIds.value[index + 1]
+    : ''
 })
 
 const whatsappGuestUrl = computed(() => {
@@ -416,8 +442,31 @@ const loadInquiry = async () => {
   }
 }
 
+const loadInquiryNavigation = async () => {
+  try {
+    const accountId = accountStore.getRequiredAccountId()
+    const { data, error } = await supabase
+      .from('inquiries')
+      .select('id')
+      .eq('account_id', accountId)
+      .is('deleted_at', null)
+      .order('created_at', { ascending: false })
+
+    if (error) throw error
+    inquiryNavigationIds.value = (data || []).map((item) => item.id)
+  } catch {
+    inquiryNavigationIds.value = []
+  }
+}
+
 onMounted(async () => {
-  await Promise.all([loadInquiry(), fetchMasterData(), loadAgeCategorySettings()])
+  await Promise.all([loadInquiry(), loadInquiryNavigation(), fetchMasterData(), loadAgeCategorySettings()])
+})
+
+watch(() => route.params.id, async (newId, oldId) => {
+  if (!newId || newId === oldId) return
+  await Promise.all([loadInquiry(), loadInquiryNavigation()])
+  window.scrollTo({ top: 0, behavior: 'smooth' })
 })
 
 const formatDate = (value) => {
@@ -610,6 +659,16 @@ const confirmDelete = async () => {
   } finally {
     deleting.value = false
   }
+}
+
+const goToPreviousInquiry = () => {
+  if (!previousInquiryId.value) return
+  router.push(`/consultas/${previousInquiryId.value}`)
+}
+
+const goToNextInquiry = () => {
+  if (!nextInquiryId.value) return
+  router.push(`/consultas/${nextInquiryId.value}`)
 }
 
 const goBack = () => {

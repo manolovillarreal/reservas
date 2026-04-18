@@ -43,9 +43,14 @@
         </section>
 
         <!-- CONDITIONS -->
-        <section v-if="shouldShowConditions" class="doc-section doc-section-conditions mt-5" :class="'section-' + preset.body.sectionStyle">
+        <section v-if="shouldShowConditions" class="doc-section doc-section-conditions" :class="'section-' + preset.body.sectionStyle">
           <h2 class="section-title">Condiciones de hospedaje</h2>
           <p class="section-text section-text-padded">{{ conditionsText }}</p>
+        </section>
+
+        <section v-if="shouldShowReservationPolicy" class="doc-section doc-section-policy" :class="'section-' + preset.body.sectionStyle">
+          <h2 class="section-title">Política de reserva</h2>
+          <p class="section-text section-text-padded">{{ reservationPolicyText }}</p>
         </section>
 
         <!-- CUSTOM FIELD -->
@@ -240,7 +245,12 @@ const conditionsText = computed(() => String(
   props.settings?.conditions_text || props.settings?.voucher_conditions || ''
 ).trim())
 
+const reservationPolicyText = computed(() => String(
+  props.settings?.reservation_policy_text || props.profile?.politica_reserva || ''
+).trim())
+
 const shouldShowConditions = computed(() => normalizedSettings.value.show_conditions && !!conditionsText.value)
+const shouldShowReservationPolicy = computed(() => !!reservationPolicyText.value)
 
 const customFieldLabel = computed(() => String(normalizedSettings.value.custom_field_label || 'Informacion adicional').trim() || 'Informacion adicional')
 const hasCustomField = computed(() => !!String(normalizedSettings.value.custom_field_content || '').trim())

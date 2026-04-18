@@ -6,9 +6,10 @@ const currencyFormatter = new Intl.NumberFormat('es-CO', {
   maximumFractionDigits: 0,
 })
 
-const shortDateFormatter = new Intl.DateTimeFormat('es-CO', {
-  day: '2-digit',
-  month: '2-digit',
+const longDateFormatter = new Intl.DateTimeFormat('es-CO', {
+  weekday: 'long',
+  day: 'numeric',
+  month: 'long',
   year: 'numeric',
   timeZone: 'UTC',
 })
@@ -23,7 +24,13 @@ const normalizeDate = (value) => {
 const formatDate = (value) => {
   const date = normalizeDate(value)
   if (!date) return '-'
-  return shortDateFormatter.format(date)
+  return date.toISOString().slice(0, 10)
+}
+
+const formatDateLong = (value) => {
+  const date = normalizeDate(value)
+  if (!date) return '-'
+  return longDateFormatter.format(date)
 }
 
 const formatCurrency = (value) => currencyFormatter.format(Number(value || 0))
@@ -33,12 +40,63 @@ const safeText = (value, fallback = '-') => {
   return str || fallback
 }
 
+const toNumber = (value, fallback = 0) => {
+  const numeric = Number(value)
+  return Number.isFinite(numeric) ? numeric : fallback
+}
+
 const countNights = (checkIn, checkOut) => {
   const start = normalizeDate(checkIn)
   const end = normalizeDate(checkOut)
   if (!start || !end) return 0
   const diff = (end.getTime() - start.getTime()) / 86400000
   return diff > 0 ? Math.ceil(diff) : 0
+}
+
+const resolveGuestData = (record = {}) => {
+  const firstName = String(record?.guests?.first_name || record?.guest_first_name || '').trim()
+  const lastName = String(record?.guests?.last_name || record?.guest_last_name || '').trim()
+  const fullName = String(
+    [firstName, lastName].filter(Boolean).join(' ') ||
+    record?.guest_name ||
+    record?.nombre_huesped ||
+    ''
+  ).trim()
+
+  return { firstName, lastName, fullName }
+}
+
+const buildUnitsContext = (record = {}) => {
+  const directUnits = Array.isArray(record?.units) ? record.units : []
+  const inquiryUnits = Array.isArray(record?.inquiry_units)
+    ? record.inquiry_units.map((row) => row?.units || row).filter(Boolean)
+    : []
+  const reservationUnits = Array.isArray(record?.reservation_units)
+    ? record.reservation_units.map((row) => row?.units || row).filter(Boolean)
+    : []
+
+  const selectedUnits = directUnits.length ? directUnits : (reservationUnits.length ? reservationUnits : inquiryUnits)
+
+  return selectedUnits
+    .map((unit) => {
+      const nombreUnidad = String(unit?.name || '').trim()
+      const descripcionUnidad = String(unit?.description || '').trim()
+      if (!nombreUnidad && !descripcionUnidad) return null
+      return {
+        nombre_unidad: nombreUnidad || 'Unidad',
+        descripcion_unidad: descripcionUnidad || '',
+      }
+    })
+    .filter(Boolean)
+}
+
+const buildPublicPreregistroUrl = (token) => {
+  const rawToken = String(token || '').trim()
+  if (!rawToken) return ''
+
+  const origin = typeof window !== 'undefined' ? window.location.origin : ''
+  const base = String(import.meta.env?.VITE_APP_URL || origin || '').replace(/\/$/, '')
+  return base ? `${base}/prerregistro/${rawToken}` : `/prerregistro/${rawToken}`
 }
 
 export const resolveTemplate = (template, variables) => {
@@ -104,7 +162,11 @@ export const resolveTemplate = (template, variables) => {
 
     return withBlocks.replace(/{{\s*([^#\/][^}]*)\s*}}/g, (_match, rawKey) => {
       const key = String(rawKey || '').trim()
-      const value = resolveValue(ctx, key)
+      const rawValue = resolveValue(ctx, key)
+      const value = rawValue && typeof rawValue === 'object' && !Array.isArray(rawValue)
+        ? (rawValue[key] ?? rawValue.texto ?? rawValue.saldo ?? rawValue.valor ?? rawValue.valor_descuento ?? '')
+        : rawValue
+
       if (value === undefined || value === null || value === '') {
         missing.add(key)
         return `{{${key}}}`
@@ -119,54 +181,129 @@ export const resolveTemplate = (template, variables) => {
   }
 }
 
-export const buildGlobalVariables = ({ profile = {}, accountSettings = {}, context = {} } = {}) => {
-  const nombreAlojamiento = profile.commercial_name || profile.legal_name || accountSettings.property_name || 'Tu alojamiento'
-  const telefono = profile.phone || '-'
-  const ubicacion = profile.location_url || '-'
-  const descripcionAlojamiento = profile.short_description || '-'
-  const amenidadesComunes = String(
-    context.amenidades_comunes ||
-    profile.common_amenities ||
-    accountSettings.common_amenities ||
-    profile.short_description ||
-    ''
-  ).trim()
-  const porcentajeAnticipo = accountSettings.anticipo_pct != null ? Number(accountSettings.anticipo_pct) : 50
+/**
+ * check_in y check_out son aliases de fecha_checkin y fecha_checkout
+ * para mantener compatibilidad con plantillas existentes.
+ */
+export const buildReservationContext = ({
+  reservation = null,
+  inquiry = null,
+  accountProfile = {},
+  messageSettings = {},
+} = {}) => {
+  const record = reservation || inquiry || {}
+  const guest = resolveGuestData(record)
+  const checkInRaw = record?.check_in || null
+  const checkOutRaw = record?.check_out || null
+  const nightsCandidate = Number(record?.nights)
+  const nights = Number.isFinite(nightsCandidate) && nightsCandidate > 0
+    ? nightsCandidate
+    : countNights(checkInRaw, checkOutRaw)
 
-  const nombres = String(context.nombres || context.guest_first_name || '').trim()
-  const apellidos = String(context.apellidos || context.guest_last_name || '').trim()
-  const nombreCompleto = String(
-    context.nombre_completo ||
-    `${nombres} ${apellidos}`.trim() ||
-    context.nombre_huesped ||
-    context.guest_name ||
+  const adults = toNumber(record?.adults)
+  const minors = toNumber(record?.minors)
+  const children = toNumber(record?.children)
+  const infants = toNumber(record?.infants)
+  const personas = adults + minors + children + infants
+
+  const pricePerNightValue = toNumber(record?.price_per_night)
+  const subtotal = pricePerNightValue * Math.max(nights, 0)
+  const percentageDiscount = toNumber(record?.discount_percentage)
+  const discountValue = percentageDiscount > 0 ? subtotal * (percentageDiscount / 100) : 0
+  const totalBase = record?.total_amount != null
+    ? toNumber(record?.total_amount)
+    : (record?.total != null ? toNumber(record?.total) : Math.max(subtotal - discountValue, 0))
+  const pagadoBase = record?.paid_amount != null ? toNumber(record?.paid_amount) : toNumber(record?.paid)
+  const saldo = Math.max(totalBase - pagadoBase, 0)
+
+  const referenceCode = record?.reference_code || record?.referenceCode || record?.quotation_number || record?.reservation_number || record?.inquiry_number || '-'
+  const codigoReferencia = formatReferenceDisplay(referenceCode, guest.fullName)
+  const mergedProfile = { ...messageSettings, ...accountProfile }
+  const voucherConditions = String(
+    mergedProfile?.voucher_conditions ||
+    record?.voucher_conditions ||
     ''
   ).trim()
-  const checkIn = context.check_in ? formatDate(context.check_in) : '-'
-  const checkOut = context.check_out ? formatDate(context.check_out) : '-'
+  const politicaReserva = String(mergedProfile?.politica_reserva || '').trim()
+  const amenidadesComunes = String(
+    mergedProfile?.amenidades_generales ||
+    mergedProfile?.common_amenities ||
+    record?.amenidades_comunes ||
+    ''
+  ).trim()
+
+  // Compatibilidad: message_settings aún puede exponer estos campos,
+  // pero la fuente oficial ahora es account_profile.
+  const horaCheckin = String(mergedProfile?.checkin_time || '3:00 PM').trim() || '3:00 PM'
+  const horaCheckout = String(mergedProfile?.checkout_time || '12:00 PM').trim() || '12:00 PM'
 
   return {
-    nombre_alojamiento: nombreAlojamiento,
-    telefono,
-    ubicacion,
-    descripcion_alojamiento: descripcionAlojamiento,
-    amenidades_comunes: amenidadesComunes,
-    porcentaje_anticipo: porcentajeAnticipo,
-    nombre_completo: nombreCompleto || '-',
-    nombres: nombres || '-',
-    apellidos: apellidos || '-',
-    nombre_huesped: nombreCompleto || '-',
-    check_in: checkIn,
-    check_out: checkOut,
-    fecha_checkin: checkIn,
-    fecha_checkout: checkOut,
-    noches: context.nights ?? '-',
-    personas: context.personas ?? '-',
-    codigo_referencia: context.reference || '-',
-    total: context.total != null ? formatCurrency(context.total) : '-',
-    pagado: context.paid != null ? formatCurrency(context.paid) : '-',
-    saldo_pendiente: context.balance != null ? formatCurrency(context.balance) : '-',
+    guest_first_name: guest.firstName || '',
+    guest_last_name: guest.lastName || '',
+    guest_name: guest.fullName || '-',
+    reference: codigoReferencia,
+    telefono_huesped: record?.guests?.phone || record?.guest_phone || '-',
+    nombre_completo: guest.fullName || '-',
+    nombres: guest.firstName || '-',
+    apellidos: guest.lastName || '-',
+    nombre_huesped: guest.fullName || '-',
+    fecha_checkin: formatDate(checkInRaw),
+    fecha_checkout: formatDate(checkOutRaw),
+    fecha_checkin_larga: formatDateLong(checkInRaw),
+    fecha_checkout_larga: formatDateLong(checkOutRaw),
+    check_in: formatDate(checkInRaw),
+    check_out: formatDate(checkOutRaw),
+    fechas: checkInRaw && checkOutRaw ? `${formatDateLong(checkInRaw)} al ${formatDateLong(checkOutRaw)}` : '-',
+    noches: nights,
+    fecha_vigencia: record?.quote_expires_at ? formatDateLong(record.quote_expires_at) : null,
+    personas,
+    precio_noche: pricePerNightValue > 0 ? formatCurrency(pricePerNightValue) : null,
+    total: formatCurrency(totalBase),
+    pagado: formatCurrency(pagadoBase),
+    saldo: saldo > 0 ? formatCurrency(saldo) : null,
+    porcentaje_anticipo: mergedProfile?.anticipo_pct != null ? Number(mergedProfile.anticipo_pct) : 50,
+    codigo_referencia: codigoReferencia,
+    porcentaje_descuento: percentageDiscount > 0 ? percentageDiscount : null,
+    valor_descuento: percentageDiscount > 0 ? formatCurrency(discountValue) : null,
+    nombre_alojamiento: mergedProfile?.name || mergedProfile?.commercial_name || mergedProfile?.legal_name || mergedProfile?.property_name || 'Tu alojamiento',
+    telefono: mergedProfile?.phone || '-',
+    ubicacion: mergedProfile?.location_url || '-',
+    descripcion_alojamiento: mergedProfile?.short_description || '-',
+    descripcion_detallada: String(mergedProfile?.descripcion_detallada || '').trim() || null,
+    amenidades_comunes: amenidadesComunes || null,
+    condiciones: voucherConditions || null,
+    politica_reserva: politicaReserva || null,
+    hora_checkin: horaCheckin,
+    hora_checkout: horaCheckout,
+    link_preregistro: record?.preregistro_token_raw || record?.preregistro_token
+      ? buildPublicPreregistroUrl(record?.preregistro_token_raw || record?.preregistro_token)
+      : null,
+    unidades: buildUnitsContext(record),
+    descuento: percentageDiscount > 0
+      ? {
+          porcentaje_descuento: percentageDiscount,
+          valor_descuento: formatCurrency(discountValue),
+        }
+      : null,
+    pago_completo: totalBase > 0 && pagadoBase >= totalBase,
+    saldo_pendiente: saldo > 0
+      ? {
+          total: formatCurrency(totalBase),
+          pagado: formatCurrency(pagadoBase),
+          saldo: formatCurrency(saldo),
+          saldo_pendiente: formatCurrency(saldo),
+        }
+      : null,
+    sin_pagos: pagadoBase <= 0,
   }
+}
+
+export const buildGlobalVariables = ({ profile = {}, accountSettings = {}, context = {} } = {}) => {
+  return buildReservationContext({
+    inquiry: context,
+    accountProfile: { ...accountSettings, ...profile },
+    messageSettings: accountSettings,
+  })
 }
 
 const buildUnitsBlock = (units = [], { showAmenities = true } = {}) => {
@@ -334,11 +471,15 @@ export const buildVoucherMessage = ({
     lines.push(`Pendiente: ${formatCurrency(total)}`)
   }
 
-  lines.push(`Check-in: ${safeText(settings.checkin_time, '-')}`)
-  lines.push(`Check-out: ${safeText(settings.checkout_time, '-')}`)
+  lines.push(`Check-in: ${safeText(vars.hora_checkin, '-')}`)
+  lines.push(`Check-out: ${safeText(vars.hora_checkout, '-')}`)
 
-  if (String(voucherConditions || '').trim()) {
-    lines.push('', `Condiciones: ${String(voucherConditions).trim()}`)
+  if (String(vars.condiciones || voucherConditions || '').trim()) {
+    lines.push('', `Condiciones: ${String(vars.condiciones || voucherConditions).trim()}`)
+  }
+
+  if (String(vars.politica_reserva || '').trim()) {
+    lines.push('', `Política de reserva: ${String(vars.politica_reserva).trim()}`)
   }
 
   lines.push('', closing.text, signature.text)
@@ -387,6 +528,9 @@ export const VARIABLE_CATALOG = {
       { key: 'telefono', label: 'Teléfono', ejemplo: '3102040245' },
       { key: 'ubicacion', label: 'Ubicación', ejemplo: 'https://maps.app.goo.gl/xxxxx' },
       { key: 'descripcion_alojamiento', label: 'Descripción', ejemplo: 'Casa vacacional frente al mar...' },
+      { key: 'descripcion_detallada', label: 'Descripción detallada', ejemplo: 'Casa de tres niveles con vista al mar y terrazas privadas...' },
+      { key: 'amenidades_comunes', label: 'Amenidades generales', ejemplo: 'WiFi, piscina, parqueadero' },
+      { key: 'politica_reserva', label: 'Política de reserva', ejemplo: 'Cancelación gratuita hasta 48h antes' },
     ],
     checkin: [
       { key: 'hora_checkin', label: 'Hora check-in', ejemplo: '3:00 PM' },
@@ -454,6 +598,13 @@ export const VARIABLE_CATALOG = {
       variables_internas: ['condiciones'],
       template: '{{#condiciones}}\n📋 {{condiciones}}\n{{/condiciones}}',
     },
+    {
+      key: 'politica_reserva',
+      label: 'Política de reserva',
+      descripcion: 'Solo aparece si hay política de reserva configurada.',
+      variables_internas: ['politica_reserva'],
+      template: '{{#politica_reserva}}\n{{politica_reserva}}\n{{/politica_reserva}}',
+    },
   ],
 }
 
@@ -483,9 +634,12 @@ export function generateAiPrompt() {
     '  {{telefono}} → Teléfono — Ej: 3102040245',
     '  {{ubicacion}} → Ubicación (Google Maps) — Ej: https://maps.app.goo.gl/xxxxx',
     '  {{descripcion_alojamiento}} → Descripción — Ej: Casa vacacional frente al mar...',
+    '  {{descripcion_detallada}} → Descripción detallada — Ej: Casa de tres niveles con vista...',
+    '  {{amenidades_comunes}} → Amenidades generales — Ej: WiFi, piscina, parqueadero',
     '  {{hora_checkin}} → Hora check-in — Ej: 3:00 PM',
     '  {{hora_checkout}} → Hora check-out — Ej: 12:00 PM',
     '  {{condiciones}} → Condiciones del alojamiento — Ej: No mascotas. No fiestas.',
+    '  {{politica_reserva}} → Política de reserva — Ej: Cancelación gratuita hasta 48h antes',
     '  {{link_preregistro}} → Link de pre-registro — Ej: https://app.tekmiinn.com/prerregistro/abc123',
     '',
     'BLOQUES ITERANTES Y CONDICIONALES:',
@@ -517,6 +671,9 @@ export function generateAiPrompt() {
     '',
     '  {{#condiciones}}...{{/condiciones}}',
     '  → Solo si hay condiciones configuradas.',
+    '',
+    '  {{#politica_reserva}}...{{/politica_reserva}}',
+    '  → Solo si hay política de reserva configurada.',
     '',
     '  {{^variable}}...{{/variable}}',
     '  → Else: aparece solo si la variable no existe o está vacía.',

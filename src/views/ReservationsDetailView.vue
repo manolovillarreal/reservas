@@ -2,11 +2,27 @@
   <div class="space-y-6 max-w-5xl mx-auto">
     
     <!-- Top Nav Actions -->
-    <div class="flex items-center justify-between">
-      <button type="button" class="touch-target inline-flex items-center gap-1 text-sm font-medium text-gray-500 transition-colors hover:text-gray-900" @click="goBackToReservations">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
-        Volver
-      </button>
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <div class="flex flex-wrap items-center gap-2">
+        <button type="button" class="touch-target inline-flex items-center gap-1 text-sm font-medium text-gray-500 transition-colors hover:text-gray-900" @click="goBackToReservations">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+          Volver
+        </button>
+        <div class="flex items-center gap-2">
+          <button
+            type="button"
+            class="btn-secondary touch-target text-sm"
+            :disabled="!previousReservationId"
+            @click="goToPreviousReservation"
+          >← Anterior</button>
+          <button
+            type="button"
+            class="btn-secondary touch-target text-sm"
+            :disabled="!nextReservationId"
+            @click="goToNextReservation"
+          >Siguiente →</button>
+        </div>
+      </div>
       <div class="flex items-center gap-3">
         <button v-if="can('vouchers', 'generate')" class="btn-secondary touch-target text-sm" @click="openVoucher">Generar Voucher</button>
         <button
@@ -632,8 +648,8 @@ import { useToast } from '../composables/useToast'
 import { useBreakpoint } from '../composables/useBreakpoint'
 import { notifyCheckinRealizado } from '../services/notificationService'
 import { getMessageSettings, getPredefinedMessages } from '../services/messageSettingsService'
-import { resolveTemplate } from '../utils/messageUtils'
-import { DEFAULT_PREREGISTRO_TEMPLATE, formatDateLongEs } from '../utils/voucherUtils'
+import { buildReservationContext, resolveTemplate } from '../utils/messageUtils'
+import { DEFAULT_PREREGISTRO_TEMPLATE } from '../utils/voucherUtils'
 import { syncReservationOccupancy } from '../services/reservationService'
 import { useAgeCategorySettings } from '../composables/useAgeCategorySettings'
 import { AppInput, AppSelect, AppDatePicker, AppFormGrid } from '../components/ui/forms'
@@ -686,6 +702,7 @@ const profile = ref({})
 const accountSettings = ref({})
 const predefinedMessages = ref([])
 const systemMessageSettings = ref({})
+const reservationNavigationIds = ref([])
 
 const isSyncMissing = computed(() =>
   res.value != null
@@ -701,8 +718,20 @@ const isPaymentLocked = computed(() =>
   ['completed', 'finalized'].includes(res.value?.status)
 )
 
+const currentReservationIndex = computed(() => reservationNavigationIds.value.findIndex((id) => id === route.params.id))
+const previousReservationId = computed(() => {
+  const index = currentReservationIndex.value
+  return index > 0 ? reservationNavigationIds.value[index - 1] : ''
+})
+const nextReservationId = computed(() => {
+  const index = currentReservationIndex.value
+  return index >= 0 && index < reservationNavigationIds.value.length - 1
+    ? reservationNavigationIds.value[index + 1]
+    : ''
+})
+
 onMounted(async () => {
-  await Promise.all([fetchReservation(), loadAgeCategorySettings()])
+  await Promise.all([fetchReservation(), loadReservationNavigation(), loadAgeCategorySettings()])
 })
 
 const fetchReservation = async () => {
@@ -763,6 +792,40 @@ const fetchReservation = async () => {
     loading.value = false
   }
 }
+
+const loadReservationNavigation = async () => {
+  try {
+    const accountId = accountStore.getRequiredAccountId()
+    const { data, error } = await supabase
+      .from('reservations')
+      .select('id')
+      .eq('account_id', accountId)
+      .is('deleted_at', null)
+      .order('check_in', { ascending: false })
+      .order('created_at', { ascending: false })
+
+    if (error) throw error
+    reservationNavigationIds.value = (data || []).map((item) => item.id)
+  } catch {
+    reservationNavigationIds.value = []
+  }
+}
+
+const goToPreviousReservation = () => {
+  if (!previousReservationId.value) return
+  router.push(`/reservas/${previousReservationId.value}`)
+}
+
+const goToNextReservation = () => {
+  if (!nextReservationId.value) return
+  router.push(`/reservas/${nextReservationId.value}`)
+}
+
+watch(() => route.params.id, async (newId, oldId) => {
+  if (!newId || newId === oldId) return
+  await Promise.all([fetchReservation(), loadReservationNavigation()])
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+})
 
 const syncOccupancy = async () => {
   syncingOccupancy.value = true
@@ -861,7 +924,9 @@ const initialPreregistroGuests = computed(() => {
   }
 
   return [{
-    name: res.value?.guests?.name || '',
+    first_name: res.value?.guests?.first_name || '',
+    last_name: res.value?.guests?.last_name || '',
+    name: getGuestFullName(res.value?.guests),
     phone: '',
     email: '',
     nationality: '',
@@ -877,7 +942,9 @@ const preregistroGuestsCount = computed(() => {
 
 const preregistroPrimaryGuest = computed(() => {
   return initialPreregistroGuests.value[0] || {
-    name: res.value?.guests?.name || '',
+    first_name: res.value?.guests?.first_name || '',
+    last_name: res.value?.guests?.last_name || '',
+    name: getGuestFullName(res.value?.guests),
     phone: '',
     email: '',
     nationality: '',
@@ -895,7 +962,7 @@ const registeredGuests = computed(() => {
     .map((row) => ({
       id: row.guest_id || row.guests?.id,
       is_primary: Boolean(row.is_primary),
-      name: row.guests?.name || '-',
+      name: getGuestFullName(row.guests),
       nationality: row.guests?.nationality || '',
       email: row.guests?.email || '',
       document_type: row.guests?.document_type || '',
@@ -947,7 +1014,7 @@ const postCheckinGuests = computed(() => {
     .filter(row => row.added_post_checkin === true)
     .map(row => ({
       id: row.guest_id,
-      fullName: row.guests?.name || row.guests?.first_name || '-',
+      fullName: getGuestFullName(row.guests) || '-',
       documentLabel: [row.guests?.document_type, row.guests?.document_number].filter(Boolean).join(' ') || 'Sin documento',
       categoryLabel: ageCategoryLabels.value?.[row.category] || row.category || 'Adulto',
       arrival_date: row.arrival_date,
@@ -972,6 +1039,13 @@ const formatDate = (ds) => {
 }
 
 const formatCurrency = (val) => Number(val).toLocaleString('es-CO')
+
+const getGuestFullName = (guest) => {
+  return String([
+    guest?.first_name,
+    guest?.last_name,
+  ].filter(Boolean).join(' ') || guest?.name || '').trim()
+}
 
 const formatCop = (value) => new Intl.NumberFormat('es-CO', {
   style: 'currency',
@@ -1486,13 +1560,18 @@ const copyWhatsappPreregistroMessage = async () => {
   const preregistroBody = predefinedMessages.value.find((m) => m.key === 'preregistro')?.body || DEFAULT_PREREGISTRO_TEMPLATE
 
   const vars = {
-    nombres: res.value?.guests?.first_name || '-',
-    apellidos: res.value?.guests?.last_name || '-',
-    nombre_huesped: [res.value?.guests?.first_name, res.value?.guests?.last_name].filter(Boolean).join(' ') || '-',
-    nombre_alojamiento: profile.value?.commercial_name || profile.value?.legal_name || 'Alojamiento',
-    fecha_checkin_larga: formatDateLongEs(res.value?.check_in),
+    ...buildReservationContext({
+      reservation: res.value,
+      accountProfile: {
+        ...(accountSettings.value || {}),
+        ...profile.value,
+      },
+      messageSettings: {
+        ...(accountSettings.value || {}),
+        ...(systemMessageSettings.value || {}),
+      },
+    }),
     link_preregistro,
-    telefono: profile.value?.phone || '-',
   }
 
   const { text } = resolveTemplate(preregistroBody, vars)
@@ -1525,7 +1604,7 @@ const handleAdminPreregistroSubmit = async ({ primary_guest, additional_guests }
     await completeReservationPreregistro({ reservationId: res.value.id, guests })
     await fetchReservation()
     showPreregistroModal.value = false
-    toast.success('Pre-registro completado correctamente')
+    toast.success('Se ha guardado la información del pre-registro correctamente')
   } catch (error) {
     preregistroErrorMessage.value = error.message
   } finally {

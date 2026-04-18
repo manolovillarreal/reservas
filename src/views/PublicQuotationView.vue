@@ -66,6 +66,11 @@
             <p class="whitespace-pre-wrap leading-relaxed">{{ data.conditions }}</p>
           </div>
 
+          <div v-if="data.politica_reserva" class="border-t border-gray-100 pt-4 text-sm text-gray-500">
+            <p class="mb-1 font-medium text-gray-700">📌 Política de reserva</p>
+            <p class="whitespace-pre-wrap leading-relaxed">{{ data.politica_reserva }}</p>
+          </div>
+
           <p class="text-center text-xs text-gray-400 pt-1">Para confirmar o consultar, contáctanos.</p>
         </div>
 

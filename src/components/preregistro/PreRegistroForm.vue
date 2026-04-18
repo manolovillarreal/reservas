@@ -13,20 +13,15 @@
     />
 
     <form class="space-y-6" @submit.prevent="submitForm">
-      <AppFormSection title="Huésped principal" :divider="true">
+      <AppInlineAlert
+        v-if="submitAttempted && validationMessage"
+        type="warning"
+        :message="validationMessage"
+      />
+
+      <AppFormSection title="Huésped principal" :divider="true" :collapsible="true" :defaultOpen="true">
         <AppInput v-model="primaryGuest.first_name" label="Nombres" required />
         <AppInput v-model="primaryGuest.last_name" label="Apellidos" />
-
-        <AppFormGrid :columns="2">
-          <AppSelect
-            v-model="primaryGuest.document_type"
-            label="Tipo de documento"
-            :options="DOCUMENT_TYPES_ADULT"
-            placeholder="Sin definir"
-            required
-          />
-          <AppInput v-model="primaryGuest.document_number" label="Número de documento" inputmode="numeric" required />
-        </AppFormGrid>
 
         <AppFormGrid :columns="2">
           <div v-if="isPublic && initialPrimaryGuest?.phone" class="space-y-1">
@@ -34,7 +29,7 @@
             <div class="block min-h-[44px] w-full rounded-md border border-[#E5E7EB] bg-[#F8F9FC] px-3 py-2.5 text-sm text-[#111827]">
               {{ [initialPrimaryGuest.phone_country_code, initialPrimaryGuest.phone].filter(Boolean).join(' ') }}
             </div>
-            <p class="text-xs text-gray-400">Si necesitas actualizar tu número de contacto, comúnicate con el alojamiento.</p>
+            <p class="text-xs text-gray-400">Si necesitas actualizar tu número de contacto, comunícate con el alojamiento.</p>
           </div>
           <AppPhoneInput
             v-else
@@ -86,6 +81,8 @@
           :key="`companion-${index}`"
           :title="`Acompañante ${index + 1}`"
           :divider="index !== additionalGuests.length - 1"
+          :collapsible="true"
+          :defaultOpen="index === additionalGuests.length - 1"
         >
           <template #actions>
             <button type="button" class="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-md text-sm font-semibold text-red-600 hover:bg-red-50 hover:text-red-800" @click="removeCompanion(index)">× Eliminar</button>
@@ -133,7 +130,7 @@
           submit-label="Guardar"
           cancel-label="Cancelar"
           :loading="submitting"
-          :submit-disabled="submitting || !primaryGuest.first_name.trim() || !primaryGuest.document_type || !primaryGuest.document_number.trim() || !primaryGuest.phone.trim() || !primaryGuest.email.trim() || !primaryGuest.nationality || !primaryGuest.birth_date || additionalGuests.some(g => !g.first_name.trim() || !g.document_type || !g.document_number.trim() || !g.nationality || !g.birth_date || !g.gender)"
+          :submit-disabled="false"
           @submit="submitForm"
           @cancel="emit('cancel')"
         />
@@ -143,7 +140,7 @@
 </template>
 
 <script setup>
-import { computed, reactive, watch } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import {
   AppInput,
   AppSelect,
@@ -183,6 +180,7 @@ const buildGuest = () => ({
 
 const primaryGuest = reactive(buildGuest())
 const additionalGuests = reactive([])
+const submitAttempted = ref(false)
 
 const normalizedGuestsCount = computed(() => {
   const count = Number(props.guestsCount || 1)
@@ -197,6 +195,38 @@ const expectedAdditionalCount = computed(() => {
 const missingCompanions = computed(() => {
   const missing = expectedAdditionalCount.value - additionalGuests.length
   return missing > 0 ? missing : 0
+})
+
+const collectMissingFields = () => {
+  const missing = []
+
+  if (!String(primaryGuest.first_name || '').trim()) missing.push('nombres del huésped principal')
+  if (!String(primaryGuest.document_type || '').trim()) missing.push('tipo de documento del huésped principal')
+  if (!String(primaryGuest.document_number || '').trim()) missing.push('número de documento del huésped principal')
+  if (!String(primaryGuest.email || '').trim()) missing.push('email del huésped principal')
+  if (!String(primaryGuest.nationality || '').trim()) missing.push('nacionalidad del huésped principal')
+  if (!String(primaryGuest.birth_date || '').trim()) missing.push('fecha de nacimiento del huésped principal')
+  if (!String(primaryGuest.phone || props.initialPrimaryGuest?.phone || '').trim()) missing.push('teléfono del huésped principal')
+
+  additionalGuests.forEach((g, index) => {
+    const fields = []
+    if (!String(g.first_name || '').trim()) fields.push('nombres')
+    if (!String(g.document_type || '').trim()) fields.push('tipo de documento')
+    if (!String(g.document_number || '').trim()) fields.push('número de documento')
+    if (!String(g.nationality || '').trim()) fields.push('nacionalidad')
+    if (!String(g.birth_date || '').trim()) fields.push('fecha de nacimiento')
+    if (!String(g.gender || '').trim()) fields.push('género')
+    if (fields.length) missing.push(`acompañante ${index + 1}: ${fields.join(', ')}`)
+  })
+
+  return missing
+}
+
+const validationMessage = computed(() => {
+  const missing = collectMissingFields()
+  return missing.length > 0
+    ? `Falta información obligatoria por diligenciar antes de guardar: ${missing.join(' · ')}`
+    : ''
 })
 
 const resetGuests = () => {
@@ -234,6 +264,12 @@ const trimGuest = (g) => ({
 })
 
 const submitForm = () => {
+  submitAttempted.value = true
+
+  if (collectMissingFields().length > 0) {
+    return
+  }
+
   emit('submitted', {
     primary_guest: trimGuest({ ...primaryGuest }),
     additional_guests: additionalGuests.map((guest) => trimGuest({ ...guest })),

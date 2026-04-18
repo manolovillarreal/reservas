@@ -134,7 +134,7 @@ import {
   DEFAULT_DISPONIBILIDAD_POSITIVA_TEMPLATE,
   getPredefinedMessages,
 } from '../../services/messageSettingsService'
-import { buildGlobalVariables, resolveTemplate } from '../../utils/messageUtils'
+import { buildReservationContext, resolveTemplate } from '../../utils/messageUtils'
 import { formatCop, formatDateLongEs } from '../../utils/voucherUtils'
 import { AppDateRangePicker, AppCounter, AppInlineAlert, AppInput } from '@/components/ui/forms'
 
@@ -196,35 +196,25 @@ const selectedAvailableUnits = computed(() => {
 })
 
 const templateVariablesBase = computed(() => {
-  const global = buildGlobalVariables({
-    profile: profile.value,
-    context: {
-      check_in: checkIn.value,
-      check_out: checkOut.value,
-      nights: nights.value,
-      personas: personas.value,
-    },
-  })
-
   const parsedPrice = Number(pricePerNight.value)
   const hasPrice = !Number.isNaN(parsedPrice) && parsedPrice > 0
   const normalizedGuestName = String(guestName.value || '').trim()
 
-  return {
-    ...global,
-    nombre_alojamiento: profile.value?.commercial_name || profile.value?.legal_name || global.nombre_alojamiento,
-    telefono: profile.value?.phone || global.telefono,
-    fecha_checkin_larga: formatDateLongEs(checkIn.value),
-    fecha_checkout_larga: formatDateLongEs(checkOut.value),
-    noches: nights.value,
-    personas: Number(personas.value || 0),
-    unidades: selectedAvailableUnits.value.map((unit) => ({
-      nombre_unidad: unit.name,
-      descripcion_unidad: String(unit.description || '').trim() || 'Sin descripción',
-    })),
-    precio_noche: hasPrice ? formatCop(parsedPrice) : null,
-    nombre_huesped: normalizedGuestName || null,
-  }
+  return buildReservationContext({
+    inquiry: {
+      guest_name: normalizedGuestName || '',
+      check_in: checkIn.value,
+      check_out: checkOut.value,
+      adults: Number(personas.value || 0),
+      children: 0,
+      infants: 0,
+      minors: 0,
+      price_per_night: hasPrice ? parsedPrice : 0,
+      units: selectedAvailableUnits.value,
+    },
+    accountProfile: profile.value,
+    messageSettings: {},
+  })
 })
 
 const buildResolvedMessage = (templateKey) => {
@@ -290,7 +280,7 @@ onMounted(async () => {
   try {
     const accountId = accountStore.getRequiredAccountId()
     const [{ data: profileData }, messages] = await Promise.all([
-      supabase.from('account_profile').select('commercial_name, legal_name, phone').eq('account_id', accountId).maybeSingle(),
+      supabase.from('account_profile').select('*').eq('account_id', accountId).maybeSingle(),
       getPredefinedMessages(accountId),
     ])
 

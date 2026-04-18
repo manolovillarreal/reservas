@@ -14,6 +14,7 @@ export const DEFAULT_MESSAGE_SETTINGS = {
   voucher_intro: 'Te compartimos el resumen de tu reserva en {{nombre_alojamiento}}.',
   voucher_closing: 'Cualquier duda estamos a tu disposición.',
   voucher_signature: '{{nombre_alojamiento}} · {{telefono}}',
+  // Compatibilidad heredada: estos campos siguen aquí, pero la fuente oficial es account_profile.
   checkin_time: '3:00 PM',
   checkout_time: '12:00 PM',
 }
