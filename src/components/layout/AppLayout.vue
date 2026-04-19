@@ -109,6 +109,29 @@
 
     <div class="flex h-full min-w-0 flex-col overflow-hidden" :style="mainContainerStyle">
       <main class="scroll-container flex-1 overflow-y-auto border-l border-gray-200 p-4 sm:p-6 lg:p-8" :style="mainContentStyle">
+        <div v-if="isOffline || updateAvailable" class="sticky top-0 z-10 mb-4 space-y-2">
+          <div
+            v-if="isOffline"
+            class="rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-700 shadow-sm"
+          >
+            {{ offlineBannerText }}
+          </div>
+
+          <div
+            v-if="updateAvailable"
+            class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm text-indigo-900 shadow-sm"
+          >
+            <span>Hay una actualización disponible</span>
+            <button
+              type="button"
+              class="rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-700"
+              @click="applyPwaUpdate"
+            >
+              Actualizar ahora
+            </button>
+          </div>
+        </div>
+
         <router-view></router-view>
       </main>
     </div>
@@ -126,16 +149,18 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { useConnectivity } from '../../composables/useConnectivity'
+import { useBreakpoint } from '../../composables/useBreakpoint'
+import { usePermissions } from '../../composables/usePermissions'
+import { warmPriorityOfflineData } from '../../services/offlineWarmup'
 import { supabase } from '../../services/supabase'
 import { useAccountStore } from '../../stores/account'
-import { useSourcesStore } from '../../stores/sources'
-import { usePermissions } from '../../composables/usePermissions'
-import { useBreakpoint } from '../../composables/useBreakpoint'
 import { useNotificationsStore } from '../../stores/notifications'
-import MobileNav from './MobileNav.vue'
-import MobileDrawer from './MobileDrawer.vue'
+import { useSourcesStore } from '../../stores/sources'
 import NotificationsPanel from '../notifications/NotificationsPanel.vue'
 import LogoImage from '../../assets/logo.jpeg'
+import MobileDrawer from './MobileDrawer.vue'
+import MobileNav from './MobileNav.vue'
 
 const isSidebarCollapsed = ref(false)
 const isDrawerOpen = ref(false)
@@ -146,6 +171,7 @@ const sourcesStore = useSourcesStore()
 const { can } = usePermissions()
 const { isMobile, isTablet, isDesktop } = useBreakpoint()
 const notificationsStore = useNotificationsStore()
+const { isOnline, isOffline, lastSyncLabel, hasSyncTimestamp, updateAvailable, applyPwaUpdate } = useConnectivity()
 
 const EXPANDED_WIDTH = 220
 const COLLAPSED_WIDTH = 56
@@ -241,12 +267,26 @@ const roleLabel = computed(() => {
   return accountStore.currentUserRole || 'sin rol'
 })
 
+const offlineBannerText = computed(() => {
+  if (!isOffline.value) return ''
+  if (hasSyncTimestamp.value && lastSyncLabel.value) {
+    return `Sin conexión · Mostrando datos del ${lastSyncLabel.value}`
+  }
+  return 'Sin conexión · Mostrando la última información disponible.'
+})
+
 const logout = async () => {
   await supabase.auth.signOut()
   sourcesStore.clear()
   accountStore.clear()
   router.push({ name: 'login' })
 }
+
+watch(isOnline, (value, previousValue) => {
+  if (value && previousValue === false && accountStore.currentAccountId) {
+    void warmPriorityOfflineData()
+  }
+})
 
 onMounted(() => {
   notificationsStore.fetchNotifications()

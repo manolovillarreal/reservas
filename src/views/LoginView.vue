@@ -156,6 +156,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { warmPriorityOfflineData } from '../services/offlineWarmup'
 import { supabase } from '../services/supabase'
 import { useAccountStore } from '../stores/account'
 import logoSrc from '../assets/logo.jpeg'
@@ -197,6 +198,7 @@ const handleLogin = async () => {
       return
     }
 
+    void warmPriorityOfflineData()
     router.push(redirectTo())
   } catch (err) {
     errorMessage.value = err.message || 'No se pudo iniciar sesión.'

@@ -8,6 +8,10 @@
       </router-link>
     </div>
 
+    <p v-if="isOffline && hasSyncTimestamp" class="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
+      Última actualización: {{ lastSyncLabel }}
+    </p>
+
     <AlertsWidget />
     <NotificationsWidget />
 
@@ -94,6 +98,7 @@
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { useCachedTimestamp } from '../composables/useConnectivity'
 import { useReservationsStore } from '../stores/reservations'
 import { useToast } from '../composables/useToast'
 import AvailabilityWidget from '../components/dashboard/AvailabilityWidget.vue'
@@ -106,6 +111,7 @@ const store = useReservationsStore()
 const router = useRouter()
 const toast = useToast()
 const notificationsStore = useNotificationsStore()
+const { isOnline, isOffline, lastSyncLabel, hasSyncTimestamp } = useCachedTimestamp('dashboard')
 
 const currentWeekStart = ref(new Date())
 
@@ -160,6 +166,14 @@ onMounted(async () => {
   notificationsStore.fetchNotifications()
   calculateMetrics()
   generateWeekDays()
+})
+
+watch(isOnline, async (value, previousValue) => {
+  if (value && previousValue === false) {
+    await store.fetchReservations()
+    notificationsStore.fetchNotifications()
+    calculateMetrics()
+  }
 })
 
 const calculateMetrics = () => {

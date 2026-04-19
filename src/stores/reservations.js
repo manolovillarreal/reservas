@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
+import { markSyncSuccess } from '../composables/useConnectivity'
 import { supabase } from '../services/supabase'
 import { useAccountStore } from './account'
 import {
@@ -173,6 +174,10 @@ export const useReservationsStore = defineStore('reservations', () => {
           })()
         }
       })
+
+      if (typeof navigator === 'undefined' || navigator.onLine !== false) {
+        markSyncSuccess('reservations', 'dashboard')
+      }
     } catch (err) {
       error.value = err.message
       console.error('Error fetching reservations:', err)

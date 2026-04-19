@@ -12,6 +12,10 @@
       </div>
     </div>
 
+    <p v-if="isOffline && hasSyncTimestamp" class="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
+      Última actualización: {{ lastSyncLabel }}
+    </p>
+
     <div v-if="isMobile" class="card !py-3 flex items-center justify-between gap-3">
       <p class="text-sm text-gray-600">{{ store.totalCount }} resultados</p>
       <button type="button" class="btn-secondary touch-target text-sm" @click="showFiltersSheet = true">
@@ -317,6 +321,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { useCachedTimestamp } from '../composables/useConnectivity'
 import { useReservationsStore } from '../stores/reservations'
 import { useSourcesStore } from '../stores/sources'
 import ReservationTable from '../components/reservations/ReservationTable.vue'
@@ -335,6 +340,7 @@ const router = useRouter()
 const { can } = usePermissions()
 const { isMobile } = useBreakpoint()
 const { viewMode, isTable, isCards } = useViewMode('reservas')
+const { isOnline, isOffline, lastSyncLabel, hasSyncTimestamp } = useCachedTimestamp('reservations')
 
 const filters = ref({
   searchData: '',
@@ -405,6 +411,12 @@ watch(() => [
 ], async () => {
   pagination.value.page = 1
   await fetchList()
+})
+
+watch(isOnline, async (value, previousValue) => {
+  if (value && previousValue === false) {
+    await fetchList()
+  }
 })
 
 const onSortChange = async (sortKey) => {

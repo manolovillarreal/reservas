@@ -123,6 +123,7 @@
     { "id": 121, "t": "Fix tarjetas reservas — datos correctos en cards", "c": "Fix", "s": "d" },
     { "id": 122, "t": "Fix consultas — guardar guest_email", "c": "Fix", "s": "d" },
     { "id": 123, "t": "Fix reservas canceladas — ocultarlas en calendario", "c": "Fix", "s": "d" },
-    { "id": 124, "t": "Dashboard de reportes — métricas, gráficas y exportación CSV", "c": "Feature", "s": "d" }
+    { "id": 124, "t": "Dashboard de reportes — métricas, gráficas y exportación CSV", "c": "Feature", "s": "d" },
+    { "id": 125, "t": "Soporte offline — caché de datos y detección de conexión", "c": "Infraestructura", "s": "d" }
   ]
 }

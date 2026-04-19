@@ -30,7 +30,8 @@ export default defineConfig({
     // })
     // -------------------------------------------------------
     VitePWA({
-      registerType: 'autoUpdate',
+      registerType: 'prompt',
+      injectRegister: false,
       // injectManifest: usa src/sw.js como fuente del service worker.
       // El precaching workbox se inyecta via self.__WB_MANIFEST en build.
       strategies: 'injectManifest',

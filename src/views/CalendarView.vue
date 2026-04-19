@@ -79,6 +79,10 @@
       </div>
     </div>
 
+    <p v-if="isOffline && hasSyncTimestamp" class="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
+      Última actualización: {{ lastSyncLabel }}
+    </p>
+
     <div class="calendar-tabs view-mode-toggle">
       <button type="button" class="toggle-btn" :class="{ active: activeTab === 'calendar' }" @click="activeTab = 'calendar'">Calendario</button>
       <button type="button" class="toggle-btn" :class="{ active: activeTab === 'entries' }" @click="activeTab = 'entries'">Entradas</button>
@@ -661,6 +665,7 @@
 
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { markSyncSuccess, useCachedTimestamp } from '../composables/useConnectivity'
 import { useRoute, useRouter } from 'vue-router'
 import { supabase } from '../services/supabase'
 import { DEFAULT_MESSAGE_SETTINGS, getMessageSettings } from '../services/messageSettingsService'
@@ -680,6 +685,7 @@ const occupancies = ref([])
 const units = ref([])
 const venues = ref([])
 const loading = ref(false)
+const { isOnline, isOffline, lastSyncLabel, hasSyncTimestamp } = useCachedTimestamp('calendar')
 
 const viewMode = ref('completa')
 const periodPreset = ref('this_month')
@@ -1674,6 +1680,10 @@ async function fetchOccupancies() {
           }
         : occ.reservations
     }))
+
+    if (typeof navigator === 'undefined' || navigator.onLine !== false) {
+      markSyncSuccess('calendar')
+    }
   } finally {
     loading.value = false
   }

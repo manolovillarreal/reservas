@@ -6,6 +6,11 @@
         type="warning"
         message="La reserva está finalizada. Solo se pueden registrar devoluciones."
       />
+      <AppInlineAlert
+        v-if="submitError"
+        type="error"
+        :message="submitError"
+      />
       <AppFormSection title="Datos del pago" :divider="true">
         <AppFormGrid :columns="2">
           <AppSelect
@@ -155,8 +160,9 @@ const touched = reactive({
 
 const submitAttempted = computed(() => state.submitAttempted)
 
-const state = reactive({ saving: false, submitAttempted: false })
+const state = reactive({ saving: false, submitAttempted: false, submitError: '' })
 const saving = computed(() => state.saving)
+const submitError = computed(() => state.submitError)
 
 const isPaymentLocked = computed(() => ['completed', 'finalized'].includes(props.reservationStatus))
 
@@ -189,6 +195,7 @@ const resetForm = () => {
   touched.method = false
   touched.paymentDate = false
   state.submitAttempted = false
+  state.submitError = ''
 }
 
 watch(
@@ -281,6 +288,7 @@ const closeModal = () => {
 
 const submitPayment = async () => {
   state.submitAttempted = true
+  state.submitError = ''
   if (!validate()) return
 
   state.saving = true
@@ -310,7 +318,8 @@ const submitPayment = async () => {
     emit('close')
     toast.success('Pago registrado correctamente')
   } catch (error) {
-    toast.error(error.message || 'No se pudo registrar el pago.')
+    state.submitError = error.message || 'No se pudo registrar el pago.'
+    toast.error(state.submitError)
   } finally {
     state.saving = false
   }

@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
+import { markSyncSuccess } from '../composables/useConnectivity'
 import { supabase } from '../services/supabase'
 import { useAccountStore } from './account'
 
@@ -47,6 +48,10 @@ export const useRoomBlocksStore = defineStore('roomBlocks', () => {
           notes: extra.join('\n') || null
         }
       })
+
+      if (typeof navigator === 'undefined' || navigator.onLine !== false) {
+        markSyncSuccess('calendar')
+      }
     } catch (err) {
       error.value = err.message
       throw err
