@@ -3,18 +3,30 @@
     <!-- Header -->
     <div class="mb-4 flex items-center justify-between gap-3">
       <h2 class="text-sm font-semibold uppercase tracking-wider text-gray-500">Entradas y Salidas</h2>
-      <!-- Day toggle -->
-      <div class="day-toggle">
+      <div class="flex items-center gap-2">
         <button
           type="button"
-          :class="['day-toggle-btn', day === 'hoy' ? 'day-toggle-active' : '']"
-          @click="day = 'hoy'"
-        >Hoy</button>
-        <button
-          type="button"
-          :class="['day-toggle-btn', day === 'manana' ? 'day-toggle-active' : '']"
-          @click="day = 'manana'"
-        >Manana</button>
+          class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-gray-200 bg-white text-gray-500 transition hover:bg-gray-50 hover:text-gray-700 disabled:cursor-not-allowed disabled:opacity-50"
+          :disabled="loading"
+          title="Copiar resumen"
+          @click="copySummary"
+        >
+          <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2M10 20h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+          </svg>
+        </button>
+        <div class="day-toggle">
+          <button
+            type="button"
+            :class="['day-toggle-btn', day === 'hoy' ? 'day-toggle-active' : '']"
+            @click="day = 'hoy'"
+          >Hoy</button>
+          <button
+            type="button"
+            :class="['day-toggle-btn', day === 'manana' ? 'day-toggle-active' : '']"
+            @click="day = 'manana'"
+          >Manana</button>
+        </div>
       </div>
     </div>
 
@@ -79,10 +91,12 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { supabase } from '../../services/supabase'
 import { useAccountStore } from '../../stores/account'
+import { useToast } from '../../composables/useToast'
 import ReservationBadge from '../ui/ReservationBadge.vue'
 
 const router = useRouter()
 const accountStore = useAccountStore()
+const toast = useToast()
 
 const loading = ref(true)
 const day = ref('hoy')
@@ -97,6 +111,56 @@ const currentSalidas = computed(() => day.value === 'hoy' ? todaySalidas.value :
 
 const goTo = (id) => {
   router.push('/reservas/' + id)
+}
+
+const buildVenueLines = (items = []) => {
+  const venueMap = new Map()
+
+  for (const item of items) {
+    const entries = Array.isArray(item.unitEntries) && item.unitEntries.length
+      ? item.unitEntries
+      : [{ venueName: 'Sin sede', unitName: item.unitLabel || 'Sin asignar' }]
+
+    for (const entry of entries) {
+      const venueName = entry.venueName || 'Sin sede'
+      const unitName = entry.unitName || 'Sin asignar'
+      if (!venueMap.has(venueName)) {
+        venueMap.set(venueName, new Set())
+      }
+      venueMap.get(venueName).add(unitName)
+    }
+  }
+
+  const lines = []
+  for (const [venueName, units] of venueMap.entries()) {
+    lines.push(venueName)
+    lines.push(...Array.from(units))
+    lines.push('')
+  }
+
+  return lines.length ? lines.slice(0, -1) : ['Sin registros']
+}
+
+const buildCopyText = () => {
+  return [
+    '➡️Salidas /',
+    '',
+    ...buildVenueLines(currentSalidas.value),
+    '',
+    '',
+    '➡️Entradas /',
+    '',
+    ...buildVenueLines(currentEntradas.value)
+  ].join('\n')
+}
+
+const copySummary = async () => {
+  try {
+    await navigator.clipboard.writeText(buildCopyText())
+    toast.success('Resumen copiado')
+  } catch {
+    toast.error('No se pudo copiar el resumen')
+  }
 }
 
 const getLocalIso = (date) => {
@@ -119,7 +183,7 @@ onMounted(async () => {
 
     const { data, error } = await supabase
       .from('occupancies')
-      .select('reservation_id, units(name), reservations!inner(id, status, check_in, check_out, guests!reservations_guest_id_fkey(first_name, last_name))')
+      .select('reservation_id, units(name, venues(name)), reservations!inner(id, status, check_in, check_out, guests!reservations_guest_id_fkey(first_name, last_name))')
       .eq('account_id', accountId)
       .eq('occupancy_type', 'reservation')
       .or(orFilter)
@@ -139,11 +203,16 @@ onMounted(async () => {
           checkIn: res.check_in ? String(res.check_in).slice(0, 10) : '',
           checkOut: res.check_out ? String(res.check_out).slice(0, 10) : '',
           unitNames: [],
+          unitEntries: [],
         })
       }
       const unitName = row.units?.name
+      const venueName = row.units?.venues?.name || 'Sin sede'
       if (unitName && !resMap.get(key).unitNames.includes(unitName)) {
         resMap.get(key).unitNames.push(unitName)
+      }
+      if (unitName && !resMap.get(key).unitEntries.some((entry) => entry.unitName === unitName && entry.venueName === venueName)) {
+        resMap.get(key).unitEntries.push({ venueName, unitName })
       }
     }
 

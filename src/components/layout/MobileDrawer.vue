@@ -94,6 +94,7 @@ const primaryItems = computed(() => {
     { name: 'Mensajes', to: '/mensajes' },
     { name: 'Huéspedes', to: '/huespedes' },
     { name: 'Pagos', to: '/pagos' },
+    { name: 'Reportes', to: '/reportes' },
   ]
 
   return items.filter((item) => {
@@ -102,6 +103,7 @@ const primaryItems = computed(() => {
     if (item.to === '/mensajes') return can('settings', 'edit')
     if (item.to === '/huespedes') return can('guests', 'view')
     if (item.to === '/pagos') return can('payments', 'view')
+    if (item.to === '/reportes') return can('reports', 'view_financial') || can('payments', 'view')
     if (item.to === '/calendario') return can('calendar', 'view')
     return true
   })

@@ -197,6 +197,7 @@ const primaryNav = [
   { name: 'Dashboard', to: '/', icon: '◫' },
   { name: 'Reservas', to: '/reservas', icon: '☰' },
   { name: 'Pagos', to: '/pagos', icon: '💳' },
+  { name: 'Reportes', to: '/reportes', icon: '📈' },
   { name: 'Consultas', to: '/consultas', icon: '❓' },
   { name: 'Mensajes', to: '/mensajes', icon: '✉️' },
   { name: 'Bloqueos', to: '/bloqueos', icon: '🔒' },
@@ -214,6 +215,7 @@ const visiblePrimaryNav = computed(() => {
   return primaryNav.filter((item) => {
     if (item.to === '/reservas') return can('reservations', 'view')
     if (item.to === '/pagos') return can('payments', 'view')
+    if (item.to === '/reportes') return can('reports', 'view_financial') || can('payments', 'view')
     if (item.to === '/consultas') return can('inquiries', 'view')
     if (item.to === '/mensajes') return can('settings', 'edit')
     if (item.to === '/bloqueos') return can('occupancies', 'view')

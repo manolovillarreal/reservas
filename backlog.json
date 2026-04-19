@@ -5,7 +5,7 @@
     { "id": 3,  "t": "Botón agregar huésped en formulario no funciona", "c": "Bug", "s": "c" },
     { "id": 4,  "t": "Canal 'Directo' no muestra campo de comisión", "c": "Bug", "s": "c" },
     { "id": 5,  "t": "Alerta roja sin mensaje en el primer paso del formulario", "c": "Bug", "s": "c" },
-    { "id": 6,  "t": "Reportes básicos de ocupación e ingresos", "c": "Feature", "s": "p" },
+    { "id": 6,  "t": "Reportes básicos de ocupación e ingresos", "c": "Feature", "s": "d" },
     { "id": 7,  "t": "Integración iCal (Airbnb, Booking, VRBO)", "c": "Integración", "s": "p" },
     { "id": 8,  "t": "Despliegue en Vercel + staging en Supabase", "c": "Infraestructura", "s": "p" },
     { "id": 9,  "t": "Widget embebible de consulta para landing page", "c": "Feature", "s": "p" },
@@ -122,6 +122,7 @@
     { "id": 120, "t": "Encuesta de satisfacción post estadía", "c": "Feature", "s": "p" },
     { "id": 121, "t": "Fix tarjetas reservas — datos correctos en cards", "c": "Fix", "s": "d" },
     { "id": 122, "t": "Fix consultas — guardar guest_email", "c": "Fix", "s": "d" },
-    { "id": 123, "t": "Fix reservas canceladas — ocultarlas en calendario", "c": "Fix", "s": "d" }
+    { "id": 123, "t": "Fix reservas canceladas — ocultarlas en calendario", "c": "Fix", "s": "d" },
+    { "id": 124, "t": "Dashboard de reportes — métricas, gráficas y exportación CSV", "c": "Feature", "s": "d" }
   ]
 }

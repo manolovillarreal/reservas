@@ -72,22 +72,12 @@ const MessageCircleIcon = {
   }
 }
 
-const MoreIcon = {
-  render() {
-    return h('svg', { viewBox: '0 0 24 24', fill: 'none', stroke: iconBase, 'stroke-width': '2', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, [
-      h('circle', { cx: '5', cy: '12', r: '1.5', fill: iconBase, stroke: 'none' }),
-      h('circle', { cx: '12', cy: '12', r: '1.5', fill: iconBase, stroke: 'none' }),
-      h('circle', { cx: '19', cy: '12', r: '1.5', fill: iconBase, stroke: 'none' }),
-    ])
-  }
-}
-
 const navItems = computed(() => [
   { key: 'dashboard', label: 'Dashboard', to: '/', icon: HouseIcon },
   { key: 'reservas', label: 'Reservas', to: '/reservas', icon: CalendarCheckIcon },
   { key: 'calendario', label: 'Calendario', to: '/calendario', icon: CalendarIcon },
   { key: 'consultas', label: 'Consultas', to: '/consultas', icon: MessageCircleIcon },
-  { key: 'more', label: 'Mas', icon: MoreIcon },
+  { key: 'mensajes', label: 'Mensajes', to: '/mensajes', icon: MessageCircleIcon },
 ])
 
 const isActive = (item) => {
@@ -100,11 +90,6 @@ const isActive = (item) => {
 }
 
 const handlePress = async (item) => {
-  if (item.key === 'more') {
-    emit('open-drawer')
-    return
-  }
-
   if (!item.to || isActive(item)) return
   await router.push(item.to)
 }

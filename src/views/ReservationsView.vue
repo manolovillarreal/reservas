@@ -4,7 +4,7 @@
     <div class="flex items-center justify-between gap-3">
       <h1 class="text-3xl font-semibold text-gray-900 tracking-tight">Reservas</h1>
       <div class="flex items-center gap-3">
-        <ViewModeToggle v-model="viewMode" class="hidden sm:flex" />
+        <ViewModeToggle v-if="!isMobile" v-model="viewMode" />
         <router-link v-if="can('reservations', 'create') && !isMobile" to="/reservar" class="btn-primary flex items-center gap-2">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
           Nuevo Registro
@@ -97,30 +97,127 @@
 
     <!-- Cards View -->
     <div v-if="(isCards || isMobile) && (store.reservations.length > 0 || store.loading)" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-      <DataCard
-        v-for="reservation in store.reservations"
-        :key="reservation.id"
-        :title="reservation.guest_display_name || reservation.guest_name || 'Sin nombre'"
-        :subtitle="`${reservation.reservation_number} ${reservation.reference_code ? '· ' + reservation.reference_code : ''}`"
-        :badge="{ 
-          label: String(reservation.status || 'sin_estado').replace(/_/g, ' ').charAt(0).toUpperCase() + String(reservation.status || 'sin_estado').replace(/_/g, ' ').slice(1),
-          type: reservation.status === 'confirmed' ? 'info' : reservation.status === 'in_stay' ? 'warning' : reservation.status === 'completed' ? 'success' : 'danger'
-        }"
-        :meta="[
-          { label: 'Check-in', value: new Date(reservation.check_in).toLocaleDateString('es-CO') },
-          { label: 'Check-out', value: new Date(reservation.check_out).toLocaleDateString('es-CO') },
-          { label: 'Noches', value: reservation.nights || 0 },
-          { label: 'Personas', value: `${reservation.adults || 0} adultos${reservation.children ? ' + ' + reservation.children + ' niños' : ''}` },
-          { label: 'Unidad', value: reservation.unit_names_display || 'Sin asignar' },
-          { label: 'Origen', value: reservation.source_display_label || 'Directo' }
-        ]"
-        :actions="[
-          ...(reservation.guest_wa_url ? [{ label: '📱 WhatsApp', type: 'whatsapp', handler: () => window.open(reservation.guest_wa_url, '_blank') }] : []),
-          { label: 'Ver detalle', handler: () => goToDetail(reservation) },
-          ...(can('payments', 'create') ? [{ label: 'Registrar pago', handler: () => openPaymentModal(reservation) }] : []),
-          ...(can('reservations', 'edit') ? [{ label: 'Cambiar estado', handler: () => openStatusModal(reservation) }] : [])
-        ]"
-      />
+      <template v-for="reservation in store.reservations" :key="reservation.id">
+        <div v-if="isMobile" class="bg-white border border-gray-200 rounded-2xl p-4 space-y-3">
+          <div class="flex justify-between items-start gap-2">
+            <div class="min-w-0">
+              <p class="font-bold text-gray-900 text-base truncate">{{ reservation.guest_display_name || reservation.guest_name || 'Sin nombre' }}</p>
+              <p class="text-xs text-gray-400 mt-0.5">
+                {{ reservation.reservation_number || '-' }}{{ reservation.reference_code ? ' · ' + reservation.reference_code : '' }}
+              </p>
+            </div>
+
+            <div class="flex flex-col items-end gap-1.5 shrink-0">
+              <ReservationBadge :status="reservation.status" />
+              <button
+                v-if="reservation.guest_wa_url"
+                type="button"
+                class="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center"
+                @click="window.open(reservation.guest_wa_url, '_blank')"
+                aria-label="Abrir WhatsApp"
+              >
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                  <path fill="#16A34A" d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
+                  <path fill="#16A34A" d="M12 0C5.373 0 0 5.373 0 12c0 2.123.554 4.118 1.528 5.845L.057 23.571a.5.5 0 00.612.612l5.726-1.471A11.943 11.943 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.88 0-3.645-.52-5.153-1.424l-.369-.22-3.398.873.888-3.397-.24-.38A9.96 9.96 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
+            <div>
+              <p class="text-xs text-gray-400 uppercase tracking-wide font-medium">Check-in</p>
+              <p class="text-sm text-gray-900 font-medium mt-0.5">{{ reservation.check_in ? new Date(reservation.check_in).toLocaleDateString('es-CO') : '-' }}</p>
+            </div>
+            <div>
+              <p class="text-xs text-gray-400 uppercase tracking-wide font-medium">Check-out</p>
+              <p class="text-sm text-gray-900 font-medium mt-0.5">{{ reservation.check_out ? new Date(reservation.check_out).toLocaleDateString('es-CO') : '-' }}</p>
+            </div>
+            <div>
+              <p class="text-xs text-gray-400 uppercase tracking-wide font-medium">Noches</p>
+              <p class="text-sm text-gray-900 font-medium mt-0.5">{{ reservation.nights || 0 }}</p>
+            </div>
+            <div>
+              <p class="text-xs text-gray-400 uppercase tracking-wide font-medium">Origen</p>
+              <p class="text-sm text-gray-900 font-medium mt-0.5">{{ reservation.source_display_label || 'Directo' }}</p>
+            </div>
+            <div class="col-span-2">
+              <p class="text-xs text-gray-400 uppercase tracking-wide font-medium">Unidad</p>
+              <p class="text-sm text-gray-900 font-medium mt-0.5">{{ reservation.unit_names_display || 'Sin asignar' }}</p>
+            </div>
+            <div class="col-span-2">
+              <p class="text-xs text-gray-400 uppercase tracking-wide font-medium">Personas</p>
+              <p class="text-sm text-gray-900 font-medium mt-0.5">
+                {{ [
+                  Number(reservation.adults || 0) > 0 ? `${reservation.adults} adultos` : '',
+                  Number(reservation.minors || 0) > 0 ? `${reservation.minors} menores` : '',
+                  Number(reservation.children || 0) > 0 ? `${reservation.children} niños` : '',
+                  Number(reservation.babies || reservation.infants || 0) > 0 ? `${reservation.babies || reservation.infants} bebés` : ''
+                ].filter(Boolean).join(' · ') || 'Sin registro' }}
+              </p>
+            </div>
+          </div>
+
+          <div class="h-px bg-gray-100"></div>
+
+          <div class="flex justify-between items-center">
+            <span class="text-xs text-gray-500">Saldo pendiente</span>
+            <span
+              class="font-semibold text-xs px-2 py-0.5 rounded-md"
+              :class="Number(reservation.total_amount || 0) - Number(reservation.paid_amount || 0) > 0 ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-700'"
+            >
+              {{ Number(reservation.total_amount || 0) - Number(reservation.paid_amount || 0) > 0
+                ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(Number(reservation.total_amount || 0) - Number(reservation.paid_amount || 0))
+                : 'Al día' }}
+            </span>
+          </div>
+
+          <div class="flex gap-2">
+            <button
+              type="button"
+              class="flex-1 h-9 border border-gray-200 rounded-lg text-sm font-semibold text-gray-700"
+              @click="goToDetail(reservation)"
+            >
+              Ver
+            </button>
+            <button
+              v-if="can('reservations', 'edit')"
+              type="button"
+              class="w-9 h-9 border border-gray-200 rounded-lg flex items-center justify-center text-gray-700"
+              @click="router.push('/reservas/' + reservation.id + '/editar')"
+              aria-label="Editar reserva"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5M18.586 3.586a2 2 0 112.828 2.828L12 15.828l-4 1 1-4 9.586-9.242z" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <DataCard
+          v-else
+          :title="reservation.guest_display_name || reservation.guest_name || 'Sin nombre'"
+          :subtitle="`${reservation.reservation_number} ${reservation.reference_code ? '· ' + reservation.reference_code : ''}`"
+          :badge="{ 
+            label: String(reservation.status || 'sin_estado').replace(/_/g, ' ').charAt(0).toUpperCase() + String(reservation.status || 'sin_estado').replace(/_/g, ' ').slice(1),
+            type: reservation.status === 'confirmed' ? 'info' : reservation.status === 'in_stay' ? 'warning' : reservation.status === 'completed' ? 'success' : 'danger'
+          }"
+          :meta="[
+            { label: 'Check-in', value: new Date(reservation.check_in).toLocaleDateString('es-CO') },
+            { label: 'Check-out', value: new Date(reservation.check_out).toLocaleDateString('es-CO') },
+            { label: 'Noches', value: reservation.nights || 0 },
+            { label: 'Personas', value: `${reservation.adults || 0} adultos${reservation.children ? ' + ' + reservation.children + ' niños' : ''}` },
+            { label: 'Unidad', value: reservation.unit_names_display || 'Sin asignar' },
+            { label: 'Origen', value: reservation.source_display_label || 'Directo' }
+          ]"
+          :actions="[
+            ...(reservation.guest_wa_url ? [{ label: '📱 WhatsApp', type: 'whatsapp', handler: () => window.open(reservation.guest_wa_url, '_blank') }] : []),
+            { label: 'Ver detalle', handler: () => goToDetail(reservation) },
+            ...(can('payments', 'create') ? [{ label: 'Registrar pago', handler: () => openPaymentModal(reservation) }] : []),
+            ...(can('reservations', 'edit') ? [{ label: 'Cambiar estado', handler: () => openStatusModal(reservation) }] : [])
+          ]"
+        />
+      </template>
     </div>
 
     <!-- Empty State in Cards -->

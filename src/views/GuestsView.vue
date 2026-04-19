@@ -4,8 +4,8 @@
      <div class="flex items-center justify-between gap-3">
        <h1 class="text-3xl font-semibold text-gray-900 tracking-tight">Huéspedes</h1>
        <div class="flex items-center gap-3">
-         <ViewModeToggle v-model="viewMode" class="hidden sm:flex" />
-         <button v-if="can('guests', 'create')" @click="openCreateModal" class="btn-primary">
+         <ViewModeToggle v-if="!isMobile" v-model="viewMode" />
+         <button v-if="can('guests', 'create')" @click="openCreateModal" class="btn-primary hidden sm:flex">
            + Nuevo Huésped
          </button>
        </div>

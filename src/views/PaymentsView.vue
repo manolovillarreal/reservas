@@ -2,7 +2,7 @@
   <div class="space-y-6">
      <div class="flex items-center justify-between gap-3">
        <h1 class="text-3xl font-semibold tracking-tight text-gray-900">Pagos</h1>
-       <ViewModeToggle v-model="viewMode" class="hidden sm:flex" />
+       <ViewModeToggle v-if="!isMobile" v-model="viewMode" />
      </div>
 
     <div v-if="!can('payments', 'view')" class="card border-amber-200 bg-amber-50/40">
