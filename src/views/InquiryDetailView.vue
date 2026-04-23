@@ -1,6 +1,39 @@
 <template>
   <div class="mx-auto max-w-4xl space-y-6">
-    <div class="flex flex-wrap items-center justify-between gap-3">
+    <div v-if="isMobile" class="space-y-2">
+      <div class="flex items-center justify-between gap-3">
+        <button type="button" class="text-sm text-gray-500" @click="goBack()">← Volver</button>
+        <div class="flex items-center gap-2">
+          <button
+            type="button"
+            class="btn-secondary text-sm"
+            :disabled="!previousInquiryId"
+            @click="goToPreviousInquiry()"
+          >← Ant</button>
+          <button
+            type="button"
+            class="btn-secondary text-sm"
+            :disabled="!nextInquiryId"
+            @click="goToNextInquiry()"
+          >Sig →</button>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <button
+          type="button"
+          class="btn-secondary text-sm flex-1"
+          @click="showMessagesPanel = true"
+        >Mensajes</button>
+        <button
+          v-if="can('inquiries', 'edit') && inquiry"
+          type="button"
+          class="btn-secondary text-sm flex-1"
+          @click="router.push('/consultas/' + route.params.id + '/editar')"
+        >Editar</button>
+      </div>
+    </div>
+
+    <div v-else class="flex flex-wrap items-center justify-between gap-3">
       <div class="flex flex-wrap items-center gap-2">
         <button type="button" class="text-sm font-medium text-gray-500 hover:text-gray-900" @click="goBack">← Volver a Consultas</button>
         <button
@@ -36,59 +69,146 @@
 
     <div v-else class="grid grid-cols-1 gap-6 lg:grid-cols-3">
       <div class="space-y-6 lg:col-span-2">
-        <div class="card">
-          <div class="mb-4 flex items-start justify-between gap-3">
-            <div class="min-w-0">
-              <p class="mb-0.5 font-mono text-xs text-gray-400">{{ inquiry.inquiry_number || '' }}</p>
-              <p class="mb-0.5 font-mono text-xs text-gray-500">{{ inquiryReferenceDisplay }}</p>
-              <h1 class="text-2xl font-semibold text-gray-900">{{ `${inquiry.guest_first_name || ''} ${inquiry.guest_last_name || ''}`.trim() || 'Sin nombre' }}</h1>
-            </div>
-            <div class="flex flex-shrink-0 items-center gap-2">
-              <a
-                v-if="whatsappGuestUrl"
-                :href="whatsappGuestUrl"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="lg:hidden touch-target flex h-10 w-10 items-center justify-center rounded-full bg-green-500 text-white hover:bg-green-600 transition-colors"
-                aria-label="Ir a WhatsApp"
-              >
-                <svg viewBox="0 0 24 24" class="h-5 w-5" fill="currentColor" aria-hidden="true">
-                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/>
-                </svg>
-              </a>
-              <span
-                class="rounded-full border px-3 py-1 text-xs font-medium"
-                :style="getInquiryStatusStyle(inquiry.status)"
-              >{{ getInquiryStatusLabel(inquiry.status) }}</span>
+        <div class="card overflow-hidden !p-0">
+          <div class="border-b border-gray-100 p-4">
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0">
+                <p class="font-mono text-xs text-gray-400">{{ inquiry.inquiry_number || '' }}</p>
+                <p class="mt-0.5 font-mono text-xs text-gray-500">{{ inquiryReferenceDisplay }}</p>
+                <h1 class="mt-1 text-xl font-bold text-gray-900">{{ `${inquiry.guest_first_name || ''} ${inquiry.guest_last_name || ''}`.trim() || 'Sin nombre' }}</h1>
+                <div v-if="isQuoteExpired" class="mt-1">
+                  <span class="inline-flex items-center gap-1 rounded-md bg-orange-50 px-2 py-0.5 text-xs font-semibold text-orange-700">⚠ Cotización vencida</span>
+                </div>
+              </div>
+
+              <div class="flex flex-col items-end gap-1.5">
+                <span
+                  class="rounded-full border px-3 py-1 text-xs font-medium"
+                  :style="getInquiryStatusStyle(inquiry.status)"
+                >{{ getInquiryStatusLabel(inquiry.status) }}</span>
+                <a
+                  v-if="whatsappGuestUrl"
+                  :href="whatsappGuestUrl"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="flex h-8 w-8 items-center justify-center rounded-lg bg-green-100 text-green-700 lg:hidden"
+                  aria-label="Ir a WhatsApp"
+                >
+                  <svg viewBox="0 0 24 24" class="h-4 w-4" fill="currentColor" aria-hidden="true">
+                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/>
+                  </svg>
+                </a>
+              </div>
             </div>
           </div>
 
-          <div class="grid grid-cols-1 gap-4 text-sm md:grid-cols-2">
-            <p><span class="font-medium text-gray-700">Teléfono:</span> {{ inquiry.guest_phone || '-' }}</p>
-            <p><span class="font-medium text-gray-700">Origen:</span> {{ inquiry.source_display_label || '-' }}</p>
-            <p><span class="font-medium text-gray-700">Check-in:</span> {{ formatDate(inquiry.check_in) }}</p>
-            <p><span class="font-medium text-gray-700">Check-out:</span> {{ formatDate(inquiry.check_out) }}</p>
-            <p><span class="font-medium text-gray-700">Adultos:</span> {{ inquiry.adults || '-' }}</p>
-            <p><span class="font-medium text-gray-700">Menores:</span> {{ inquiry.minors ?? '-' }}</p>
-            <p><span class="font-medium text-gray-700">Niños:</span> {{ inquiry.children ?? '-' }}</p>
-            <p v-if="(inquiry.infants ?? 0) > 0"><span class="font-medium text-gray-700">Bebés:</span> {{ inquiry.infants }}</p>
-            <p><span class="font-medium text-gray-700">Creada:</span> {{ formatDateTime(inquiry.created_at) }}</p>
-            <p v-if="inquiry.price_per_night != null"><span class="font-medium text-gray-700">Precio por noche:</span> ${{ formatCurrency(inquiry.price_per_night) }}</p>
-            <p v-if="inquiry.price_per_night != null"><span class="font-medium text-gray-700">Total cliente:</span> ${{ formatCurrency(inquiryCustomerTotal) }}</p>
-            <p v-if="inquiry.quote_expires_at">
-              <span class="font-medium text-gray-700">Cotización válida hasta:</span>
-              <span :class="isQuoteExpired ? 'text-orange-600 font-medium' : ''"> {{ formatDate(inquiry.quote_expires_at) }}</span>
-              <span v-if="isQuoteExpired" class="ml-1 text-xs text-orange-500">⚠ Vencida</span>
-            </p>
-            <p v-if="inquiry.status === 'convertida' && inquiry.reservation_info">
-              <span class="font-medium text-gray-700">Reserva creada:</span>
-              <router-link :to="`/reservas/${inquiry.reservation_info.id}`" class="ml-1 font-mono text-sm text-primary hover:underline">{{ inquiry.reservation_info.reservation_number }}</router-link>
-            </p>
+          <div class="grid grid-cols-4 divide-x divide-gray-100 border-b border-gray-100">
+            <div class="p-3">
+              <p class="mb-1 text-xs uppercase tracking-wide text-gray-400">Check-in</p>
+              <p class="text-sm font-semibold text-gray-900">{{ formatDate(inquiry.check_in) }}</p>
+            </div>
+            <div class="p-3">
+              <p class="mb-1 text-xs uppercase tracking-wide text-gray-400">Check-out</p>
+              <p class="text-sm font-semibold text-gray-900">{{ formatDate(inquiry.check_out) }}</p>
+            </div>
+            <div class="p-3">
+              <p class="mb-1 text-xs uppercase tracking-wide text-gray-400">Noches</p>
+              <p class="text-sm font-semibold text-gray-900">{{ inquiryNights }}</p>
+            </div>
+            <div class="p-3">
+              <p class="mb-1 text-xs uppercase tracking-wide text-gray-400">{{ inquiry.quote_expires_at ? 'Válida hasta' : 'Origen' }}</p>
+              <p class="text-sm font-semibold" :class="inquiry.quote_expires_at && isQuoteExpired ? 'text-orange-600' : 'text-gray-900'">
+                {{ inquiry.quote_expires_at ? formatDate(inquiry.quote_expires_at) : (inquiry.source_display_label || '-') }}
+              </p>
+            </div>
           </div>
 
-          <div class="mt-4 rounded-md bg-gray-50 p-3 text-sm text-gray-700">
-            <p class="font-medium text-gray-800">Notas</p>
-            <p class="mt-1 whitespace-pre-wrap">{{ inquiry.notes || 'Sin notas' }}</p>
+          <div class="space-y-4 p-4">
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <p class="mb-1 text-xs uppercase tracking-wide text-gray-400">Teléfono</p>
+                <p class="text-sm font-semibold text-gray-900">{{ inquiry.guest_phone || '-' }}</p>
+              </div>
+              <div class="col-span-2 sm:col-span-1">
+                <p class="mb-1 text-xs uppercase tracking-wide text-gray-400">Origen</p>
+                <p class="text-sm font-semibold text-gray-900">{{ inquiry.source_display_label || '-' }}</p>
+              </div>
+              <div class="col-span-2">
+                <p class="mb-1 text-xs uppercase tracking-wide text-gray-400">Personas</p>
+                <p class="text-sm font-semibold text-gray-900">{{ [
+                  Number(inquiry.adults || 0) > 0 ? `${inquiry.adults} adultos` : null,
+                  Number(inquiry.minors || 0) > 0 ? `${inquiry.minors} menores` : null,
+                  Number(inquiry.children || 0) > 0 ? `${inquiry.children} niños` : null,
+                  Number(inquiry.infants || 0) > 0 ? `${inquiry.infants} bebés` : null
+                ].filter(Boolean).join(' · ') || '-' }}</p>
+              </div>
+            </div>
+
+            <div class="h-px bg-gray-100"></div>
+
+            <div v-if="inquiry.price_per_night != null" class="flex items-start justify-between gap-3">
+              <div>
+                <p class="text-sm text-gray-500">Precio por noche</p>
+                <p class="text-xs text-gray-400">Total cliente</p>
+              </div>
+              <div class="text-right">
+                <p class="text-base font-bold text-gray-900">${{ formatCurrency(inquiry.price_per_night) }}</p>
+                <p class="text-xs text-gray-500">${{ formatCurrency(inquiryCustomerTotal) }}</p>
+              </div>
+            </div>
+
+            <div class="rounded-lg bg-gray-50 p-3">
+              <p class="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500">Notas</p>
+              <p class="whitespace-pre-wrap text-sm text-gray-700">{{ inquiry.notes || 'Sin notas' }}</p>
+            </div>
+
+            <div v-if="inquiry.status === 'convertida' && inquiry.reservation_info" class="rounded-lg bg-indigo-50 p-3">
+              <div class="flex items-center justify-between gap-3">
+                <p class="text-sm font-medium text-indigo-700">Reserva creada</p>
+                <router-link :to="`/reservas/${inquiry.reservation_info.id}`" class="font-mono text-sm text-primary hover:underline">{{ inquiry.reservation_info.reservation_number }}</router-link>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex gap-2 p-4 pt-0">
+            <button
+              v-if="canViewQuotation"
+              type="button"
+              class="h-9 flex-1 rounded-lg border border-gray-200 text-sm font-semibold text-gray-700"
+              @click="goToQuotation()"
+            >Ver cotización</button>
+            <button
+              v-if="can('inquiries', 'convert') && inquiry.status !== 'convertida' && inquiry.status !== 'perdida'"
+              type="button"
+              class="h-9 rounded-lg border border-primary bg-indigo-50 px-4 text-sm font-semibold text-primary"
+              @click="router.push('/consultas/' + inquiry.id + '/convertir')"
+            >Convertir</button>
+            <button
+              v-if="can('inquiries', 'edit') && !['convertida', 'vencida', 'perdida'].includes(inquiry.status)"
+              type="button"
+              class="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200"
+              @click="router.push('/consultas/' + route.params.id + '/editar')"
+              aria-label="Editar consulta"
+            >
+              <svg class="h-4 w-4 text-gray-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M16.862 3.487a2.25 2.25 0 1 1 3.182 3.182L7.5 19.213 3 20.25l1.037-4.5 12.825-12.263Z" />
+              </svg>
+            </button>
+            <button
+              v-if="can('inquiries', 'delete')"
+              type="button"
+              class="flex h-9 w-9 items-center justify-center rounded-lg border border-red-200"
+              @click="showDeleteModal = true"
+              aria-label="Eliminar consulta"
+            >
+              <svg class="h-4 w-4 text-red-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 7h16" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M10 11v6" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M14 11v6" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3" />
+              </svg>
+            </button>
           </div>
         </div>
       </div>
@@ -284,6 +404,7 @@ import { usePermissions } from '../composables/usePermissions'
 import { useAccountStore } from '../stores/account'
 import { useToast } from '../composables/useToast'
 import { useAgeCategorySettings } from '../composables/useAgeCategorySettings'
+import { useBreakpoint } from '../composables/useBreakpoint'
 import { copyTextToClipboard } from '../utils/clipboard'
 import { formatReferenceDisplay } from '../utils/referenceUtils'
 import { copyQuotationAsWhatsApp, buildQuotePublicUrl } from '../utils/voucherUtils'
@@ -313,6 +434,7 @@ const store = useInquiriesStore()
 const { can } = usePermissions()
 const accountStore = useAccountStore()
 const toast = useToast()
+const { isMobile } = useBreakpoint()
 const { loadAgeCategorySettings, activeCategories, ageCategoryLabels } = useAgeCategorySettings()
 
 const loading = ref(true)
