@@ -57,7 +57,7 @@ serve(async (req) => {
     const { data: inquiry, error: inquiryError } = await adminClient
       .from('inquiries')
       .select(`
-        id, account_id, guest_name, check_in, check_out, adults, children,
+        id, account_id, guest_first_name, guest_last_name, check_in, check_out, adults, minors, children, infants,
         price_per_night, discount_percentage, quote_expires_at,
         inquiry_units(unit_id, units(name))
       `)
@@ -89,11 +89,14 @@ serve(async (req) => {
     const businessName = profile?.commercial_name || profile?.legal_name || 'Alojamiento'
     const logoUrl: string | null = profile?.logo_url || null
     const conditions = String(settingsRow?.voucher_conditions || '').trim()
+    const guestName = `${inquiry.guest_first_name || ''} ${inquiry.guest_last_name || ''}`.trim() || 'Huésped'
 
     const nights = calcNights(inquiry.check_in, inquiry.check_out)
     const adults = Number(inquiry.adults || 0)
+    const minors = Number(inquiry.minors || 0)
     const children = Number(inquiry.children || 0)
-    const totalGuests = adults + children
+    const infants = Number(inquiry.infants || 0)
+    const totalGuests = adults + minors + children + infants
     const pricePerNight = Number(inquiry.price_per_night || 0)
     const discountPct = Number(inquiry.discount_percentage || 0)
     const subtotal = pricePerNight * nights
@@ -119,11 +122,13 @@ serve(async (req) => {
       return Response.json({
         business_name: businessName,
         logo_url: logoUrl,
-        guest_name: inquiry.guest_name,
+        guest_name: guestName,
         check_in: inquiry.check_in,
         check_out: inquiry.check_out,
         adults,
+        minors,
         children,
+        infants,
         total_guests: totalGuests,
         nights,
         units_label: unitsLabel,
@@ -140,7 +145,7 @@ serve(async (req) => {
 
     // Serve full HTML with OG tags
     const ogDescription = [
-      inquiry.guest_name ? `Hola ${inquiry.guest_name}` : null,
+      guestName ? `Hola ${guestName}` : null,
       inquiry.check_in ? `Check-in: ${formatDateLongEs(inquiry.check_in)}` : null,
       inquiry.check_out ? `Check-out: ${formatDateLongEs(inquiry.check_out)}` : null,
       nights > 0 ? `${nights} noches` : null,
@@ -149,7 +154,7 @@ serve(async (req) => {
     const html = renderHtml({
       businessName,
       logoUrl,
-      guestName: inquiry.guest_name,
+      guestName,
       checkIn: inquiry.check_in,
       checkOut: inquiry.check_out,
       adults,
