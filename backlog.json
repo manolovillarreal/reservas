@@ -125,6 +125,7 @@
     { "id": 123, "t": "Fix reservas canceladas — ocultarlas en calendario", "c": "Fix", "s": "d" },
     { "id": 124, "t": "Dashboard de reportes — métricas, gráficas y exportación CSV", "c": "Feature", "s": "d" },
     { "id": 125, "t": "Soporte offline — caché de datos y detección de conexión", "c": "Infraestructura", "s": "d" },
-    { "id": 126, "t": "URLs públicas limpias — cotización, pre-registro y acompañantes en inn.tekmi.co", "c": "Fix", "s": "d" }
+    { "id": 126, "t": "URLs públicas limpias — cotización, pre-registro y acompañantes en inn.tekmi.co", "c": "Fix", "s": "d" },
+    { "id": 127, "t": "Gestión de usuarios — invitación, roles, límites por cuenta", "c": "Feature", "s": "d" }
   ]
 }

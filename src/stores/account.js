@@ -10,6 +10,8 @@ const normalizeBootstrapRows = (payload) => {
 
 export const useAccountStore = defineStore('account', () => {
   const currentAccountId = ref('')
+  const currentUserId = ref('')
+  const currentUserEmail = ref('')
   const currentUserRole = ref('')
   const currentAccountName = ref('')
   const permissions = ref([])
@@ -20,6 +22,8 @@ export const useAccountStore = defineStore('account', () => {
 
   const clear = () => {
     currentAccountId.value = ''
+    currentUserId.value = ''
+    currentUserEmail.value = ''
     currentUserRole.value = ''
     currentAccountName.value = ''
     permissions.value = []
@@ -27,8 +31,10 @@ export const useAccountStore = defineStore('account', () => {
     loadError.value = ''
   }
 
-  const setAccountContext = ({ accountId, role, accountName }) => {
+  const setAccountContext = ({ accountId, userId, userEmail, role, accountName }) => {
     currentAccountId.value = accountId || ''
+    currentUserId.value = userId || ''
+    currentUserEmail.value = userEmail || ''
     currentUserRole.value = role || ''
     currentAccountName.value = accountName || ''
   }
@@ -107,6 +113,8 @@ export const useAccountStore = defineStore('account', () => {
 
     setAccountContext({
       accountId: membership.account_id,
+      userId: user.id,
+      userEmail: user.email || '',
       role: membership.role,
       accountName: membership.accounts?.name || ''
     })
@@ -131,6 +139,8 @@ export const useAccountStore = defineStore('account', () => {
 
   return {
     currentAccountId,
+    currentUserId,
+    currentUserEmail,
     currentUserRole,
     currentAccountName,
     permissions,
