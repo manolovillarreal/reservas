@@ -1,5 +1,7 @@
+
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
 import { createClient } from 'jsr:@supabase/supabase-js@2'
+
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -44,6 +46,7 @@ const findAuthUserByEmail = async (
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
+    console.log('invite-user called', req.method);    
     return new Response('ok', { headers: corsHeaders })
   }
 
@@ -51,13 +54,15 @@ serve(async (req) => {
     if (req.method !== 'POST') {
       return Response.json({ message: 'Metodo no permitido.' }, { status: 405, headers: corsHeaders })
     }
-
+     console.log('getting header Authorization...')
     const authorization = req.headers.get('Authorization') || ''
+   
+    console.log('getting env vars...')
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
     const anonKey = Deno.env.get('SUPABASE_ANON_KEY') || ''
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
     const appUrl = (Deno.env.get('APP_URL') || Deno.env.get('VITE_APP_URL') || 'https://inn.tekmi.co').replace(/\/$/, '')
-
+     console.log('env vars ok, supabaseUrl:', supabaseUrl ? 'set' : 'missing')
     const authClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authorization } },
     })
@@ -70,11 +75,12 @@ serve(async (req) => {
     if (authError || !user) {
       return Response.json({ message: 'No autorizado.' }, { status: 401, headers: corsHeaders })
     }
-
+    console.log('parsing body...')
     const body = (await req.json()) as InvitePayload
     const email = normalizeEmail(body?.email)
     const role = normalizeRole(body?.role)
     const accountId = normalizeUuid(body?.account_id)
+    console.log('body parsed', JSON.stringify(body))
 
     if (!email || !role || !accountId) {
       return Response.json({ message: 'email, role y account_id son obligatorios.' }, { status: 400, headers: corsHeaders })
@@ -83,7 +89,7 @@ serve(async (req) => {
     if (!roleLimits[role]) {
       return Response.json({ message: 'Rol inválido.' }, { status: 400, headers: corsHeaders })
     }
-
+    console.log('role validated:', role);    
     const adminClient = createClient(supabaseUrl, serviceRoleKey)
 
     const { data: inviterMembership, error: inviterError } = await adminClient
@@ -93,12 +99,14 @@ serve(async (req) => {
       .eq('user_id', user.id)
       .maybeSingle()
 
+    console.log('inviter membership fetched:', inviterMembership);
+      
     if (inviterError) throw inviterError
 
     if (!inviterMembership || inviterMembership.role !== 'admin') {
       return Response.json({ message: 'Solo un admin puede invitar usuarios.' }, { status: 403, headers: corsHeaders })
     }
-
+    console.log('inviter validated:', inviterMembership);    
     const existingAuthUser = await findAuthUserByEmail(adminClient, email)
 
     if (existingAuthUser) {
@@ -115,6 +123,7 @@ serve(async (req) => {
         return Response.json({ message: 'Ese email ya está asociado a esta cuenta.' }, { status: 409, headers: corsHeaders })
       }
     }
+    console.log('existingAuthUser validated:', existingAuthUser);
 
     const { count: roleCount, error: roleCountError } = await adminClient
       .from('account_users')
@@ -133,6 +142,7 @@ serve(async (req) => {
         { status: 409, headers: corsHeaders },
       )
     }
+    console.log(`role count validated: ${usedSlots} used out of ${maxSlots} for role ${role}`   );
 
     if (existingAuthUser) {
       const membershipPayload = {
@@ -144,7 +154,8 @@ serve(async (req) => {
         status: existingAuthUser.email_confirmed_at ? 'active' : 'pending',
         is_owner: false,
       }
-
+    console.log('membership payload prepared:', membershipPayload   );
+              
       const { error: insertExistingMembershipError } = await adminClient
         .from('account_users')
         .insert(membershipPayload)
@@ -153,20 +164,24 @@ serve(async (req) => {
 
       return Response.json({ success: true, linked: true }, { headers: corsHeaders })
     }
-
+    console.log('inviting new user...');
+    
+     console.log('calling inviteUserByEmail for', email, 'redirectTo:', `${appUrl}/login`)
     const { data: invitedData, error: inviteError } = await adminClient.auth.admin.inviteUserByEmail(email, {
       data: { account_id: accountId, role },
       redirectTo: `${appUrl}/login`,
     })
-
+    console.log('inviteUserByEmail result:', JSON.stringify({ invitedData, inviteError }))
     if (inviteError) {
       return Response.json({ message: inviteError.message }, { status: 400, headers: corsHeaders })
     }
-
+    console.log('user invited:', invitedData);
+    
     const invitedUserId = invitedData?.user?.id
     if (!invitedUserId) {
       return Response.json({ message: 'No se pudo crear la invitación.' }, { status: 500, headers: corsHeaders })
     }
+    console.log('invited user ID:', invitedUserId);
 
     const membershipPayload = {
       account_id: accountId,
@@ -183,6 +198,8 @@ serve(async (req) => {
       .insert(membershipPayload)
 
     if (insertMembershipError) throw insertMembershipError
+
+    console.log('membership inserted:', membershipPayload);
 
     return Response.json({ success: true }, { headers: corsHeaders })
   } catch (error) {
