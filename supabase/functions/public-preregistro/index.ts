@@ -434,7 +434,6 @@ serve(async (req) => {
         if (guestPayload.document_type) updatePayload.document_type = guestPayload.document_type
         if (guestPayload.document_number) {
           updatePayload.document_number = guestPayload.document_number
-          updatePayload.document = guestPayload.document_number
         }
         if (guestPayload.phone) updatePayload.phone = guestPayload.phone
         if (guestPayload.phone_country_code) updatePayload.phone_country_code = guestPayload.phone_country_code
