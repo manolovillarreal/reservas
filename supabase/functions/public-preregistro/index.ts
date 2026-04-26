@@ -308,7 +308,19 @@ serve(async (req) => {
       const primaryRow = rows.find((r) => r.is_primary)
       const companionRows = rows.filter((r) => !r.is_primary)
 
-      const primaryGuest = primaryRow?.guests ?? null
+      // deno-lint-ignore no-explicit-any
+      let primaryGuest: any = primaryRow?.guests ?? null
+
+      // Fallback for reservations that have guest_id but no reservation_guests row yet
+      if (!primaryGuest && reservation.guest_id) {
+        const { data: directGuest } = await adminClient
+          .from('guests')
+          .select('*')
+          .eq('id', reservation.guest_id)
+          .maybeSingle()
+        primaryGuest = directGuest ?? null
+      }
+
       const companions = companionRows.map((r) => r.guests).filter(Boolean)
 
       const companionsExpected = Math.max(0, guestsCount - 1)
