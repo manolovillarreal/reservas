@@ -229,6 +229,12 @@ const router = createRouter({
       meta: { requiresAuth: true }
     },
     {
+      path: '/onboarding',
+      name: 'onboarding',
+      component: () => import('../views/OnboardingView.vue'),
+      meta: { requiresAuth: true, plainLayout: true }
+    },
+    {
       path: '/account-association-error',
       name: 'account-association-error',
       component: () => import('../views/AccountAssociationErrorView.vue'),
@@ -260,7 +266,13 @@ router.beforeEach(async (to) => {
       return { name: 'account-association-error' }
     }
 
-    await sourcesStore.preload(accountStore.currentAccountId)
+    if (accountStore.currentAccountStatus === 'pending' && to.name !== 'onboarding') {
+      return { name: 'onboarding' }
+    }
+
+    if (to.name !== 'onboarding') {
+      await sourcesStore.preload(accountStore.currentAccountId)
+    }
   }
 
   return true

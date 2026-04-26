@@ -14,6 +14,7 @@ export const useAccountStore = defineStore('account', () => {
   const currentUserEmail = ref('')
   const currentUserRole = ref('')
   const currentAccountName = ref('')
+  const currentAccountStatus = ref('active')
   const permissions = ref([])
   const initialized = ref(false)
   const loadError = ref('')
@@ -26,17 +27,24 @@ export const useAccountStore = defineStore('account', () => {
     currentUserEmail.value = ''
     currentUserRole.value = ''
     currentAccountName.value = ''
+    currentAccountStatus.value = 'active'
     permissions.value = []
     initialized.value = false
     loadError.value = ''
   }
 
-  const setAccountContext = ({ accountId, userId, userEmail, role, accountName }) => {
+  const setAccountContext = ({ accountId, userId, userEmail, role, accountName, accountStatus }) => {
     currentAccountId.value = accountId || ''
     currentUserId.value = userId || ''
     currentUserEmail.value = userEmail || ''
     currentUserRole.value = role || ''
     currentAccountName.value = accountName || ''
+    currentAccountStatus.value = accountStatus || 'active'
+  }
+
+  const patchAccountContext = ({ accountName, accountStatus } = {}) => {
+    if (accountName !== undefined) currentAccountName.value = accountName
+    if (accountStatus !== undefined) currentAccountStatus.value = accountStatus
   }
 
   const loadRolePermissions = async (role) => {
@@ -72,7 +80,7 @@ export const useAccountStore = defineStore('account', () => {
 
     const { data: accountUsers, error: membershipError } = await supabase
       .from('account_users')
-      .select('account_id, role, accounts(name)')
+      .select('account_id, role, accounts(name, status)')
       .eq('user_id', user.id)
       .limit(1)
 
@@ -116,7 +124,8 @@ export const useAccountStore = defineStore('account', () => {
       userId: user.id,
       userEmail: user.email || '',
       role: membership.role,
-      accountName: membership.accounts?.name || ''
+      accountName: membership.accounts?.name || '',
+      accountStatus: membership.accounts?.status || 'active'
     })
 
     await loadRolePermissions(membership.role)
@@ -143,12 +152,14 @@ export const useAccountStore = defineStore('account', () => {
     currentUserEmail,
     currentUserRole,
     currentAccountName,
+    currentAccountStatus,
     permissions,
     initialized,
     loadError,
     initializeFromSession,
     hasPermission,
     getRequiredAccountId,
+    patchAccountContext,
     clear
   }
 })
