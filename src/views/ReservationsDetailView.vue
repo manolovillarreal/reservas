@@ -1245,15 +1245,24 @@ const confirmDeleteReservation = async () => {
   deleteReservationError.value = ''
   try {
     const accountId = accountStore.getRequiredAccountId()
+
+    // Hard-delete occupancies first (no soft delete for occupancies)
+    await supabase
+      .from('occupancies')
+      .delete()
+      .eq('account_id', accountId)
+      .eq('reservation_id', res.value.id)
+      .eq('occupancy_type', 'reservation')
+
     const { error } = await supabase
       .from('reservations')
-      .update({ deleted_at: new Date().toISOString() })
+      .update({
+        deleted_at: new Date().toISOString(),
+        deleted_by: accountStore.currentUserId || null,
+      })
       .eq('id', res.value.id)
       .eq('account_id', accountId)
     if (error) throw error
-
-    // Limpiar occupancy (best-effort, igual que al cancelar)
-    try { await syncReservationOccupancy(res.value.id) } catch (e) { /* silencioso */ }
 
     router.push('/reservas')
   } catch (err) {
