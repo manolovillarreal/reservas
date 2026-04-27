@@ -75,7 +75,7 @@
         <div v-if="additionalGuests.length === 0" class="rounded-md border border-dashed border-gray-300 bg-gray-50 px-3 py-3 text-sm text-gray-500">
           No hay acompañantes cargados todavía.
         </div>
-
+ 
         <AppFormSection
           v-for="(guest, index) in additionalGuests"
           :key="`companion-${index}`"
@@ -123,6 +123,7 @@
             <AppInput v-model="guest.birth_date" type="date" label="Fecha de nacimiento" required />
           </AppFormGrid>
         </AppFormSection>
+
       </AppFieldGroup>
 
       <div class="pb-20 sm:pb-0">

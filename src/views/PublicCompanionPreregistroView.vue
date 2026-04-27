@@ -100,7 +100,6 @@
                 <AppCountrySelect
                   v-model="guest.nationality"
                   class="mt-1"
-                  required
                 />
               </div>
               <div>
