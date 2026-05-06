@@ -83,7 +83,7 @@ const upsertGuest = async (guestPayload, accountId) => {
   return data
 }
 
-export const completeReservationPreregistro = async ({ reservationId, guests }) => {
+export const completeReservationPreregistro = async ({ reservationId, guests, estimated_arrival_time, flight_number }) => {
   if (!reservationId) {
     throw new Error('Reserva inválida para completar pre-registro.')
   }
@@ -150,6 +150,8 @@ export const completeReservationPreregistro = async ({ reservationId, guests }) 
     preregistro_completado: true,
     preregistro_completado_at: new Date().toISOString(),
     guest_id: primaryGuest.id,
+    estimated_arrival_time: estimated_arrival_time || null,
+    flight_number: flight_number || null,
   }
 
   const { error: updateError } = await supabase

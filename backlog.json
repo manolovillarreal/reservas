@@ -134,6 +134,7 @@
     { "id": 132, "t": "Dashboard — briefing diario de entradas/salidas (Hoy/Manana) con copia de resumen", "c": "Feature", "s": "d" },
     { "id": 133, "t": "Mensajes de cotización — variable {{url_cotizacion}} disponible en plantillas WhatsApp", "c": "Feature", "s": "d" },
     { "id": 134, "t": "Ruta de contingencia para usuarios autenticados sin cuenta asociada", "c": "Fix", "s": "d" },
-    { "id": 135, "t": "Message settings — guardado retrocompatible cuando falta columna show_quote_url", "c": "Fix", "s": "d" }
+    { "id": 135, "t": "Message settings — guardado retrocompatible cuando falta columna show_quote_url", "c": "Fix", "s": "d" },
+    { "id": 136, "t": "Hora estimada de llegada y número de vuelo en reserva y pre-registro", "c": "Feature", "s": "d" }
   ]
 }

@@ -371,6 +371,15 @@
             No hay acciones disponibles.
           </div>
         </div>
+
+        <div v-if="res.estimated_arrival_time || res.flight_number" class="card">
+          <h2 class="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wider">Informacion de llegada</h2>
+          <div class="space-y-2 text-sm text-gray-700">
+            <p v-if="res.estimated_arrival_time">Hora estimada: <span class="font-medium text-gray-900">{{ formatTime(res.estimated_arrival_time) }}</span></p>
+            <p v-if="res.flight_number">Numero de vuelo: <span class="font-medium text-gray-900">{{ res.flight_number }}</span></p>
+          </div>
+        </div>
+
         <!-- Occupancy sync alert -->
         <div v-if="isSyncMissing" class="card border-amber-100 bg-amber-50/30">
           <h2 class="text-sm font-semibold text-amber-800 mb-2">Ocupación desincronizada</h2>
@@ -648,7 +657,7 @@ import { useToast } from '../composables/useToast'
 import { useBreakpoint } from '../composables/useBreakpoint'
 import { notifyCheckinRealizado } from '../services/notificationService'
 import { getMessageSettings, getPredefinedMessages } from '../services/messageSettingsService'
-import { buildReservationContext, resolveTemplate } from '../utils/messageUtils'
+import { buildReservationContext, resolveTemplate, formatTime } from '../utils/messageUtils'
 import { DEFAULT_PREREGISTRO_TEMPLATE } from '../utils/voucherUtils'
 import { copyTextToClipboard } from '../utils/clipboard'
 import { syncReservationOccupancy } from '../services/reservationService'
@@ -1605,13 +1614,18 @@ const copyPreregistroLink = async () => {
   toast.success('Link copiado al portapapeles')
 }
 
-const handleAdminPreregistroSubmit = async ({ primary_guest, additional_guests }) => {
+const handleAdminPreregistroSubmit = async ({ primary_guest, additional_guests, estimated_arrival_time, flight_number }) => {
   preregistroSubmitting.value = true
   preregistroErrorMessage.value = ''
 
   try {
     const guests = [primary_guest, ...(Array.isArray(additional_guests) ? additional_guests : [])]
-    await completeReservationPreregistro({ reservationId: res.value.id, guests })
+    await completeReservationPreregistro({
+      reservationId: res.value.id,
+      guests,
+      estimated_arrival_time: estimated_arrival_time || null,
+      flight_number: flight_number || null,
+    })
     await fetchReservation()
     showPreregistroModal.value = false
     toast.success('Se ha guardado la información del pre-registro correctamente')

@@ -42,6 +42,23 @@
       </template>
     </AppInlineAlert>
 
+    <!-- ── ARRIVAL INFO ────────────────────────── -->
+    <AppFormSection title="Información de llegada" :divider="true">
+      <AppFormGrid :columns="2">
+        <AppInput
+          v-model="form.estimated_arrival_time"
+          type="time"
+          label="Alrededor de las"
+          hint="Opcional"
+        />
+        <AppInput
+          v-model="form.flight_number"
+          label="Número de vuelo"
+          hint="Opcional"
+        />
+      </AppFormGrid>
+    </AppFormSection>
+
     <!-- ── STEP 1: Fechas ─────────────────────────── -->
     <template v-if="currentStep === 1">
       <p v-if="props.initialCheckIn && props.initialCheckOut" class="text-xs text-gray-400 rounded border border-gray-200 bg-gray-50 px-3 py-2">
@@ -585,6 +602,8 @@ const GUIDED_FORM_DRAFT_KEY = 'guided_form_draft'
 const createInitialFormState = () => ({
   check_in: props.initialCheckIn || '',
   check_out: props.initialCheckOut || '',
+  estimated_arrival_time: '',
+  flight_number: '',
   adults: Number(props.initialPersonas) || 2,
   minors: 0,
   children: 0,
@@ -1329,6 +1348,8 @@ const saveAsReservation = async () => {
       {
         check_in: form.value.check_in,
         check_out: form.value.check_out,
+        estimated_arrival_time: form.value.estimated_arrival_time || null,
+        flight_number: form.value.flight_number?.trim() || null,
         adults: form.value.adults,
         minors: form.value.minors,
         children: form.value.children,
@@ -1411,6 +1432,8 @@ const save = async () => {
         {
           check_in: form.value.check_in,
           check_out: form.value.check_out,
+          estimated_arrival_time: form.value.estimated_arrival_time || null,
+          flight_number: form.value.flight_number?.trim() || null,
           adults: form.value.adults,
           minors: form.value.minors,
           children: form.value.children,
@@ -1471,6 +1494,8 @@ const save = async () => {
       const result = await inquiriesStore.createInquiry({
         check_in: form.value.check_in,
         check_out: form.value.check_out,
+        estimated_arrival_time: form.value.estimated_arrival_time || null,
+        flight_number: form.value.flight_number?.trim() || null,
         adults: form.value.adults,
         minors: form.value.minors,
         children: form.value.children,

@@ -200,7 +200,7 @@ const loadContextFromApi = async () => {
   }
 }
 
-const handleSubmit = async ({ primary_guest, additional_guests }) => {
+const handleSubmit = async ({ primary_guest, additional_guests, estimated_arrival_time, flight_number }) => {
   submitting.value = true
   errorMessage.value = ''
 
@@ -210,7 +210,12 @@ const handleSubmit = async ({ primary_guest, additional_guests }) => {
       {
         method: 'POST',
         headers: { apikey: ANON_KEY, Authorization: `Bearer ${ANON_KEY}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ guest: primary_guest, companions: additional_guests || [] }),
+        body: JSON.stringify({
+          guest: primary_guest,
+          companions: additional_guests || [],
+          estimated_arrival_time: estimated_arrival_time || null,
+          flight_number: flight_number || null,
+        }),
       }
     )
     const data = await res.json()

@@ -54,6 +54,9 @@
               <p class="truncate text-xs text-gray-500">{{ item.unitLabel }}</p>
               <ReservationBadge :status="item.status" class="shrink-0" />
             </div>
+            <p v-if="item.estimatedArrivalLabel || item.flightNumber" class="mt-1 truncate text-xs text-gray-500">
+              {{ item.estimatedArrivalLabel ? `Llega ${item.estimatedArrivalLabel}` : 'Llegada sin hora' }}<span v-if="item.flightNumber"> · Vuelo {{ item.flightNumber }}</span>
+            </p>
           </button>
         </div>
       </div>
@@ -93,6 +96,7 @@ import { supabase } from '../../services/supabase'
 import { useAccountStore } from '../../stores/account'
 import { useToast } from '../../composables/useToast'
 import ReservationBadge from '../ui/ReservationBadge.vue'
+import { formatTime } from '../../utils/messageUtils'
 
 const router = useRouter()
 const accountStore = useAccountStore()
@@ -141,6 +145,13 @@ const buildVenueLines = (items = []) => {
   return lines.length ? lines.slice(0, -1) : ['Sin registros']
 }
 
+const buildArrivalSummary = (item) => {
+  const parts = []
+  if (item.estimatedArrivalLabel) parts.push(`hora ${item.estimatedArrivalLabel}`)
+  if (item.flightNumber) parts.push(`vuelo ${item.flightNumber}`)
+  return parts.length ? ` (${parts.join(' · ')})` : ''
+}
+
 const buildCopyText = () => {
   return [
     '➡️Salidas /',
@@ -150,7 +161,9 @@ const buildCopyText = () => {
     '',
     '➡️Entradas /',
     '',
-    ...buildVenueLines(currentEntradas.value)
+    ...buildVenueLines(currentEntradas.value),
+    '',
+    ...currentEntradas.value.map((item) => `${item.guestName} - ${item.unitLabel || 'Sin asignar'}${buildArrivalSummary(item)}`)
   ].join('\n')
 }
 
@@ -183,7 +196,7 @@ onMounted(async () => {
 
     const { data, error } = await supabase
       .from('occupancies')
-      .select('reservation_id, units(name, venues(name)), reservations!inner(id, status, check_in, check_out, guests!reservations_guest_id_fkey(first_name, last_name))')
+      .select('reservation_id, units(name, venues(name)), reservations!inner(id, status, check_in, check_out, estimated_arrival_time, flight_number, guests!reservations_guest_id_fkey(first_name, last_name))')
       .eq('account_id', accountId)
       .eq('occupancy_type', 'reservation')
       .or(orFilter)
@@ -202,6 +215,8 @@ onMounted(async () => {
           status: res.status || '',
           checkIn: res.check_in ? String(res.check_in).slice(0, 10) : '',
           checkOut: res.check_out ? String(res.check_out).slice(0, 10) : '',
+          estimatedArrivalLabel: formatTime(res.estimated_arrival_time) || null,
+          flightNumber: res.flight_number || null,
           unitNames: [],
           unitEntries: [],
         })

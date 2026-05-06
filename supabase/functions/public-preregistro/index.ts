@@ -71,7 +71,7 @@ const getReservationByToken = async (client: ReturnType<typeof createClient>, to
 
   const { data, error } = await client
     .from('reservations')
-    .select('id, account_id, status, check_in, check_out, adults, children, guest_id, preregistro_completado, preregistro_completado_at, preregistro_token_expiry')
+    .select('id, account_id, status, check_in, check_out, adults, children, guest_id, preregistro_completado, preregistro_completado_at, preregistro_token_expiry, estimated_arrival_time, flight_number')
     .eq('preregistro_token', tokenHash)
     .maybeSingle()
 
@@ -352,6 +352,8 @@ serve(async (req) => {
               guests_count: guestsCount,
               status: reservation.status,
               preregistro_completado: reservation.preregistro_completado,
+              estimated_arrival_time: reservation.estimated_arrival_time,
+              flight_number: reservation.flight_number,
             },
             guest: primaryGuest,
             companions,
@@ -417,6 +419,8 @@ serve(async (req) => {
       const body = await req.json()
       const guestInput = (body?.guest || {}) as GuestInput
       const companionsInput = Array.isArray(body?.companions) ? (body.companions as GuestInput[]) : []
+      const estimatedArrivalTime = normalizeValue(body?.estimated_arrival_time)
+      const flightNumber = normalizeValue(body?.flight_number)?.toUpperCase() || null
 
       const reservation = await getReservationByToken(adminClient, token)
 
@@ -545,6 +549,8 @@ serve(async (req) => {
           guest_id: primaryGuestId,
           preregistro_completado: true,
           preregistro_completado_at: new Date().toISOString(),
+          estimated_arrival_time: estimatedArrivalTime,
+          flight_number: flightNumber,
         })
         .eq('account_id', accountId)
         .eq('id', reservation.id)

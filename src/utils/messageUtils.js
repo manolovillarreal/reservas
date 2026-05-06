@@ -53,6 +53,19 @@ const countNights = (checkIn, checkOut) => {
   return diff > 0 ? Math.ceil(diff) : 0
 }
 
+export const formatTime = (value) => {
+  if (!value) return null
+  const timeStr = String(value || '').trim()
+  if (!timeStr) return null
+  const [hours, minutes] = timeStr.split(':').slice(0, 2)
+  const h = parseInt(hours, 10)
+  const m = parseInt(minutes, 10)
+  if (isNaN(h) || isNaN(m)) return null
+  return new Intl.DateTimeFormat('es-CO', { hour: '2-digit', minute: '2-digit', hour12: true }).format(
+    new Date(2000, 0, 1, h, m)
+  )
+}
+
 const resolveGuestData = (record = {}) => {
   const firstName = String(record?.guests?.first_name || record?.guest_first_name || '').trim()
   const lastName = String(record?.guests?.last_name || record?.guest_last_name || '').trim()
@@ -275,6 +288,8 @@ export const buildReservationContext = ({
     politica_reserva: politicaReserva || null,
     hora_checkin: horaCheckin,
     hora_checkout: horaCheckout,
+    hora_llegada: formatTime(record?.estimated_arrival_time) || null,
+    numero_vuelo: record?.flight_number || null,
     link_preregistro: record?.preregistro_token_raw || record?.preregistro_token
       ? buildPublicPreregistroUrl(record?.preregistro_token_raw || record?.preregistro_token)
       : null,
@@ -535,6 +550,8 @@ export const VARIABLE_CATALOG = {
     checkin: [
       { key: 'hora_checkin', label: 'Hora check-in', ejemplo: '3:00 PM' },
       { key: 'hora_checkout', label: 'Hora check-out', ejemplo: '12:00 PM' },
+      { key: 'hora_llegada', label: 'Hora estimada de llegada', ejemplo: '3:00 PM' },
+      { key: 'numero_vuelo', label: 'Número de vuelo', ejemplo: 'AA1234' },
       { key: 'condiciones', label: 'Condiciones', ejemplo: 'No mascotas. No fiestas.' },
     ],
     preregistro: [

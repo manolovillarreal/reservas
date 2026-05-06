@@ -19,6 +19,22 @@
         :message="validationMessage"
       />
 
+      <AppFormSection title="Información de llegada" :divider="true">
+        <AppFormGrid :columns="2">
+          <AppInput
+            v-model="arrivalInfo.estimated_arrival_time"
+            type="time"
+            label="Alrededor de las"
+            hint="Opcional"
+          />
+          <AppInput
+            v-model="arrivalInfo.flight_number"
+            label="Número de vuelo"
+            hint="Esta información nos permite anticipar posibles retrasos y estar listos para recibirte en el mejor momento."
+          />
+        </AppFormGrid>
+      </AppFormSection>
+
       <AppFormSection title="Huésped principal" :divider="true" :collapsible="true" :defaultOpen="true">
         <AppInput v-model="primaryGuest.first_name" label="Nombres" required />
         <AppInput v-model="primaryGuest.last_name" label="Apellidos" />
@@ -182,6 +198,10 @@ const buildGuest = () => ({
 const primaryGuest = reactive(buildGuest())
 const additionalGuests = reactive([])
 const submitAttempted = ref(false)
+const arrivalInfo = reactive({
+  estimated_arrival_time: '',
+  flight_number: '',
+})
 
 const normalizedGuestsCount = computed(() => {
   const count = Number(props.guestsCount || 1)
@@ -236,6 +256,12 @@ const resetGuests = () => {
   additionalGuests.splice(0, additionalGuests.length)
   const seedGuests = Array.isArray(props.initialAdditionalGuests) ? props.initialAdditionalGuests : []
   seedGuests.forEach((guest) => additionalGuests.push({ ...buildGuest(), ...guest }))
+
+  // Precache arrival information from reservation
+  if (props.reservation) {
+    arrivalInfo.estimated_arrival_time = props.reservation.estimated_arrival_time || ''
+    arrivalInfo.flight_number = props.reservation.flight_number || ''
+  }
 }
 
 watch(
@@ -244,6 +270,16 @@ watch(
     resetGuests()
   },
   { immediate: true, deep: true }
+)
+
+watch(
+  () => arrivalInfo.flight_number,
+  (value) => {
+    const normalized = String(value || '').toUpperCase()
+    if (normalized !== value) {
+      arrivalInfo.flight_number = normalized
+    }
+  }
 )
 
 const addCompanion = () => {
@@ -274,6 +310,8 @@ const submitForm = () => {
   emit('submitted', {
     primary_guest: trimGuest({ ...primaryGuest }),
     additional_guests: additionalGuests.map((guest) => trimGuest({ ...guest })),
+    estimated_arrival_time: arrivalInfo.estimated_arrival_time || null,
+    flight_number: arrivalInfo.flight_number?.trim().toUpperCase() || null,
   })
 }
 
