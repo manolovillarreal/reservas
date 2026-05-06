@@ -127,6 +127,13 @@
     { "id": 125, "t": "Soporte offline — caché de datos y detección de conexión", "c": "Infraestructura", "s": "d" },
     { "id": 126, "t": "URLs públicas limpias — cotización, pre-registro y acompañantes en inn.tekmi.co", "c": "Fix", "s": "d" },
     { "id": 127, "t": "Gestión de usuarios — invitación, roles, límites por cuenta", "c": "Feature", "s": "d" },
-    { "id": 128, "t": "Pre-registro — bugs fix, límites acompañantes, edición 12h, OG tags acompañantes", "c": "Fix", "s": "d" }
+    { "id": 128, "t": "Pre-registro — bugs fix, límites acompañantes, edición 12h, OG tags acompañantes", "c": "Fix", "s": "d" },
+    { "id": 129, "t": "Gestión de bloqueos de ocupación — crear, editar, eliminar y filtrar por sede/unidad", "c": "Feature", "s": "d" },
+    { "id": 130, "t": "Onboarding inicial de cuenta — activación de alojamiento y perfil al primer ingreso", "c": "Feature", "s": "d" },
+    { "id": 131, "t": "Reglas operativas — toggles para check-in/check-out sin pre-registro y fechas pasadas", "c": "Feature", "s": "d" },
+    { "id": 132, "t": "Dashboard — briefing diario de entradas/salidas (Hoy/Manana) con copia de resumen", "c": "Feature", "s": "d" },
+    { "id": 133, "t": "Mensajes de cotización — variable {{url_cotizacion}} disponible en plantillas WhatsApp", "c": "Feature", "s": "d" },
+    { "id": 134, "t": "Ruta de contingencia para usuarios autenticados sin cuenta asociada", "c": "Fix", "s": "d" },
+    { "id": 135, "t": "Message settings — guardado retrocompatible cuando falta columna show_quote_url", "c": "Fix", "s": "d" }
   ]
 }
