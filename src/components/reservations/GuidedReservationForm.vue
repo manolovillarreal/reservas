@@ -42,23 +42,6 @@
       </template>
     </AppInlineAlert>
 
-    <!-- ── ARRIVAL INFO ────────────────────────── -->
-    <AppFormSection title="Información de llegada" :divider="true">
-      <AppFormGrid :columns="2">
-        <AppInput
-          v-model="form.estimated_arrival_time"
-          type="time"
-          label="Alrededor de las"
-          hint="Opcional"
-        />
-        <AppInput
-          v-model="form.flight_number"
-          label="Número de vuelo"
-          hint="Opcional"
-        />
-      </AppFormGrid>
-    </AppFormSection>
-
     <!-- ── STEP 1: Fechas ─────────────────────────── -->
     <template v-if="currentStep === 1">
       <p v-if="props.initialCheckIn && props.initialCheckOut" class="text-xs text-gray-400 rounded border border-gray-200 bg-gray-50 px-3 py-2">
@@ -203,10 +186,9 @@
               <AppInput
                 v-model="form.guest_first_name"
                 label="Nombres"
-                required
                 :disabled="!!form.guest_id"
                 hint="Escribe para buscar huéspedes existentes"
-                :error="s3Touched.guest_first_name && !form.guest_first_name?.trim() ? 'El nombre es obligatorio.' : ''"
+                :error="s3Touched.guest_first_name && !form.guest_first_name?.trim() ? 'Requerido al guardar como reserva.' : ''"
                 @focus="guestSearchOpen = true"
                 @blur="() => { s3Touched.guest_first_name = true; setTimeout(() => { guestSearchOpen = false }, 200) }"
               />
@@ -602,8 +584,6 @@ const GUIDED_FORM_DRAFT_KEY = 'guided_form_draft'
 const createInitialFormState = () => ({
   check_in: props.initialCheckIn || '',
   check_out: props.initialCheckOut || '',
-  estimated_arrival_time: '',
-  flight_number: '',
   adults: Number(props.initialPersonas) || 2,
   minors: 0,
   children: 0,
@@ -729,7 +709,7 @@ const step1DateRange = computed({
 })
 
 const canProceedStep3 = computed(() =>
-  !!form.value.guest_first_name?.trim() && !!form.value.guest_phone?.trim()
+  !!form.value.guest_phone?.trim()
 )
 
 const sourceRequired = computed(() => !form.value.source_detail_id)
@@ -1307,6 +1287,12 @@ const saveAsReservation = async () => {
     return
   }
 
+  if (!form.value.guest_first_name?.trim()) {
+    saveAsReservationError.value = 'El nombre del huésped es obligatorio para guardar como reserva.'
+    s3Touched.value.guest_first_name = true
+    return
+  }
+
   if (!form.value.unit_ids.length || !form.value.price_per_night) {
     saveAsReservationError.value = 'Para guardar como reserva sin pago debes seleccionar una unidad y un precio por noche.'
     return
@@ -1348,8 +1334,6 @@ const saveAsReservation = async () => {
       {
         check_in: form.value.check_in,
         check_out: form.value.check_out,
-        estimated_arrival_time: form.value.estimated_arrival_time || null,
-        flight_number: form.value.flight_number?.trim() || null,
         adults: form.value.adults,
         minors: form.value.minors,
         children: form.value.children,
@@ -1394,6 +1378,13 @@ const save = async () => {
 
   if (reservationValidationError.value) return
 
+  // Nombre obligatorio al guardar como reserva (con o sin pago)
+  if ((hasPayment.value || saveAsReservationCheck.value) && !form.value.guest_first_name?.trim()) {
+    submitError.value = 'El nombre del huésped es obligatorio para crear una reserva.'
+    s3Touched.value.guest_first_name = true
+    return
+  }
+
   saving.value = true
   try {
     if (hasPayment.value) {
@@ -1432,8 +1423,6 @@ const save = async () => {
         {
           check_in: form.value.check_in,
           check_out: form.value.check_out,
-          estimated_arrival_time: form.value.estimated_arrival_time || null,
-          flight_number: form.value.flight_number?.trim() || null,
           adults: form.value.adults,
           minors: form.value.minors,
           children: form.value.children,
@@ -1494,8 +1483,6 @@ const save = async () => {
       const result = await inquiriesStore.createInquiry({
         check_in: form.value.check_in,
         check_out: form.value.check_out,
-        estimated_arrival_time: form.value.estimated_arrival_time || null,
-        flight_number: form.value.flight_number?.trim() || null,
         adults: form.value.adults,
         minors: form.value.minors,
         children: form.value.children,

@@ -37,15 +37,52 @@
       </div>
 
       <!-- "¿Cuál?" input for is_other channels -->
-      <div v-if="showOtherInput">
-        <label class="mb-1 block text-xs font-medium text-gray-700">¿Cuál?</label>
-        <input
-          v-model="otherName"
-          type="text"
-          class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30"
-          placeholder="Escribe el canal específico"
-          @input="emitWithOtherName"
-        >
+      <div v-if="showOtherInput" class="space-y-2">
+        <div>
+          <label class="mb-1 block text-xs font-medium text-gray-700">¿Cuál?</label>
+          <input
+            v-model="otherName"
+            type="text"
+            class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30"
+            placeholder="Escribe el canal específico"
+            @input="emitWithOtherName"
+          >
+        </div>
+
+        <!-- Commission % field -->
+        <div>
+          <label class="mb-1 block text-xs font-medium text-gray-700">% Comisión</label>
+          <input
+            v-model.number="otherCommission"
+            type="number"
+            min="0"
+            max="100"
+            step="0.5"
+            class="w-32 rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30"
+            placeholder="0"
+            @input="emitWithOtherName"
+          >
+        </div>
+
+        <!-- Save as new channel -->
+        <div class="flex items-center gap-2">
+          <label class="flex cursor-pointer items-center gap-2 text-sm text-gray-700">
+            <input v-model="saveAsNew" type="checkbox" class="h-4 w-4 accent-primary rounded" />
+            Guardar como nuevo canal
+          </label>
+        </div>
+
+        <div v-if="saveAsNew" class="flex items-center gap-2">
+          <button
+            type="button"
+            :disabled="!otherName.trim() || savingNew"
+            class="rounded-md border border-primary bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary transition hover:bg-primary/20 disabled:opacity-40"
+            @click="saveNewChannel"
+          >
+            {{ savingNew ? 'Guardando…' : 'Guardar canal' }}
+          </button>
+          <span v-if="saveNewError" class="text-xs text-red-600">{{ saveNewError }}</span>
+        </div>
       </div>
     </template>
   </div>
@@ -54,7 +91,7 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
 import { useAccountStore } from '../../stores/account'
-import { getSystemSourceDetails } from '../../services/sourceService'
+import { getSystemSourceDetails, createSourceDetail } from '../../services/sourceService'
 
 const props = defineProps({
   modelValue: {
@@ -74,12 +111,20 @@ const loading = ref(true)
 const groups = ref([])
 const selectedTypeName = ref('')
 const otherName = ref('')
+const otherCommission = ref(0)
+const saveAsNew = ref(false)
+const savingNew = ref(false)
+const saveNewError = ref('')
 
 const selectedGroup = computed(() => groups.value.find((g) => g.type?.name === selectedTypeName.value) || null)
 
 const activeDetails = computed(() => {
   if (!selectedGroup.value) return []
-  return selectedGroup.value.details.filter((d) => d.is_active)
+  const details = selectedGroup.value.details.filter((d) => d.is_active)
+  return [...details].sort((a, b) => {
+    if (a.is_other === b.is_other) return 0
+    return a.is_other ? 1 : -1
+  })
 })
 
 const selectedDetail = computed(() => {
@@ -130,6 +175,9 @@ const syncTypeFromDetail = () => {
 const selectType = (group) => {
   selectedTypeName.value = group.type?.name || ''
   otherName.value = ''
+  otherCommission.value = 0
+  saveAsNew.value = false
+  saveNewError.value = ''
   emit('update:modelValue', {
     sourceTypeId: group.type?.id || '',
     sourceDetailId: '',
@@ -139,6 +187,11 @@ const selectType = (group) => {
 
 const pickDetail = (detail) => {
   otherName.value = detail.is_other ? (props.modelValue?.sourceName || '') : ''
+  if (!detail.is_other) {
+    otherCommission.value = 0
+    saveAsNew.value = false
+    saveNewError.value = ''
+  }
   emit('update:modelValue', {
     sourceTypeId: selectedGroup.value?.type?.id || '',
     sourceDetailId: detail.id,
@@ -161,6 +214,47 @@ const emitWithOtherName = () => {
     sourceDetailId: props.modelValue?.sourceDetailId || '',
     sourceName: otherName.value,
   })
+}
+
+const saveNewChannel = async () => {
+  if (!otherName.value.trim()) return
+  const accountId = accountStore.currentAccountId
+  if (!accountId) return
+  savingNew.value = true
+  saveNewError.value = ''
+  try {
+    const created = await createSourceDetail(accountId, {
+      source_type_id: selectedGroup.value?.type?.id || '',
+      label_es: otherName.value.trim(),
+      suggested_commission_percentage: Number(otherCommission.value || 0),
+    })
+    // Add the new detail to the local group so the grid shows it
+    const group = groups.value.find((g) => g.type?.id === selectedGroup.value?.type?.id)
+    if (group) {
+      group.details.push(created)
+    }
+    // Select the new channel
+    emit('update:modelValue', {
+      sourceTypeId: selectedGroup.value?.type?.id || '',
+      sourceDetailId: created.id,
+      sourceName: '',
+    })
+    if (props.showSuggestions) {
+      emit('suggestions', {
+        commissionPercentage: Number(created.suggested_commission_percentage ?? 0),
+        discountPercentage: Number(created.suggested_discount_percentage ?? 0),
+        sourceDetailLabel: created.label_es,
+        sourceDetailName: created.name,
+      })
+    }
+    saveAsNew.value = false
+    otherName.value = ''
+    otherCommission.value = 0
+  } catch (err) {
+    saveNewError.value = err.message || 'Error al guardar el canal.'
+  } finally {
+    savingNew.value = false
+  }
 }
 
 watch(
